@@ -18,6 +18,7 @@ module.exports = function(yargs) {
 
   var dirs = {
       dot:        help.createDirectory(workingDir, '.fancy')
+    , fancy:      help.createDirectory(workingDir, '.fancy/fancy')
     , db:         help.createDirectory(workingDir, '.fancy/db')
     , http:       help.createDirectory(workingDir, '.fancy/http')
     , content:    help.createDirectory(workingDir, 'www/data/content')
@@ -28,7 +29,8 @@ module.exports = function(yargs) {
     , dist:       help.createDirectory(workingDir, 'dist')
   };
 
-  // help.createFile(workingDir, 'package.json', help.packageJson);
+  var pkg = require('../../templates/package.json');
+  help.createFile(workingDir, 'package.json', JSON.stringify(pkg, null, '  '));
 
   var asyncTasks = [];
 
@@ -50,7 +52,4 @@ module.exports = function(yargs) {
     console.log('Done.');
   });
 
-  // TODO: install deps
-
-  // TODO: start server
 }

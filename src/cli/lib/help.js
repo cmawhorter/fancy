@@ -13,17 +13,22 @@ module.exports = {
 
   getWorkingDirectory: function(targ) {
     targ = targ || '.';
-    var workingDir = '.' === targ ? process.cwd() : targ;
+    var workingDir = path.resolve('.' === targ ? process.cwd() : targ);
+    console.log('workingDir', workingDir);
+    if (!fs.existsSync(targ)) {
+      mkdirp.sync(workingDir);
+    }
+
     if (this.isDirectory(workingDir)) {
       return workingDir;
     }
     else {
-      throw new Error('Invalid working directory');
+      throw new Error('Invalid working directory: ' + targ);
     }
   },
 
   isDirectory: function(targ) {
-    return fs.existsSync(targ) && fs.lstatSync(targ);
+    return fs.lstatSync(targ).isDirectory();
   },
 
   createFile: function(dir, targ, contents) {

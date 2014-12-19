@@ -3,11 +3,14 @@
   "name": "MyFancyWebsite",
   "version": "1.0.0",
   "description": "Created with fancy",
-  "main": ".fancy/http/app.js",
+  "main": ".fancy/fancy/server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
   "dependencies": {
+  },
+  "fancy": {
+
   }
 }
