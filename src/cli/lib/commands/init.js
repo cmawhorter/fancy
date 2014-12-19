@@ -18,14 +18,14 @@ module.exports = function(yargs) {
 
   var dirs = {
       dot:        help.createDirectory(workingDir, '.fancy')
-    , fancy:      help.createDirectory(workingDir, '.fancy/fancy')
     , db:         help.createDirectory(workingDir, '.fancy/db')
     , http:       help.createDirectory(workingDir, '.fancy/http')
     , content:    help.createDirectory(workingDir, 'www/data/content')
     , resources:  help.createDirectory(workingDir, 'www/data/resources')
     , assets:     help.createDirectory(workingDir, 'www/data/assets')
     , themes:     help.createDirectory(workingDir, 'www/themes')
-    , handlers:   help.createDirectory(workingDir, 'www/handlers')
+    , handlers:   help.createDirectory(workingDir, 'handlers')
+    , plugins:    help.createDirectory(workingDir, 'plugins')
     , dist:       help.createDirectory(workingDir, 'dist')
   };
 
@@ -52,4 +52,4 @@ module.exports = function(yargs) {
     console.log('Done.');
   });
 
-}
+};

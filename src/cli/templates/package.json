@@ -11,6 +11,6 @@
   "dependencies": {
   },
   "fancy": {
-
+    "theme": "blah"
   }
 }
