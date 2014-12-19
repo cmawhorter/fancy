@@ -31,3 +31,5 @@ node_modules
 .lock-wscript
 
 build
+src/cli/test
+src/fancy/test
