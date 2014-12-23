@@ -2,6 +2,7 @@ var fs = require('fs')
   , path = require('path');
 
 var express = require('express')
+  , glob = require('glob')
   , yaml = require('js-yaml')
   , cheerio = require('cheerio');
 
@@ -12,11 +13,7 @@ models = {};
 pages = {};
 
 
-[
-    './www/data/content/article1.html'
-  , './www/data/content/article2.html'
-  , './www/data/content/article3.html'
-].forEach(function(f) {
+glob.sync('**/*.html').forEach(function(f) {
   $ = cheerio.load(fs.readFileSync(path.join(process.cwd(), f)));
 
   var props = {}
@@ -130,13 +127,19 @@ fancy = {
 
 var router = express.Router();
 router.get('*', function(req, res) {
-  var page = pages[req.url] || {};
-  res.render('layouts/primary', {
-      title: 'Express'
-    , fancy: fancy
-    , site: site || {}
+  console.log('Looking up page for ' + req.url);
+  var page = pages[req.url]
+    , layout = 'primary';
+
+  if (page) {
+    layout = page.layout;
+  }
+
+  res.render('layouts/' + layout, {
+      fancy: fancy
     , models: models
-    , page: page
+    , site: site || {}
+    , page: page || {}
   });
 });
 
