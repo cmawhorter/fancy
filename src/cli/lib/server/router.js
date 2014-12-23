@@ -9,6 +9,7 @@ var db, fancy, models, site, $;
 
 // TODO: passed in from fancy
 models = {};
+pages = {};
 
 
 [
@@ -57,6 +58,8 @@ models = {};
   // });
 
   props.body = $('body').html();
+
+  pages[props.url] = props;
 
   var model = $('meta[name="model"]').attr('content');
   if (model) {
@@ -127,12 +130,13 @@ fancy = {
 
 var router = express.Router();
 router.get('*', function(req, res) {
-  res.render('layouts/list', {
+  var page = pages[req.url] || {};
+  res.render('layouts/primary', {
       title: 'Express'
     , fancy: fancy
     , site: site || {}
     , models: models
-    , page: {}
+    , page: page
   });
 });
 
