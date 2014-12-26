@@ -188,7 +188,7 @@ router.get('*', function(req, res, next) {
 
   res.render('layouts/' + layout, {
       fancy: fancy
-    , models: models
+    , models: models || {}
     , site: site || {}
     , page: page || {}
     , relationships: relationships || {}
