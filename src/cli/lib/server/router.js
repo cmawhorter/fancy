@@ -210,7 +210,7 @@ module.exports = function(workingDir) {
     page.relative = function(mergeVals) {
       if (!page.urlTemplate) return page.url;
 
-      var templateValues = Object.create(page);
+      var templateValues = Object.create(page.params);
       for (var k in mergeVals) {
         templateValues[k] = mergeVals[k];
       }
