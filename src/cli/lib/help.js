@@ -19,12 +19,12 @@ module.exports = {
       mkdirp.sync(workingDir);
     }
 
-    if (this.isDirectory(workingDir)) {
+    // if (this.isDirectory(workingDir)) {
       return workingDir;
-    }
-    else {
-      throw new Error('Invalid working directory: ' + targ);
-    }
+    // }
+    // else { // FIXME: throws error for symlink
+    //   throw new Error('Invalid working directory: ' + targ);
+    // }
   },
 
   isDirectory: function(targ) {
