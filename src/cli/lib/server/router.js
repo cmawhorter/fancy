@@ -10,8 +10,6 @@ var express = require('express')
   , uriTemplates = require('uri-templates')
   , urlPattern = require('url-pattern');
 
-var URITemplate = require('URIjs/src/URITemplate');
-
 module.exports = function(workingDir) {
   var db, fancy, plugins, resources, site, relationships, $;
 
