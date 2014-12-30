@@ -3,7 +3,6 @@ var async = require('async')
 
 var server = require('./server/index.js')
   , db = require('./db/index.js')
-  , handler = require('./handlers/index.js')
   , parser = require('./parsers/index.js');
 
 function Fancy(options, callback) {
@@ -103,7 +102,6 @@ Fancy.prototype.getPage = function(url) {
 
 Fancy.server = server;
 Fancy.db = db;
-Fancy.handler = handler;
 Fancy.parser = parser;
 
 module.exports = function(options, callback) {

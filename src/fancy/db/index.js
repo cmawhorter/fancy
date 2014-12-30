@@ -28,7 +28,7 @@ function FancyDb(cwd, callback) {
 FancyDb.prototype._init = function(callback) {
   var _this = this;
 
-  gaze(_this.cwd, function(err, watcher) {
+  gaze('**/*.html', { cwd: _this.cwd }, function(err, watcher) {
     if (err) {
       return callback(err);
     }
@@ -50,7 +50,8 @@ FancyDb.prototype._init = function(callback) {
 
     // FIXME: reload row instead of entire dataset
     watcher.on('all', function(event, filepath) {
-      _this.sync(callback);
+      console.log('files changed; triggering sync. ', event);
+      _this.sync();
     });
 
     _this.sync(callback);
