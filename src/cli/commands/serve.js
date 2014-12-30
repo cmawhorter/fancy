@@ -1,6 +1,6 @@
 var debug = require('debug')('http');
 
-var help = require('../help');
+var help = require('../../utils/help');
 
 module.exports = function(yargs) {
   var argv = yargs.argv;

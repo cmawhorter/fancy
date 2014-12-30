@@ -10,6 +10,8 @@ var express = require('express')
   , uriTemplates = require('uri-templates')
   , urlPattern = require('url-pattern');
 
+var help = require('../help');
+
 module.exports = function(workingDir) {
   var db, fancy, plugins, resources, site, relationships, $;
 
@@ -37,11 +39,10 @@ module.exports = function(workingDir) {
       var plugin = raw.replace(/\.[\w\d]+$/, '').trim();
       plugins[plugin] = require(path.join(workingDir, 'plugins/' + raw));
     }
-  })
+  });
 
-  var arrayKeys = [ 'keywords' ];
-  glob.sync('**/*.html', { cwd: workingDir }).forEach(function(f) {
-    $ = cheerio.load(fs.readFileSync(path.join(workingDir, f)));
+  function parseHtmlFileToPage(targ) {
+    $ = cheerio.load(targ);
 
     var props = {}
       , output = [];
@@ -107,6 +108,21 @@ module.exports = function(workingDir) {
     if (resource) {
       if (!resources[resource]) resources[resource] = {};
       resources[resource][props.route] = props;
+    }
+  }
+}
+
+  var arrayKeys = [ 'keywords' ];
+  glob.sync('**/*.html', { cwd: workingDir }).forEach(function(f) {
+    var targ = fs.readFileSync(path.join(workingDir, f));
+    if (help.isDirectory(targ)) {
+
+    }
+    else if (!/\.html.*\.html$/i.test(targ)) { // path exists underneath a directory page, don't process
+
+    }
+    else {
+      // path is processed as directory or elsewhere
     }
   });
 
