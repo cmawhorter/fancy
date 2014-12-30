@@ -4,6 +4,8 @@ var logger = require('morgan');
 
 var express = require('express');
 
+// FIXME: callback -> ready event
+
 // this is sync but let's keep the async signature the rest have
 module.exports = function(fancy, callback) {
   var app = express();

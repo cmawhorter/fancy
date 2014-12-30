@@ -3,8 +3,7 @@ var async = require('async');
 var server = require('./server/index.js')
   , db = require('./db/index.js')
   , handler = require('./handlers/index.js')
-  , parser = require('./parsers/index.js')
-  , Page = require('./objects/page.js');
+  , parser = require('./parsers/index.js');
 
 function Fancy(options, callback) {
   if (typeof options === 'function') {
@@ -32,7 +31,7 @@ function Fancy(options, callback) {
     }
   }
 
-  this._init(callback);
+  this._init(callback.bind(this));
 }
 
 Fancy.prototype._init = function(callback) {
@@ -70,23 +69,21 @@ Fancy.prototype.start = function(callback) {
       return callback(err);
     }
     _this.server.set('port', _this.options.port);
-    _this.server.listen(_this.server.get('port'), function() {
-      callback(null);
+    var www;
+    www = _this.server.listen(_this.server.get('port'), function() {
+      callback(null, www);
     });
   });
 };
 
 Fancy.prototype.reloadContent = function(callback) {
-
+  callback();
 };
 
 Fancy.server = server;
 Fancy.db = db;
 Fancy.handler = handler;
 Fancy.parser = parser;
-Fancy.objects = {
-  Page: Page
-};
 
 module.exports = function(options, callback) {
   if (0 === arguments.length) {

@@ -1,6 +1,7 @@
 var debug = require('debug')('http');
 
-var help = require('../../utils/help');
+var fancy = require('../../fancy/index')
+  , help = require('../../utils/help');
 
 module.exports = function(yargs) {
   var argv = yargs.argv;
@@ -25,16 +26,14 @@ module.exports = function(yargs) {
     break;
   }
 
-  var workingDir = help.getWorkingDirectory(dir);
-  // console.log('workingDir', workingDir, 'port', port, 'dir', dir); process.exit();
+  var cwd = help.getWorkingDirectory(dir);
+  // console.log('cwd', cwd, 'port', port, 'dir', dir); process.exit();
 
-  var app = require('../server/app')(workingDir);
-
-  console.log('Port set to: ' + port);
-  app.set('port', port);
-
-  var server = app.listen(app.get('port'), function() {
-    console.log('Express server listening on port ' + server.address().port);
+  fancy(function(err) {
+    if (err) throw err;
+    this.start(function(err, server) {
+      if (err) throw err;
+      console.log('Express server listening on port ' + server.address().port);
+    });
   });
-
 };

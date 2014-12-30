@@ -10,9 +10,9 @@ var express = require('express')
   , uriTemplates = require('uri-templates')
   , urlPattern = require('url-pattern');
 
-var help = require('../help');
+var help = require('../../utils/help');
 
-module.exports = function(workingDir) {
+module.exports = function(cwd) {
   var db, fancy, plugins, resources, site, relationships, $;
 
   // TODO: passed in from fancy
@@ -23,7 +23,7 @@ module.exports = function(workingDir) {
 
   try {
     // TODO: iterate over settings files and and load them into keys based on their file name.  e.g. site.yml loads to { site: yml contents } -- with care taken for reserved
-    site = yaml.load(fs.readFileSync(path.join(workingDir, './data/settings/site.yml'), 'utf8'));
+    site = yaml.load(fs.readFileSync(path.join(cwd, './data/settings/site.yml'), 'utf8'));
   } catch (err) {
     console.error(err);
   }
@@ -34,10 +34,10 @@ module.exports = function(workingDir) {
     plugins[plugin] = require(plugin);
   });
 
-  fs.readdirSync(path.join(workingDir, 'plugins')).forEach(function(raw) {
+  fs.readdirSync(path.join(cwd, 'plugins')).forEach(function(raw) {
     if (/\.js$/.test(raw)) {
       var plugin = raw.replace(/\.[\w\d]+$/, '').trim();
-      plugins[plugin] = require(path.join(workingDir, 'plugins/' + raw));
+      plugins[plugin] = require(path.join(cwd, 'plugins/' + raw));
     }
   });
 
@@ -110,11 +110,12 @@ module.exports = function(workingDir) {
       resources[resource][props.route] = props;
     }
   }
-}
+
 
   var arrayKeys = [ 'keywords' ];
-  glob.sync('**/*.html', { cwd: workingDir }).forEach(function(f) {
-    var targ = fs.readFileSync(path.join(workingDir, f));
+  glob.sync('**/*.html', { cwd: cwd }).forEach(function(f) {
+    var targ = path.join(cwd, f);
+    // fs.readFileSync(
     if (help.isDirectory(targ)) {
 
     }
@@ -128,7 +129,7 @@ module.exports = function(workingDir) {
 
   // console.log(pages); process.exit();
 
-  // var db = require(path.join(workingDir, './.fancy/db/'));
+  // var db = require(path.join(cwd, './.fancy/db/'));
 
 
   // TODO: custom helpers.  move this someplace
@@ -153,10 +154,10 @@ module.exports = function(workingDir) {
     once: function(key, fn) {
       // TODO: stub. fn gets exec once and the result cached under key.  runs once per build.
     }
-  }
+  };
 
   // var parsley = require('parsley');
-  // parsley(fs.createReadStream(path.join(workingDir, './data/content/article1.html')), function (req) {
+  // parsley(fs.createReadStream(path.join(cwd, './data/content/article1.html')), function (req) {
   //   var head = [];
   //   req.on('rawHead', function (buf) {
   //     head.push(buf);
