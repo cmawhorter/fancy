@@ -1,4 +1,5 @@
-var async = require('async');
+var async = require('async')
+  , urlPattern = require('url-pattern');
 
 var server = require('./server/index.js')
   , db = require('./db/index.js')
@@ -78,6 +79,26 @@ Fancy.prototype.start = function(callback) {
 
 Fancy.prototype.reloadContent = function(callback) {
   callback();
+};
+
+Fancy.prototype.getPage = function(url) {
+  console.log('Getting page for %s...', url);
+  var page = this.db.cache.pages[url];
+  if (page) {
+    page.params = {};
+    return page;
+  }
+  else {
+    for (var k in this.db.cache.pages) {
+      var params = urlPattern.newPattern(k).match(url);
+      // console.log(url, k, params);
+      if (params) {
+        page = Object.create(this.db.cache.pages[k]);
+        page.params = params;
+        return page;
+      }
+    }
+  }
 };
 
 Fancy.server = server;

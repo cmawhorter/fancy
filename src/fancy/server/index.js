@@ -9,7 +9,7 @@ var express = require('express');
 // this is sync but let's keep the async signature the rest have
 module.exports = function(fancy, callback) {
   var app = express();
-  var router = require('./router')(fancy.options.cwd);
+  var router = require('./router')(fancy);
 
   app.set('env', 'development');
   app.enable('case sensitive routing');

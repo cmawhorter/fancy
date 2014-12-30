@@ -8,6 +8,7 @@ var glob = require('glob')
 
 var file = require('../../utils/file')
   , help = require('../../utils/help')
+  , parsers = require('../parsers/index.js')
   , orm = require('./lib/orm');
 
 // FIXME: callback -> ready event
@@ -16,6 +17,11 @@ function FancyDb(cwd, callback) {
   // var target = path.join(cwd, './.fancy/db/pages.sqlite3');
   this.cwd = cwd;
   this.orm = orm(':memory:');
+  this.cache = {
+    resources: {},
+    relationships: {},
+    pages: {},
+  };
   this._init(callback);
 }
 
@@ -69,29 +75,33 @@ FancyDb.prototype.sync = function(callback) {
     }
     matches.forEach(function(f) {
       var filepath = path.join(_this.cwd, f);
-      // fs.readFileSync(
-
       tasks.push(function(taskCallback) {
         if (help.isDirectory(filepath)) {
           // TODO: implement alternative data entry (i.e. md, html or txt)
-          console.warn('Directories are not currently supported');
+          console.warn('Directories are not currently supported...');
           return taskCallback(null);
         }
-        else if (!/\.html.*\.html$/i.test(filepath)) { // path exists underneath a directory page, don't process
+        else if (/\.html.*\.html$/i.test(f)) { // path exists underneath a directory page, don't process
+          console.warn('HTML files in a content directory are disallowed: %s', f);
           return taskCallback(null);
         }
         // else {
         // }
 
-        file.fingerprint(f, function(err, fingerprint) {
-          if (err) {
-            return taskCallback(err);
-          }
-          _this.orm.models.Page.create({
-              fingerprint: fingerprint
-            , name: f
-          }).done(taskCallback);
-        });
+        // file.fingerprint(f, function(err, fingerprint) {
+        //   if (err) {
+        //     return taskCallback(err);
+        //   }
+          // _this.orm.models.Page.create({
+          //     fingerprint: fingerprint
+          //   , name: f
+          // }).done(function(err) {
+          //   if (err) {
+          //     return taskCallback(err);
+          //   }
+            parsers(_this.cache, f, taskCallback);
+          // });
+        // });
       });
     });
     async.parallel(tasks, callback);
@@ -108,6 +118,7 @@ module.exports = function(fancy, callback) {
     if (err) {
       return callback(err);
     }
+    // console.log(fancyDb.cache); process.exit();
     callback(null, fancyDb);
   });
 };
