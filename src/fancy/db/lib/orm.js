@@ -9,14 +9,8 @@ module.exports = function(target) {
   var models = {};
   var Page = models.Page = sequelize.define('page', {
     id: {
-      type: Sequelize.INTEGER,
-      primaryKey: true
-    },
-    name: {
       type: Sequelize.STRING,
-      validate: {
-        notEmpty: true
-      }
+      primaryKey: true
     },
     fingerprint: {
       type: Sequelize.STRING,
@@ -24,6 +18,14 @@ module.exports = function(target) {
         notEmpty: true
       }
     }
+  }, {
+    indexes: [
+      {
+        name: 'name_index',
+        method: 'BTREE',
+        fields: ['name']
+      }
+    ]
   });
 
   return { sequelize: sequelize, models: models };

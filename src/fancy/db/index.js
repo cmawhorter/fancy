@@ -6,10 +6,11 @@ var glob = require('glob')
   , async = require('async')
   , debounce = require('debounce');
 
-var file = require('../../utils/file')
-  , help = require('../../utils/help')
+var file = require('../../utils/file.js')
+  , help = require('../../utils/help.js')
   , parsers = require('../parsers/index.js')
-  , orm = require('./lib/orm');
+  , orm = require('./lib/orm.js')
+  , Page = require('./lib/page.js');
 
 // FIXME: callback -> ready event
 function FancyDb(cwd, callback) {
@@ -17,6 +18,7 @@ function FancyDb(cwd, callback) {
   // var target = path.join(cwd, './.fancy/db/pages.sqlite3');
   this.cwd = cwd;
   this.orm = orm(':memory:');
+  this.pages = [];
   this.cache = {
     resources: {},
     relationships: {},
@@ -34,43 +36,56 @@ FancyDb.prototype._init = function(callback) {
     }
 
     // // On file changed
-    // watcher.on('changed', function(filepath) {
-    //   _this.reloadFile(filepath);
-    // });
+    watcher.on('changed', function(filepath) {
+      _this.reloadFile(filepath);
+    });
 
     // // On file added
-    // watcher.on('added', function(filepath) {
-    //   _this.addFile(filepath);
-    // });
+    watcher.on('added', function(filepath) {
+      _this.addFile(filepath);
+    });
 
     // // On file deleted
-    // watcher.on('deleted', function(filepath) {
-    //   _this.removeFile(filepath);
-    // });
-
-    // FIXME: reload row instead of entire dataset
-    watcher.on('all', function(event, filepath) {
-      console.log('files changed; triggering sync. ', event);
-      _this.sync();
+    watcher.on('deleted', function(filepath) {
+      _this.removeFile(filepath);
     });
 
     _this.sync(callback);
   });
 };
 
-// FancyDb.prototype.reloadFile = function(callback) {
-// };
+FancyDb.prototype.addFile = function(f, callback) {
+  var _this = this;
+  Page(_this.orm, _this.cwd, f, function(err, page) {
+    if (err) {
+      return callback(err);
+    }
+    _this.pages.push(page);
+    callback(null);
+  });
+};
 
-// FancyDb.prototype.addFile = function(f, callback) {
-// };
+FancyDb.prototype.removeFile = function(f) {
+  var index = this.pages.indexOf(this.getPageByPath(f));
+  if (index > -1) {
+    this.pages.splice(index, 1);
+  }
+};
 
-// FancyDb.prototype.removeFile = function(f, callback) {
-// };
+FancyDb.prototype.reloadFile = function(f, callback) {
+  var page = this.getPageByPath(f);
+  if (page) {
+    page.refresh(callback);
+  }
+  else {
+    callback(new Error('Page not found'));
+  }
+};
 
 FancyDb.prototype.sync = function(callback) {
   var _this = this;
+  var tasks = [];
   glob('**/*.html', { cwd: _this.cwd }, function(err, matches) {
-    var tasks = [];
     if (err) {
       return callback(err);
     }
@@ -89,27 +104,26 @@ FancyDb.prototype.sync = function(callback) {
         // else {
         // }
 
-        // file.fingerprint(f, function(err, fingerprint) {
-        //   if (err) {
-        //     return taskCallback(err);
-        //   }
-          // _this.orm.models.Page.create({
-          //     fingerprint: fingerprint
-          //   , name: f
-          // }).done(function(err) {
-          //   if (err) {
-          //     return taskCallback(err);
-          //   }
-            parsers(_this.cache, f, taskCallback);
-          // });
-        // });
+        _this.addFile(f, function(err, page) {
+          if (err) {
+            return taskCallback(err);
+          }
+          parsers(_this.cache, f, taskCallback);
+        });
       });
     });
-    async.parallel(tasks, callback);
   });
+  async.parallel(tasks, callback);
 };
 
-FancyDb.prototype.reloadFiles = function(f, callback) {
+FancyDb.prototype.getPageByPath = function(f) {
+  for (var i=0; i < this.pages.length; i++) {
+    var page = this.pages[i];
+    if (page.id === f) {
+      return page;
+    }
+  }
+  return null;
 };
 
 module.exports = function(fancy, callback) {
