@@ -61,6 +61,7 @@ FancyDb.prototype.addFile = function(f, callback) {
       return callback(err);
     }
     _this.pages.push(page);
+    parsers(_this.cache, f, callback);
     callback(null);
   });
 };
@@ -104,12 +105,7 @@ FancyDb.prototype.sync = function(callback) {
         // else {
         // }
 
-        _this.addFile(f, function(err, page) {
-          if (err) {
-            return taskCallback(err);
-          }
-          parsers(_this.cache, f, taskCallback);
-        });
+        _this.addFile(f, taskCallback);
       });
     });
   });
