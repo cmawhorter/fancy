@@ -2,7 +2,6 @@ var fs = require('fs')
   , path = require('path');
 
 var express = require('express')
-  , glob = require('glob')
   , yaml = require('js-yaml')
   , moment = require('moment')
   , async = require('async')
@@ -14,22 +13,6 @@ var express = require('express')
 var help = require('../../utils/help');
 
 module.exports = function(fancy) {
-  var cwd = fancy.options.cwd;
-  var db, plugins, resources, site, relationships, $;
-
-  // TODO: passed in from fancy
-  plugins = {};
-  resources = {};
-  pages = {};
-  relationships = {};
-
-  try {
-    // TODO: iterate over settings files and and load them into keys based on their file name.  e.g. site.yml loads to { site: yml contents } -- with care taken for reserved
-    site = yaml.load(fs.readFileSync(path.join(cwd, './data/settings/site.yml'), 'utf8'));
-  } catch (err) {
-    console.error(err);
-  }
-
   // load site config plugins included via pkg manage
   // TODO: replace site.plugins with package.json matching.  auto install any dep starting with fancy-?
   (site.plugins || []).forEach(function(plugin) {

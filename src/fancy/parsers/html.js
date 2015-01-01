@@ -1,30 +1,27 @@
 var cheerio = require('cheerio');
 
+// these meta keys are considered csv and auto-separated.  TODO: make this configurable?
 var arrayKeys = [ 'keywords' ];
 
-module.exports = function(data, contents) {
+module.exports = function(contents, callback) {
   $ = cheerio.load(contents);
 
-  var props = {}
-    , output = [];
+  var properties = [];
+    , addProp = function addProp(name, val) {
+        properties.push([name, val]);
+      };
 
-  function addProp(name, val) {
-    if (name) {
-      if (!data.relationships[name]) data.relationships[name] = {};
-      if (!data.relationships[name][val]) data.relationships[name][val] = [];
-      data.relationships[name][val].push(props);
+  addProp('title', $('title').text());
+  addProp('body', $('body').html());
 
-      if (props[name]) {
-        if ('object' !== typeof props[name] || !('length' in props[name])) {
-          props[name] = [ props[name] ];
-        }
-        props[name].push(val);
-      }
-      else {
-        props[name] = val;
-      }
+  var contentType = 'text/html; charset=utf-8';
+  $('meta[http-equiv][content]').each(function() {
+    var $this = $(this);
+    if ($this.attr('http-equiv').toLowerCase() === 'content-type') {
+      contentType = $this.attr('content');
     }
-  }
+  });
+  addProp('contentType', contentType);
 
   $('meta').each(function() {
     var $el = $(this)
@@ -42,31 +39,5 @@ module.exports = function(data, contents) {
     }
   });
 
-  props.title = $('title').text() || '';
-  props.contentType = 'text/html; charset=utf-8';
-  $('meta[http-equiv][content]').each(function() {
-    var $this = $(this);
-    if ($this.attr('http-equiv').toLowerCase() === 'content-type') {
-      props.contentType = $this.attr('content');
-    }
-  });
-
-  // $('link[rel="alternate"]').each(function() {
-  //   var $el = $(this);
-  //   output.push({
-  //       type: ($el.attr('type') || '').toLowerCase()
-  //     , title: ($el.attr('title') || '').toLowerCase()
-  //     , href: ($el.attr('href') || '').toLowerCase()
-  //   });
-  // });
-
-  props.body = $('body').html();
-
-  data.pages[props.route] = props;
-
-  var resource = $('meta[name="resource"]').attr('content');
-  if (resource) {
-    if (!data.resources[resource]) data.resources[resource] = {};
-    data.resources[resource][props.route] = props;
-  }
+  callback(null, properties);
 };

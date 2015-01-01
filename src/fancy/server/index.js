@@ -16,12 +16,12 @@ module.exports = function(fancy, callback) {
   app.enable('strict routing');
 
   // view engine setup
-  app.set('views', path.join(fancy.options.cwd, './themes/' + fancy.options.theme + '/views'));
+  app.set('views', path.join(process.cwd(), './themes/' + fancy.options.theme + '/views'));
   app.set('view engine', 'ejs');
   app.disable('view cache');
 
   app.use(logger('dev'));
-  app.use(express.static(path.join(fancy.options.cwd, './themes/' + fancy.options.theme + '/public')));
+  app.use(express.static(path.join(process.cwd(), './themes/' + fancy.options.theme + '/public')));
 
   app.use('/', router);
 

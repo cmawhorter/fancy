@@ -29,16 +29,15 @@ function detectFormat(f) {
   }
 }
 
-module.exports = function(data, f, callback) {
-  var format = detectFormat(f);
+module.exports = function(relativePath, callback) {
+  var format = detectFormat(relativePath);
 
   // TODO: replace with streams
-  fs.readFile(f, function(err, contents) {
+  fs.readFile(relativePath, function(err, contents) {
     if (err) {
       return callback(err);
     }
-    console.log('parsing', f, format);
-    formats[format](data, contents);
-    callback(null);
+    console.log('parsing', relativePath, format);
+    formats[format](contents, callack);
   });
 };

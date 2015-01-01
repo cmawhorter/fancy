@@ -1,4 +1,8 @@
+var path = require('path');
+
 var async = require('async')
+  , glob = require('glob')
+  , yaml = require('js-yaml')
   , urlPattern = require('url-pattern');
 
 var server = require('./server/index.js')
@@ -13,9 +17,9 @@ function Fancy(options, callback) {
 
   // defaults
   this.options = {
-      cwd: process.cwd()
-    , theme: 'blah'
+      theme: 'blah'
     , port: 3000
+    , settings: {}
   };
 
   this.server = null;
@@ -58,6 +62,18 @@ Fancy.prototype._init = function(callback) {
     });
   });
 
+  tasks.push(function(taskCallback) {
+    glob('./data/settings/**/*.yml', function(err, matches) {
+      if (err) {
+        return callback(err);
+      }
+      matches.forEach(function(relativePath) {
+        var settingsKey = path.basename(relativePath, '.yml');
+        _this.options.settings[settingsKey] = yaml.load(fs.readFileSync(relativePath, 'utf8'));
+      });
+    });
+  });
+
   async.parallel(tasks, callback);
 };
 
@@ -77,27 +93,54 @@ Fancy.prototype.start = function(callback) {
 };
 
 Fancy.prototype.reloadContent = function(callback) {
-  callback();
+  throw new Error('removing this');
 };
 
-Fancy.prototype.getPage = function(url) {
+Fancy.prototype.createResponse = function(url, page, params) {
+  var res = {
+      url: url
+      // TODO: make this less weird?  site === settings.site
+    , site: this.options.settings.site || {}
+    , settings: this.options.settings
+    , page: {}
+    , params: params || {}
+    , helpers: {} // TODO: change from fancy namespace to helpers and implement fancy helpers
+    , plugins: {}
+  };
+
+  // TODO: extend with libraries (moment, etc.)
+  // e.g... res.moment = moment;
+
+  return res;
+};
+
+// returns response object via callback
+Fancy.prototype.requestPage = function(url, callback) {
   console.log('Getting page for %s...', url);
-  var page = this.db.cache.pages[url];
-  if (page) {
-    page.params = {};
-    return page;
-  }
-  else {
-    for (var k in this.db.cache.pages) {
-      var params = urlPattern.newPattern(k).match(url);
-      // console.log(url, k, params);
-      if (params) {
-        page = Object.create(this.db.cache.pages[k]);
-        page.params = params;
-        return page;
-      }
+  var _this = this;
+
+  _this.db.findPageByRoute(url, function(err, page) {
+    if (err) {
+      return callback(err);
     }
-  }
+    if (page) {
+      return callback(null, _this.createResponse(url, page));
+    }
+    else { // no direct match found.  urlPattern matching
+      for (var relativePath in _this.db.pages) {
+        var page = _this.db.pages[relativePath];
+        page.properties.routes.forEach(function(route) {
+          var params = urlPattern.newPattern(route).match(propertyValue);
+          // console.log(url, k, params);
+          if (params) {
+            return callback(null, _this.createResponse(url, page, params));
+          }
+        });
+      }
+
+      return callback(new Error('Page not found'));
+    }
+  });
 };
 
 Fancy.server = server;

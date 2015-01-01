@@ -8,124 +8,139 @@ var glob = require('glob')
 
 var file = require('../../utils/file.js')
   , help = require('../../utils/help.js')
-  , parsers = require('../parsers/index.js')
-  , orm = require('./lib/orm.js')
-  , Page = require('./lib/page.js');
+  , FancyPage = require('./lib/page.js')
+  , orm = require('./orm.js');
+
+var Page = orm.models.Page
+  , Property = orm.models.Property
+  , Resource = orm.models.Resource;
 
 // FIXME: callback -> ready event
-function FancyDb(cwd, callback) {
-  // TODO: implement disk cache
-  // var target = path.join(cwd, './.fancy/db/pages.sqlite3');
-  this.cwd = cwd;
-  this.orm = orm(':memory:');
-  this.pages = [];
-  this.cache = {
-    resources: {},
-    relationships: {},
-    pages: {},
-  };
-  this._init(callback);
+function FancyDb() {
+  this.pages = {};
 }
 
-FancyDb.prototype._init = function(callback) {
+FancyDb.prototype.init = function(callback) {
   var _this = this;
 
-  gaze('**/*.html', { cwd: _this.cwd }, function(err, watcher) {
-    if (err) {
-      return callback(err);
-    }
+  _this.reload(function(err) { // reload from disk
+    gaze('**/*.html', function(err, watcher) { // set up file watcher for changes
+      if (err) {
+        return callback(err);
+      }
 
-    // // On file changed
-    watcher.on('changed', function(filepath) {
-      _this.reloadFile(filepath);
+      watcher.on('changed', function(relativePath) {
+        _this.reloadFile(relativePath);
+      });
+
+      watcher.on('added', function(relativePath) {
+        _this.addFile(relativePath);
+      });
+
+      watcher.on('deleted', function(relativePath) {
+        _this.removeFile(relativePath);
+      });
     });
-
-    // // On file added
-    watcher.on('added', function(filepath) {
-      _this.addFile(filepath);
-    });
-
-    // // On file deleted
-    watcher.on('deleted', function(filepath) {
-      _this.removeFile(filepath);
-    });
-
-    _this.sync(callback);
   });
 };
 
-FancyDb.prototype.addFile = function(f, callback) {
+FancyDb.prototype.findPageByProperty = function(propertyName, propertyValue, callback) {
   var _this = this;
-  Page(_this.orm, _this.cwd, f, function(err, page) {
+  Property.findAll({ where: { name: propertyName.trim().toLowerCase(), content: propertyValue } }).done(callback);
+};
+
+FancyDb.prototype.findPageByRoute = function(propertyValue, callback) {
+  var _this = this;
+  _this.findPageByProperty('route', propertyValue, function(err, pages) {
     if (err) {
       return callback(err);
     }
-    _this.pages.push(page);
-    parsers(_this.cache, f, callback);
-    callback(null);
+    if (0 === pages.length) {
+      return callback(null, null); // not found
+    }
+    else if (1 === pages.length) {
+      return _this.getPage(pages[0].relativePath, callback);
+    }
+    else {
+      return callback(new Error('Multiple pages match the route: ' + propertyValue));
+    }
   });
 };
 
-FancyDb.prototype.removeFile = function(f) {
-  var index = this.pages.indexOf(this.getPageByPath(f));
-  if (index > -1) {
-    this.pages.splice(index, 1);
-  }
-};
-
-FancyDb.prototype.reloadFile = function(f, callback) {
-  var page = this.getPageByPath(f);
+FancyDb.prototype.getPage = function(relativePath, callback) {
+  var _this = this
+    , page = _this.pages[relativePath];
   if (page) {
-    page.refresh(callback);
+    return callback(null, page);
   }
   else {
-    callback(new Error('Page not found'));
+    FancyPage.find(relativePath, function(err, page) {
+      if (err) {
+        return callback(err);
+      }
+      _this.pages[relativePath] = page;
+      callback(null, page);
+    });
   }
 };
 
-FancyDb.prototype.sync = function(callback) {
+FancyDb.prototype.addFile = function(relativePath, callback) {
   var _this = this;
-  var tasks = [];
-  glob('**/*.html', { cwd: _this.cwd }, function(err, matches) {
+  _this.getPage(relativePath, callback);
+};
+
+FancyDb.prototype.removeFile = function(relativePath, callback) {
+  var _this = this;
+  _this.getPage(relativePath, function(err, page) {
     if (err) {
       return callback(err);
     }
-    matches.forEach(function(f) {
-      var filepath = path.join(_this.cwd, f);
+    page.remove();
+    delete _this.pages[relativePath];
+  });
+};
+
+FancyDb.prototype.reloadFile = function(relativePath, callback) {
+  var _this = this;
+  _this.getPage(relativePath, function(err, page) {
+    if (err) {
+      return callback(err);
+    }
+    page.reload(callback);
+  });
+};
+
+FancyDb.prototype.reload = function(callback) {
+  var _this = this
+    , tasks = [];
+  glob('**/*.html', function(err, matches) {
+    if (err) {
+      return callback(err);
+    }
+    matches.forEach(function(relativePath) {
       tasks.push(function(taskCallback) {
-        if (help.isDirectory(filepath)) {
+        if (help.isDirectory(relativePath)) {
           // TODO: implement alternative data entry (i.e. md, html or txt)
           console.warn('Directories are not currently supported...');
           return taskCallback(null);
         }
-        else if (/\.html.*\.html$/i.test(f)) { // path exists underneath a directory page, don't process
-          console.warn('HTML files in a content directory are disallowed: %s', f);
+        else if (/\.html.*\.html$/i.test(relativePath)) { // path exists underneath a directory page, don't process
+          console.warn('HTML files in a content directory are disallowed: %s', relativePath);
           return taskCallback(null);
         }
-        // else {
-        // }
-
-        _this.addFile(f, taskCallback);
+        else {
+          _this.addFile(relativePath, taskCallback);
+        }
       });
     });
   });
   async.parallel(tasks, callback);
 };
 
-FancyDb.prototype.getPageByPath = function(f) {
-  for (var i=0; i < this.pages.length; i++) {
-    var page = this.pages[i];
-    if (page.id === f) {
-      return page;
-    }
-  }
-  return null;
-};
-
 module.exports = function(fancy, callback) {
   var fancyDb;
 
-  fancyDb = new FancyDb(fancy.options.cwd, function(err) {
+  fancyDb = new FancyDb(function(err) {
     if (err) {
       return callback(err);
     }

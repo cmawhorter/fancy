@@ -27,6 +27,7 @@ module.exports = function(yargs) {
   }
 
   var cwd = help.getWorkingDirectory(dir);
+  process.chdir(cwd);
   // console.log('cwd', cwd, 'port', port, 'dir', dir); process.exit();
 
   fancy(function(err) {
