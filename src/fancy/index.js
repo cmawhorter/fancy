@@ -189,7 +189,9 @@ Fancy.prototype.requestPage = function(url, callback) {
           }
         }
       }
-      return callback(new Error('Page not found'));
+      var err = new Error('Not Found');
+      err.status = 404;
+      return callback(err);
     }
   });
 };

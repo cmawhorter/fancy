@@ -22,15 +22,16 @@ module.exports = function(fancy, callback) {
   app.use(logger('dev'));
   app.use(express.static(path.join(process.cwd(), './themes/' + fancy.options.theme + '/public')));
 
-  // FIXME: verify theme is structured correctly
-  // TODO: maybe standardize theme structure and create a versioned library around it?
-
-  app.use(function(err, req, res, next) {
+  function renderError(req, res, err) {
     res.status(err.status || 500);
     res.render('layouts/error', {
         message: err.message
       , error: err
     });
+  }
+
+  app.use(function(err, req, res, next) {
+    renderError(req, res, err);
   });
 
   var router = express.Router();
@@ -39,11 +40,8 @@ module.exports = function(fancy, callback) {
 
     fancy.requestPage(req.url, function(err, details) {
       if (err) {
-        // TODO: implement better error handling
-        // var err = new Error('Not Found');
-        // err.status = 404;
-        // return next(err);
-        throw err;
+        renderError(req, res, err);
+        return;
       }
       console.log('Rendering %s with locals: ', 'layouts/' + details.layout, details.res);
       res.render('layouts/' + details.layout, details.res);
