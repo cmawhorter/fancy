@@ -24,7 +24,7 @@ function FancyDb() {
 FancyDb.prototype.init = function(callback) {
   var _this = this;
 
-  orm.sequelize.sync({ force: true }).then(function() {
+  orm.sequelize.sync(/*{ force: true }*/).then(function() {
     _this.reload(function(err) { // reload from disk
       gaze('**/*.html', function(err, watcher) { // set up file watcher for changes
         if (err) {
@@ -102,6 +102,7 @@ FancyDb.prototype.getPage = function(relativePath, callback) {
   }
 };
 
+// TODO: compare sha1 to see if it's necessary to re-parse
 FancyDb.prototype.addFile = function(relativePath, callback) {
   console.log('Adding page file %s', relativePath);
   var _this = this;

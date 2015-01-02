@@ -2,12 +2,10 @@ var fs = require('fs');
 
 var Sequelize = require('sequelize');
 
-// fs.unlinkSync('/Users/blah/tmp/fancy.sqlite3');
-
 var sequelize = new Sequelize(null, null, null, {
   logging: false,
   dialect: 'sqlite',
-  storage: /*'/Users/blah/tmp/fancy.sqlite3' //*/ ':memory:' // TODO: path.join(cwd, './.fancy/db/pages.sqlite3')
+  storage: './.fancy/db/pages.sqlite3' //':memory:'
 });
 
 var models = {};

@@ -34,5 +34,6 @@ module.exports = function(yargs) {
   fancy.init(function(err) {
     if (err) throw err;
     console.log('Express server listening on port ' + fancy.server.address().port);
+    process.exit();
   });
 };
