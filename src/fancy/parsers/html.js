@@ -6,7 +6,7 @@ var arrayKeys = [ 'keywords' ];
 module.exports = function(contents, callback) {
   $ = cheerio.load(contents);
 
-  var properties = [];
+  var properties = []
     , addProp = function addProp(name, val) {
         properties.push([name, val]);
       };
@@ -28,14 +28,16 @@ module.exports = function(contents, callback) {
       , name = $el.attr('name')
       , val = $el.attr('content') || '';
 
-    if (~arrayKeys.indexOf(name)) {
-      val = val.split(/\s*,\s*/g);
-      val.forEach(function(v) {
-        addProp(name, v);
-      });
-    }
-    else {
-      addProp(name, val);
+    if (name) {
+      if (~arrayKeys.indexOf(name)) {
+        val = val.split(/\s*,\s*/g);
+        val.forEach(function(v) {
+          addProp(name, v);
+        });
+      }
+      else {
+        addProp(name, val);
+      }
     }
   });
 

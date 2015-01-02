@@ -1,16 +1,17 @@
+var fs = require('fs');
+
 var Sequelize = require('sequelize');
 
+// fs.unlinkSync('/Users/blah/tmp/fancy.sqlite3');
+
 var sequelize = new Sequelize(null, null, null, {
+  logging: false,
   dialect: 'sqlite',
-  storage: ':memory:' // TODO: path.join(cwd, './.fancy/db/pages.sqlite3')
+  storage: /*'/Users/blah/tmp/fancy.sqlite3' //*/ ':memory:' // TODO: path.join(cwd, './.fancy/db/pages.sqlite3')
 });
 
 var models = {};
 var Page = models.Page = sequelize.define('page', {
-  id: {
-    type: Sequelize.INTEGER,
-    primaryKey: true
-  },
   path: {
     type: Sequelize.STRING,
     validate: {
@@ -40,10 +41,6 @@ var Page = models.Page = sequelize.define('page', {
 });
 
 var Property = models.Property = sequelize.define('property', {
-  id: {
-    type: Sequelize.INTEGER,
-    primaryKey: true
-  },
   name: {
     type: Sequelize.STRING,
     validate: {
@@ -56,38 +53,41 @@ var Property = models.Property = sequelize.define('property', {
 }, {
   indexes: [
     {
-      name: 'name_index',
+      name: 'propertyname_index',
       method: 'BTREE',
       fields: ['name']
     }
   ]
 });
 
-var Resource = models.Resource = sequelize.define('resource', {
-  id: {
-    type: Sequelize.INTEGER,
-    primaryKey: true
-  },
-  name: {
-    type: Sequelize.STRING,
-    validate: {
-      notEmpty: true
-    }
-  },
-}, {
-  indexes: [
-    {
-      name: 'name_index',
-      method: 'BTREE',
-      unique: true,
-      fields: ['name']
-    }
-  ]
-});
+// FIXME: problem assigning a resource to multiple pages
+// var Resource = models.Resource = sequelize.define('resource', {
+//   name: {
+//     type: Sequelize.STRING,
+//     validate: {
+//       notEmpty: true
+//     }
+//   },
+// }, {
+//   indexes: [
+//     {
+//       name: 'resourcename_index',
+//       method: 'BTREE',
+//       unique: true,
+//       fields: ['name']
+//     }
+//   ]
+// });
 
-Property.hasOne(Page);
-Page.hasOne(Resource);
-Resource.belongsToMany(Page);
+Property.belongsTo(Page);
+Page.hasMany(Property);
+// Page.belongsTo(Resource);
+
+
+// Property.belongsTo(Page);
+// Resource.belongsToMany(Page);
+// Page.hasMany(Property);
+// Page.belongsTo(Resource);
 
 module.exports = {
     sequelize: sequelize

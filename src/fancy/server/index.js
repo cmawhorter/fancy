@@ -9,7 +9,6 @@ var express = require('express');
 // this is sync but let's keep the async signature the rest have
 module.exports = function(fancy, callback) {
   var app = express();
-  var router = require('./router')(fancy);
 
   app.set('env', 'development');
   app.enable('case sensitive routing');
@@ -23,8 +22,6 @@ module.exports = function(fancy, callback) {
   app.use(logger('dev'));
   app.use(express.static(path.join(process.cwd(), './themes/' + fancy.options.theme + '/public')));
 
-  app.use('/', router);
-
   // FIXME: verify theme is structured correctly
   // TODO: maybe standardize theme structure and create a versioned library around it?
 
@@ -35,6 +32,24 @@ module.exports = function(fancy, callback) {
       , error: err
     });
   });
+
+  var router = express.Router();
+  router.get('*', function(req, res, next) {
+    console.log('Looking up page for %s...', req.url);
+
+    fancy.requestPage(req.url, function(err, details) {
+      if (err) {
+        // TODO: implement better error handling
+        // var err = new Error('Not Found');
+        // err.status = 404;
+        // return next(err);
+        throw err;
+      }
+      console.log('Rendering %s with locals: ', 'layouts/' + details.layout, details.res);
+      res.render('layouts/' + details.layout, details.res);
+    });
+  });
+  app.use('/', router);
 
   callback(null, app);
 };

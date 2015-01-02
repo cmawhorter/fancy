@@ -38,6 +38,6 @@ module.exports = function(relativePath, callback) {
       return callback(err);
     }
     console.log('parsing', relativePath, format);
-    formats[format](contents, callack);
+    formats[format](contents, callback);
   });
 };

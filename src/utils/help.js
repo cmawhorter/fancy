@@ -14,7 +14,6 @@ module.exports = {
   getWorkingDirectory: function(targ) {
     targ = targ || '.';
     var workingDir = path.resolve('.' === targ ? process.cwd() : targ);
-    console.log('workingDir', workingDir);
     if (!fs.existsSync(targ)) {
       mkdirp.sync(workingDir);
     }

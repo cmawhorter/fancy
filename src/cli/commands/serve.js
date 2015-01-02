@@ -1,6 +1,6 @@
 var debug = require('debug')('http');
 
-var fancy = require('../../fancy/index')
+var Fancy = require('../../fancy/index')
   , help = require('../../utils/help');
 
 module.exports = function(yargs) {
@@ -30,11 +30,9 @@ module.exports = function(yargs) {
   process.chdir(cwd);
   // console.log('cwd', cwd, 'port', port, 'dir', dir); process.exit();
 
-  fancy(function(err) {
+  var fancy = new Fancy();
+  fancy.init(function(err) {
     if (err) throw err;
-    this.start(function(err, server) {
-      if (err) throw err;
-      console.log('Express server listening on port ' + server.address().port);
-    });
+    console.log('Express server listening on port ' + fancy.server.address().port);
   });
 };
