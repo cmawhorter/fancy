@@ -41,5 +41,7 @@ module.exports = function(contents, callback) {
     }
   });
 
+  console.log('parser html properties', properties);
+
   callback(null, properties);
 };

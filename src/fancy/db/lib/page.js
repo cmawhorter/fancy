@@ -118,7 +118,12 @@ FancyPage.prototype._reloadFile = function(callback) {
         if (err) {
           return callback.call(_this, err);
         }
-        _this.setProperties(properties, callback.bind(_this));
+        _this.clearProperties(function(err) {
+          if (err) {
+            return callback.call(_this, err);
+          }
+          _this.setProperties(properties, callback.bind(_this));
+        });
       });
     });
   });
@@ -221,10 +226,28 @@ FancyPage.prototype.setProperties = function(properties, callback) {
   });
 };
 
+FancyPage.prototype.clearProperties = function(callback) {
+  console.log('Clearing properties...');
+  var ids = [];
+  (this.dataObject.properties || []).forEach(function(property) {
+    ids.push(property.id);
+  });
+  if (ids.length) {
+    Property.destroy({ where: { id: ids } }).done(callback);
+  }
+  else {
+    console.log('No properties to clear');
+    callback(null);
+  }
+};
+
 FancyPage.prototype.toTemplateObject = function() {
   var obj = {};
+  console.log('To Template Object %s', this.relativePath);
   for (var i=0; i < this.dataObject.properties.length; i++) {
     var property = this.dataObject.properties[i];
+    console.log('\t-> %s: %s', property.name, property.content);
+
     if (obj[property.name]) {
       if (typeof obj[property.name] !== 'object' || !('length' in obj[property.name])) {
         obj[property.name] = [ obj[property.name] ];
@@ -235,7 +258,7 @@ FancyPage.prototype.toTemplateObject = function() {
       obj[property.name] = property.content;
     }
   }
-  // console.log('template object for %s', this.relativePath, obj);
+  console.log('return object', obj);
   return obj;
 };
 
