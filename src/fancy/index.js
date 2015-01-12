@@ -35,6 +35,16 @@ function Fancy(options) {
       throw new Error('Invalid fancy option: ' + k);
     }
   }
+
+  console.log('Loading site config.yml...');
+  var configFilepath = './config.yml';
+  if (fs.existsSync(configFilepath)) {
+    var config = yaml.load(fs.readFileSync(configFilepath, 'utf8'));
+    for (var k in config) {
+      this.options.config[k] = config[k];
+    }
+  }
+  console.log('\tSite config.yml loaded', this.options.config);
 }
 
 Fancy.prototype.init = function(callback) {
@@ -56,6 +66,9 @@ Fancy.prototype.init = function(callback) {
   tasks.push(function(taskCallback) {
     console.log('Loading database...');
     _this.db = new FancyDb();
+    (_this.options.config.providers || []).forEach(function(providerName) {
+      _this.db.providers.push(require(path.join(process.cwd(), './data/providers/' + providerName + '/index.js'))); // TODO: move paths someplace configurable
+    });
     _this.db.init(function(err, db) {
       if (err) {
         return taskCallback(err);
@@ -63,20 +76,6 @@ Fancy.prototype.init = function(callback) {
       console.log('\tDatabase loaded.');
       taskCallback(null);
     });
-  });
-
-  // TODO: make async
-  tasks.push(function(taskCallback) {
-    console.log('Loading site config.yml...');
-    var configFilepath = './config.yml';
-    if (fs.existsSync(configFilepath)) {
-      var config = yaml.load(fs.readFileSync(configFilepath, 'utf8'));
-      for (var k in config) {
-        this.options.config[k] = config[k];
-      }
-    }
-    console.log('\tSite config.yml loaded.');
-    taskCallback(null);
   });
 
   // TODO: make async
@@ -173,6 +172,10 @@ Fancy.prototype.requestPage = function(url, callback) {
       for (var relativePath in _this.db.pages) {
         var page = _this.db.pages[relativePath];
         console.log('\t-> does page %s match?', page.relativePath);
+        if (!page.dataObject.properties) {
+          console.log('No properties found', page);
+          process.exit();
+        }
         for (var i=0; i < page.dataObject.properties.length; i++) {
           var property = page.dataObject.properties[i];
           if (property.name === 'route') {

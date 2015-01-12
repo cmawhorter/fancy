@@ -2,7 +2,8 @@ var path = require('path');
 
 var async = require('async');
 
-var file = require('../../../utils/file.js')
+var fingerprint = require('../../../utils/fingerprint.js')
+  , iterator = require('../../../utils/iterator.js')
   , parsers = require('../../parsers/index.js')
   , orm = require('./orm.js');
 
@@ -10,8 +11,8 @@ var Page = orm.models.Page
   , Property = orm.models.Property
   , Resource = orm.models.Resource;
 
-
-// TODO: remove this object? it isn't necessary.  fancy/db/index.js can interact directly with sqlite
+// FIXME: using callback.call so callbacks refer to object is silly.  a ref can just be saved if needed
+// TODO: remove this object?  better to just build on top of sequelize objects maybe
 
 function FancyPage(relativePath) {
   this.relativePath = relativePath;
@@ -21,15 +22,16 @@ function FancyPage(relativePath) {
 }
 
 FancyPage.prototype.init = function(callback) {
-  this.create(function(err) {
+  var _this = this;
+  _this.create(function(err) {
     if (err) {
-      return callback.call(this, err);
+      return callback.call(_this, err);
     }
-    this.reload(function(err) {
+    _this.reload(function(err) {
       if (err) {
-        return callback.call(this, err);
+        return callback.call(_this, err);
       }
-      callback.call(this, null);
+      callback.call(_this, null);
     });
   });
 };
@@ -76,9 +78,23 @@ FancyPage.prototype.refresh = function(callback) {
 };
 
 FancyPage.prototype.reload = function(callback) {
+  var prefix = this.relativePath.split(':')[0];
+  console.log('fingerprint %s', this.relativePath);
+
+  switch (prefix) {
+    case 'provider':
+      this._reloadProviderObject(callback);
+    break;
+
+    default:
+      this._reloadFile(callback);
+    break;
+  }
+};
+
+FancyPage.prototype._reloadFile = function(callback) {
   var _this = this;
-  console.log('fingerprint %s', _this.relativePath);
-  file.fingerprint(_this.relativePath, function(err, fingerprint) {
+  fingerprint.file(_this.relativePath, function(err, fingerprint) {
     if (err) {
       return callback.call(_this, err);
     }
@@ -91,17 +107,24 @@ FancyPage.prototype.reload = function(callback) {
         if (err) {
           return callback.call(_this, err);
         }
-        _this._setProperties(properties, callback.bind(_this));
+        _this.setProperties(properties, callback.bind(_this));
       });
     });
   });
 };
 
-FancyPage.prototype.remove = function() {
-  // TODO: stub
+FancyPage.prototype._reloadProviderObject = function(callback) {
+  var _this = this;
+  _this.dataObject.fingerprint = fingerprint.objectSync(_this.dataObject.properties);
+  _this.dataObject.save().done(callback.bind(_this));
 };
 
-FancyPage.prototype._setProperties = function(properties, callback) {
+// TODO: remove this if unused
+// FancyPage.prototype.remove = function() {
+//   // TODO: stub
+// };
+
+FancyPage.prototype.setProperties = function(properties, callback) {
   var _this = this
     , tasks = []
     , resourceTasks = [];
@@ -112,7 +135,7 @@ FancyPage.prototype._setProperties = function(properties, callback) {
 
   // console.log('_setProperties', properties);
 
-  properties.forEach(function(prop) {
+  iterator(properties).forEach(function(prop) {
     var propName = prop[0].trim().toLowerCase()
       , propValue = prop[1];
 

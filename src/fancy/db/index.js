@@ -6,7 +6,7 @@ var glob = require('glob')
   , async = require('async')
   , debounce = require('debounce');
 
-var file = require('../../utils/file.js')
+var fingerprint = require('../../utils/fingerprint.js')
   , help = require('../../utils/help.js')
   , FancyPage = require('./lib/page.js')
   , orm = require('./lib/orm.js');
@@ -15,41 +15,74 @@ var Page = orm.models.Page
   , Property = orm.models.Property
   , Resource = orm.models.Resource;
 
-// FIXME: callback -> ready event
+var PROVIDER_PREFIX = 'provider:';
+
 function FancyDb() {
   this.pages = {};
   this.resources = {};
+  this.providers = [];
 }
 
 FancyDb.prototype.init = function(callback) {
-  var _this = this;
+  var _this = this
+    , tasks = [];
 
   orm.sequelize.sync({ force: true }).then(function() {
     _this.reload(function(err) { // reload from disk
-      gaze('**/*.html', function(err, watcher) { // set up file watcher for changes
-        if (err) {
-          return callback(err);
-        }
-
-        watcher.on('changed', function(relativePath) {
-          console.log('%s changed', relativePath);
-          _this.reloadFile(relativePath);
-        });
-
-        watcher.on('added', function(relativePath) {
-          console.log('%s was added', relativePath);
-          _this.addFile(relativePath);
-        });
-
-        watcher.on('deleted', function(relativePath) {
-          console.log('%s deleted', relativePath);
-          _this.removeFile(relativePath);
-        });
-
-        callback.call(_this, null);
+      tasks.push(function(taskCallback) {
+        _this._watchFiles(taskCallback);
+      });
+      tasks.push(function(taskCallback) {
+        _this._watchProviders(taskCallback);
+      });
+      async.parallel(tasks, function(err) {
+        callback.call(_this, err);
       });
     });
   });
+};
+
+FancyDb.prototype._watchFiles = function(callback) {
+  var _this = this;
+  gaze('**/*.html', function(err, watcher) { // set up file watcher for changes
+    if (err) {
+      return callback(err);
+    }
+
+    watcher.on('changed', function(relativePath) {
+      console.log('%s changed', relativePath);
+      _this.reloadFile(relativePath);
+    });
+
+    watcher.on('added', function(relativePath) {
+      console.log('%s was added', relativePath);
+      _this.addFile(relativePath);
+    });
+
+    watcher.on('deleted', function(relativePath) {
+      console.log('%s deleted', relativePath);
+      _this.removeFile(relativePath);
+    });
+
+    callback(null);
+  });
+};
+
+FancyDb.prototype._watchProviders = function(callback) {
+  callback(null);
+  // TODO: implementing watching inside provider
+  // var _this = this
+  //   , tasks = [];
+  // _this.providers.forEach(function(provider) {
+  //   tasks.push(function(taskCallback) {
+  //   });
+  // });
+  // async.parallel(tasks, function(err) {
+  //   if (err) {
+  //     return callback(err);
+  //   }
+  //   callback(null);
+  // });
 };
 
 FancyDb.prototype.findPageByProperty = function(propertyName, propertyValue, callback) {
@@ -137,6 +170,23 @@ FancyDb.prototype.reloadFile = function(relativePath, callback) {
 };
 
 FancyDb.prototype.reload = function(callback) {
+  var _this = this
+    , tasks = [];
+  tasks.push(function(taskCallback) {
+    _this._reloadFiles(taskCallback);
+  });
+  tasks.push(function(taskCallback) {
+    _this._reloadProviders(taskCallback);
+  });
+  async.parallel(tasks, function(err) {
+    if (err) {
+      return callback(err);
+    }
+    callback(null);
+  });
+};
+
+FancyDb.prototype._reloadFiles = function(callback) {
   console.log('Reloading pages from disk...');
   var _this = this;
   glob('**/*.html', function(err, matches) {
@@ -162,6 +212,44 @@ FancyDb.prototype.reload = function(callback) {
       });
     });
     async.parallel(tasks, callback);
+  });
+};
+
+FancyDb.prototype._reloadProviders = function(callback) {
+  console.log('Reloading pages from providers...');
+  var _this = this
+    , tasks = [];
+  _this.providers.forEach(function(provider) {
+    console.log('\t-> Found provider %s...', provider.name);
+    tasks.push(function(taskCallback) {
+      provider.reload(function(err, content) {
+        var subtasks = [];
+        if (err) {
+          return taskCallback(err);
+        }
+        (content || []).forEach(function(resource, index) {
+          subtasks.push(function(subtaskCallback) {
+            var resId = 'id' in resource ? resource.id : index
+              , relativePath = PROVIDER_PREFIX + provider.name + '/' + resId;
+
+            console.log('Provider page found... %s', relativePath);
+            _this.addFile(relativePath, function(err, page) {
+              if (err) {
+                return subtaskCallback(err);
+              }
+              page.setProperties(resource, subtaskCallback);
+            });
+          });
+        });
+        async.parallel(subtasks, taskCallback);
+      });
+    });
+  });
+  async.parallel(tasks, function(err) {
+    if (err) {
+      return callback(err);
+    }
+    callback(null);
   });
 };
 
