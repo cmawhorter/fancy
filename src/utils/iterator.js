@@ -1,6 +1,9 @@
 module.exports = function(target) {
   return {
     forEach: function(callback) {
+      if (!target) {
+        return;
+      }
       if ('forEach' in target) {
         target.forEach(callback);
       }

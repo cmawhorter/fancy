@@ -17,6 +17,8 @@ var Page = orm.models.Page
 
 var PROVIDER_PREFIX = 'provider:';
 
+// FIXME: #1 priority. now that it's clear what needs to happen here, the entire FancyDb/FancyPage stuff is tangled and needs some attention: this needs to be an abstracting/caching layer between fancy and db
+
 function FancyDb() {
   this.pages = {};
   this.resources = {};
@@ -112,61 +114,68 @@ FancyDb.prototype.findPageByRoute = function(propertyValue, callback) {
   });
 };
 
-FancyDb.prototype.getPage = function(relativePath, callback) {
+FancyDb.prototype.getPage = function(relativePath) {
+  return this.pages[relativePath];
+};
+
+FancyDb.prototype.createPage = function(relativePath, properties, callback) {
   var _this = this
-    , page = _this.pages[relativePath];
-  if (page) {
-    return callback(null, page);
-  }
-  else {
-    FancyPage.find(relativePath, function(err, page) {
-      if (err) {
-        return callback(err);
-      }
-      _this.pages[relativePath] = page;
-      if (!_this.resources[page.resource]) {
-        _this.resources[page.resource] = [];
-      }
-      if (_this.resources[page.resource].indexOf(page) < 0) {
-        _this.resources[page.resource].push(page);
-      }
-      callback(null, page);
-    });
-  }
+    , page = new FancyPage(relativePath);
+  _this.pages[relativePath] = page;
+  page.init(properties, function(err) {
+    if (err) {
+      return callback(err);
+    }
+    console.log('\t-> Caching resource %s at %s', page.resource, relativePath);
+    if (!_this.resources[page.resource]) {
+      _this.resources[page.resource] = [];
+    }
+    if (_this.resources[page.resource].indexOf(page) < 0) {
+      console.log('\t\t-> resource rel not found...');
+      _this.resources[page.resource].push(page);
+    }
+    else {
+      console.log('\t\t-> resource rel already exists');
+    }
+    callback(null, page);
+  });
 };
 
 // TODO: compare sha1 to see if it's necessary to re-parse
-FancyDb.prototype.addFile = function(relativePath, callback) {
+FancyDb.prototype.addFile = function(relativePath, properties, callback) {
+  if (typeof properties === 'function') {
+    callback = properties;
+    properties = null;
+  }
   console.log('Adding page file %s', relativePath);
-  var _this = this;
-  _this.getPage(relativePath, callback);
+  var _this = this
+    , page = _this.getPage(relativePath);
+
+  if (page) {
+    callback(null, page);
+  }
+  else {
+    _this.createPage(relativePath, properties, callback);
+  }
 };
 
 FancyDb.prototype.removeFile = function(relativePath, callback) {
   console.log('Removing page file %s', relativePath);
-  var _this = this;
-  _this.getPage(relativePath, function(err, page) {
-    if (err) {
-      return callback(err);
-    }
-    var index = _this.resources[page.resource].indexOf(page);
-    if (index > -1) {
-      _this.resources[page.resource].splice(index, 1);
-    }
-    page.remove();
-    delete _this.pages[relativePath];
-  });
+  var _this = this
+    , page = _this.getPage(relativePath)
+    , index = _this.resources[page.resource].indexOf(page);
+  if (index > -1) {
+    _this.resources[page.resource].splice(index, 1);
+  }
+  delete _this.pages[relativePath];
+  page.remove(callback);
 };
 
 FancyDb.prototype.reloadFile = function(relativePath, callback) {
   console.log('Reloading page file %s', relativePath);
-  var _this = this;
-  _this.getPage(relativePath, function(err, page) {
-    if (err) {
-      return callback(err);
-    }
-    page.reload(callback);
-  });
+  var _this = this
+    , page = _this.getPage(relativePath);
+  page.reload(callback);
 };
 
 FancyDb.prototype.reload = function(callback) {
@@ -218,38 +227,28 @@ FancyDb.prototype._reloadFiles = function(callback) {
 FancyDb.prototype._reloadProviders = function(callback) {
   console.log('Reloading pages from providers...');
   var _this = this
-    , tasks = [];
+    , tasks = {};
   _this.providers.forEach(function(provider) {
     console.log('\t-> Found provider %s...', provider.name);
-    tasks.push(function(taskCallback) {
-      provider.reload(function(err, content) {
-        var subtasks = [];
-        if (err) {
-          return taskCallback(err);
-        }
-        (content || []).forEach(function(resource, index) {
-          subtasks.push(function(subtaskCallback) {
-            var resId = 'id' in resource ? resource.id : index
-              , relativePath = PROVIDER_PREFIX + provider.name + '/' + resId;
-
-            console.log('Provider page found... %s', relativePath);
-            _this.addFile(relativePath, function(err, page) {
-              if (err) {
-                return subtaskCallback(err);
-              }
-              page.setProperties(resource, subtaskCallback);
-            });
-          });
-        });
-        async.parallel(subtasks, taskCallback);
-      });
-    });
+    tasks[provider.name] = provider.reload;
   });
-  async.parallel(tasks, function(err) {
+  async.parallel(tasks, function(err, providerResources) {
     if (err) {
       return callback(err);
     }
-    callback(null);
+    var subtasks = [];
+    for (var providerName in providerResources) {
+      var content = providerResources[providerName] || [];
+      content.forEach(function(resource, index) {
+        subtasks.push(function(subtaskCallback) {
+          var resId = 'id' in resource ? resource.id : index
+            , relativePath = PROVIDER_PREFIX + providerName + '/' + resId;
+          console.log('Provider page found... %s', relativePath);
+          _this.addFile(relativePath, resource, subtaskCallback);
+        });
+      });
+      async.parallel(subtasks, callback);
+    }
   });
 };
 

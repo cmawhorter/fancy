@@ -142,10 +142,14 @@ Fancy.prototype.createResponse = function(url, page, params) {
 
 Fancy.prototype.getResourcesForTemplate = function() {
   var obj = {};
+  console.log('Getting Resources for Response...');
   for (var k in this.db.resources) {
+    console.log('\t%s', k);
     obj[k] = [];
     for (var i=0; i < this.db.resources[k].length; i++) {
-      obj[k].push(this.db.resources[k][i].toTemplateObject());
+      var data = this.db.resources[k][i].toTemplateObject();
+      console.log('\t\t%s', data.route);
+      obj[k].push(data);
     }
   }
   return obj;

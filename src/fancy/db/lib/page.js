@@ -21,29 +21,40 @@ function FancyPage(relativePath) {
   this.resource = null;
 }
 
-FancyPage.prototype.init = function(callback) {
+FancyPage.prototype.init = function(properties, callback) {
+  if (typeof properties === 'function') {
+    callback = properties;
+    properties = null;
+  }
+
+  // FIXME: something is calling callback twice.... see db/index FIXME "#1 priority" about rewriting
+  var done = function() {
+    callback.apply(this, arguments);
+    done = function(){};
+  };
+
   var _this = this;
-  _this.create(function(err) {
+  _this.create(properties, function(err) {
     if (err) {
-      return callback.call(_this, err);
+      return done.call(_this, err);
     }
     _this.reload(function(err) {
       if (err) {
-        return callback.call(_this, err);
+        return done.call(_this, err);
       }
-      callback.call(_this, null);
+      done.call(_this, null, _this);
     });
   });
 };
 
-FancyPage.prototype.create = function(callback) {
+FancyPage.prototype.create = function(properties, callback) {
   var _this = this
     , done = function(err, dataObject) {
         if (err) {
           return callback.call(_this, err);
         }
         _this.dataObject = dataObject;
-        callback.call(_this, null);
+        _this.setProperties(properties, callback.bind(_this));
       };
 
   Page.find({
@@ -119,27 +130,30 @@ FancyPage.prototype._reloadProviderObject = function(callback) {
   _this.dataObject.save().done(callback.bind(_this));
 };
 
-// TODO: remove this if unused
-// FancyPage.prototype.remove = function() {
-//   // TODO: stub
-// };
+FancyPage.prototype.remove = function(callback) {
+  // TODO: stub. removes from db
+};
 
 FancyPage.prototype.setProperties = function(properties, callback) {
   var _this = this
     , tasks = []
     , resourceTasks = [];
 
+  if (!properties) {
+    callback(null);
+  }
+
   if (!this.dataObject) {
     throw new Error('Page data object not yet ready');
   }
 
-  // console.log('_setProperties', properties);
+  // console.log('setProperties', properties);
 
   iterator(properties).forEach(function(prop) {
     var propName = prop[0].trim().toLowerCase()
       , propValue = prop[1];
 
-    // console.log('saving property', prop);
+    console.log('saving property', prop);
 
     switch (propName) {
       // case 'resource':
@@ -189,7 +203,11 @@ FancyPage.prototype.setProperties = function(properties, callback) {
     }
 
     tasks.push(function(taskCallback) {
-      Property.create({ name: propName, content: propValue }).then(function(property) {
+      Property.create({ name: propName, content: propValue }).done(function(err, property) {
+        if (err) {
+          return taskCallback(err);
+        }
+        console.log('%s -> %s: %s', _this.relativePath, propName, propValue);
         _this.dataObject.addProperty(property).done(taskCallback);
       });
     });
@@ -217,15 +235,8 @@ FancyPage.prototype.toTemplateObject = function() {
       obj[property.name] = property.content;
     }
   }
-  console.log('template object for %s', this.relativePath, obj);
+  // console.log('template object for %s', this.relativePath, obj);
   return obj;
 };
-
-FancyPage.find = function(relativePath, callback) {
-  var page = new FancyPage(relativePath);
-  page.init(function(err) {
-    callback(err, this);
-  });
-}
 
 module.exports = FancyPage;
