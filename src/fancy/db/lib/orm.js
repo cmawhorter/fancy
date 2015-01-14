@@ -5,7 +5,8 @@ var Sequelize = require('sequelize');
 var sequelize = new Sequelize(null, null, null, {
   logging: false,
   dialect: 'sqlite',
-  storage: './.fancy/db/pages.sqlite3' //':memory:'
+  // storage: './.fancy/db/pages.sqlite3'
+  storage: ':memory:'
 });
 
 var models = {};

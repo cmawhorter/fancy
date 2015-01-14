@@ -113,7 +113,7 @@ Fancy.prototype.createResponse = function(url, page, params) {
     , config: this.options.config || {}
     , settings: this.options.settings
     , params: params || {}
-    , helpers: helpers
+    , fancy: null
     , extensions: {
         pagination: require('../../examples/pagination-extension/pagination.js')
       }
@@ -125,6 +125,8 @@ Fancy.prototype.createResponse = function(url, page, params) {
       }
     , page: page.toTemplateObject()
   };
+
+  res.fancy = helpers(res);
 
   // TODO: extend with libraries (moment, etc.)
   // e.g... res.moment = moment;

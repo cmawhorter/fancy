@@ -38,7 +38,7 @@ FancyPage.prototype.init = function(properties, callback) {
     if (err) {
       return done.call(_this, err);
     }
-    _this.reload(function(err) {
+    _this.refresh(function(err) {
       if (err) {
         return done.call(_this, err);
       }
@@ -54,7 +54,12 @@ FancyPage.prototype.create = function(properties, callback) {
           return callback.call(_this, err);
         }
         _this.dataObject = dataObject;
-        _this.setProperties(properties, callback.bind(_this));
+        if (properties) {
+          _this.setProperties(properties, callback);
+        }
+        else {
+          _this.reload(callback);
+        }
       };
 
   Page.find({
@@ -90,7 +95,6 @@ FancyPage.prototype.refresh = function(callback) {
 
 FancyPage.prototype.reload = function(callback) {
   var prefix = this.relativePath.split(':')[0];
-  console.log('fingerprint %s', this.relativePath);
 
   switch (prefix) {
     case 'provider':
@@ -105,20 +109,25 @@ FancyPage.prototype.reload = function(callback) {
 
 FancyPage.prototype._reloadFile = function(callback) {
   var _this = this;
+  console.log('fingerprint %s', this.relativePath);
   fingerprint.file(_this.relativePath, function(err, fingerprint) {
+    console.log('\t-> fingerprint returned');
     if (err) {
       return callback.call(_this, err);
     }
     _this.dataObject.fingerprint = fingerprint;
     _this.dataObject.save().done(function(err) {
+      console.log('\t-> save returned');
       if (err) {
         return callback.call(_this, err);
       }
       parsers(_this.relativePath, function(err, properties) {
+        console.log('\t-> parser returned');
         if (err) {
           return callback.call(_this, err);
         }
         _this.clearProperties(function(err) {
+          console.log('\t-> clearprops returned');
           if (err) {
             return callback.call(_this, err);
           }

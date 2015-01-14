@@ -31,15 +31,16 @@ FancyDb.prototype.init = function(callback) {
 
   orm.sequelize.sync({ force: true }).then(function() {
     _this.reload(function(err) { // reload from disk
-      tasks.push(function(taskCallback) {
-        _this._watchFiles(taskCallback);
-      });
-      tasks.push(function(taskCallback) {
-        _this._watchProviders(taskCallback);
-      });
-      async.parallel(tasks, function(err) {
+      // FIXME: watching broken for now
+      // tasks.push(function(taskCallback) {
+      //   _this._watchFiles(taskCallback);
+      // });
+      // tasks.push(function(taskCallback) {
+      //   _this._watchProviders(taskCallback);
+      // });
+      // async.parallel(tasks, function(err) {
         callback.call(_this, err);
-      });
+      // });
     });
   });
 };
@@ -103,8 +104,7 @@ FancyDb.prototype.findPageByRoute = function(propertyValue, callback) {
     }
     else if (1 === pages.length) {
       pages[0].getPage().then(function(page) {
-        console.log('found page', page);
-        _this.getPage(page.path, callback);
+        callback(null, _this.getPage(page.path));
       });
       return;
     }
