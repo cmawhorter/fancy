@@ -21,6 +21,7 @@ module.exports = function(fancy, callback) {
 
   app.use(logger('dev'));
   app.use(express.static(path.join(process.cwd(), './themes/' + fancy.options.theme + '/public')));
+  app.use(express.static(path.join(process.cwd(), './data/assets')));
 
   function renderError(req, res, err) {
     res.status(err.status || 500);

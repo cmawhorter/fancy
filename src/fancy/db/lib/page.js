@@ -1,4 +1,5 @@
-var path = require('path');
+var fs = require('fs')
+  , path = require('path');
 
 var async = require('async');
 
@@ -19,6 +20,7 @@ function FancyPage(relativePath) {
   this.dataObject = null;
   this.layout = null;
   this.resource = null;
+  this.assets = null; // TODO: populate with static asset dir if it exists
 }
 
 FancyPage.prototype.init = function(properties, callback) {
@@ -42,7 +44,13 @@ FancyPage.prototype.init = function(properties, callback) {
       if (err) {
         return done.call(_this, err);
       }
-      done.call(_this, null, _this);
+      var assetPath = path.join(_this.relativePath, '/public');
+      fs.exists(assetPath, function(exists) {
+        if (exists) {
+          _this.assets = assetPath;
+        }
+        done.call(_this, null, _this);
+      });
     });
   });
 };

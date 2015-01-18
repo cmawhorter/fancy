@@ -19,12 +19,12 @@ module.exports = function(yargs) {
   var dirs = {
       dot:        help.createDirectory(workingDir, '.fancy')
     , db:         help.createDirectory(workingDir, '.fancy/db')
-    , http:       help.createDirectory(workingDir, '.fancy/http')
     , content:    help.createDirectory(workingDir, 'data/content')
-    , resources:  help.createDirectory(workingDir, 'data/resources')
-    // , assets:     help.createDirectory(workingDir, 'data/assets') // these belong to data/content, no?
+    , providers:  help.createDirectory(workingDir, 'data/providers')
+    , settings:   help.createDirectory(workingDir, 'data/settings')
+    , assets:     help.createDirectory(workingDir, 'data/assets')
     , themes:     help.createDirectory(workingDir, 'themes')
-    , handlers:   help.createDirectory(workingDir, 'handlers')
+    , parsers:    help.createDirectory(workingDir, 'parsers')
     , plugins:    help.createDirectory(workingDir, 'plugins')
     , dist:       help.createDirectory(workingDir, 'dist')
   };

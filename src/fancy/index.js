@@ -1,7 +1,8 @@
 var fs = require('fs')
   , path = require('path');
 
-var async = require('async')
+var express = require('express')
+  , async = require('async')
   , glob = require('glob')
   , yaml = require('js-yaml')
   , urlPattern = require('url-pattern');
@@ -100,6 +101,19 @@ Fancy.prototype.init = function(callback) {
     }
     console.log('Fancy initialized. Starting server on port %d...', _this.options.port);
     _this.express.set('port', _this.options.port);
+
+    console.log('Initializing static asset handlers for pages...');
+    for (var relativePath in _this.db.pages) {
+      var page = _this.db.pages[relativePath]
+        , pageAssets;
+      if (page.assets) {
+        pageAssets = path.join(process.cwd(), pageAssets));
+        console.log('\t-> %s', pageAssets);
+        _this.express.use(express.static(pageAssets);
+      }
+    }
+    console.log('Done.');
+
     _this.server = _this.express.listen(_this.express.get('port'), function() {
       callback.call(_this, null, _this.server);
     });
