@@ -26,7 +26,6 @@ module.exports = function(yargs) {
     , themes:     help.createDirectory(workingDir, 'themes')
     , parsers:    help.createDirectory(workingDir, 'parsers')
     , plugins:    help.createDirectory(workingDir, 'plugins')
-    , dist:       help.createDirectory(workingDir, 'dist')
   };
 
   var pkg = require('../../templates/package.json');

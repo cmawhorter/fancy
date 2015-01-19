@@ -30,7 +30,9 @@ module.exports = function(yargs) {
   process.chdir(cwd);
   // console.log('cwd', cwd, 'port', port, 'dir', dir); process.exit();
 
-  var fancy = new Fancy();
+  var fancy = new Fancy({
+    port: port
+  });
   fancy.init(function(err) {
     if (err) throw err;
     console.log('Express server listening on port ' + fancy.server.address().port);

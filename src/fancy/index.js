@@ -28,7 +28,7 @@ function Fancy(options) {
 
   // load options
   for (var k in options) {
-    if (k in this) {
+    if (k in this.options) {
       this.options[k] = options[k];
     }
     else {
