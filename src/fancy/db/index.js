@@ -22,6 +22,8 @@ var PROVIDER_PREFIX = 'provider:';
 function FancyDb() {
   this.pages = {};
   this.resources = {};
+  this.meta = {};
+  this.relationships = {};
   this.providers = [];
 }
 
@@ -127,18 +129,73 @@ FancyDb.prototype.createPage = function(relativePath, properties, callback) {
       return callback(err);
     }
     console.log('\t-> Caching resource %s at %s', page.resource, relativePath);
-    if (!_this.resources[page.resource]) {
-      _this.resources[page.resource] = [];
-    }
-    if (_this.resources[page.resource].indexOf(page) < 0) {
-      console.log('\t\t-> resource rel not found...');
-      _this.resources[page.resource].push(page);
-    }
-    else {
-      console.log('\t\t-> resource rel already exists');
-    }
+    _this._addResourceSync(page);
+    _this._addMetaSync(page);
+    _this._addRelationshipsSync(page);
     callback(null, page);
   });
+};
+
+FancyDb.prototype._addResourceSync = function(page) {
+  console.log('\t\t-> (resource) %s.resource: %s', page.relativePath, page.resource);
+  if (!this.resources[page.resource]) {
+    this.resources[page.resource] = [];
+  }
+  if (this.resources[page.resource].indexOf(page) < 0) {
+    console.log('\t\t-> resource rel not found...');
+    this.resources[page.resource].push(page);
+  }
+  else {
+    console.log('\t\t-> resource rel already exists');
+  }
+};
+
+FancyDb.prototype._addMetaSync = function(page) {
+  var properties = page.getProperties();
+  for (var rel in properties) {
+    console.log('\t\t-> (meta) %s.%s: %s', page.relativePath, rel, rel == 'body' ? '[body]' : properties[rel]);
+
+    if (!this.meta[rel]) {
+      this.meta[rel] = [];
+    }
+    if (this.meta[rel].indexOf(page) < 0) {
+      this.meta[rel].push(page);
+    }
+  }
+};
+
+FancyDb.prototype._addRelationshipsSync = function(page) {
+  var properties = page.getProperties();
+  for (var rel in properties) {
+    var relValue = properties[rel];
+    if (typeof relValue === 'object' && 'length' in relValue) {
+      for (var i=0; i < relValue.length; i++) {
+        this._addRelationshipSync(page, rel, relValue);
+      }
+    }
+    else {
+      this._addRelationshipSync(page, rel, relValue);
+    }
+  }
+};
+
+FancyDb.prototype._addRelationshipSync = function(page, rel, relValue) {
+  console.log('\t\t-> (relationship) %s.%s: %s', page.relativePath, rel, rel == 'body' ? '[body]' : relValue);
+  if (typeof relValue !== 'object' || !('length' in relValue)) {
+    relValue = [relValue];
+  }
+  for (var i=0; i < relValue.length; i++) {
+    var val = relValue[i];
+    if (!this.relationships[rel]) {
+      this.relationships[rel] = {};
+    }
+    if (!this.relationships[rel][val]) {
+      this.relationships[rel][val] = [];
+    }
+    if (this.relationships[rel][val].indexOf(page) < 0) {
+      this.relationships[rel][val].push(page);
+    }
+  }
 };
 
 // TODO: compare sha1 to see if it's necessary to re-parse

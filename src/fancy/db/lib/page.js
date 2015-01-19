@@ -134,6 +134,7 @@ FancyPage.prototype._reloadFile = function(callback) {
         if (err) {
           return callback.call(_this, err);
         }
+        // TODO: if parser data doesn't contain date, grab it from the last mod date of the file
         _this.clearProperties(function(err) {
           console.log('\t-> clearprops returned');
           if (err) {
@@ -258,12 +259,16 @@ FancyPage.prototype.clearProperties = function(callback) {
   }
 };
 
+FancyPage.prototype.getProperties = function() {
+  return this.toTemplateObject();
+};
+
 FancyPage.prototype.toTemplateObject = function() {
   var obj = {};
-  console.log('To Template Object %s', this.relativePath);
+  // console.log('To Template Object %s', this.relativePath);
   for (var i=0; i < this.dataObject.properties.length; i++) {
     var property = this.dataObject.properties[i];
-    console.log('\t-> %s: %s', property.name, property.content);
+    // console.log('\t-> %s: %s', property.name, property.content);
 
     if (obj[property.name]) {
       if (typeof obj[property.name] !== 'object' || !('length' in obj[property.name])) {
@@ -275,7 +280,7 @@ FancyPage.prototype.toTemplateObject = function() {
       obj[property.name] = property.content;
     }
   }
-  console.log('return object', obj);
+  // console.log('return object', obj);
   return obj;
 };
 

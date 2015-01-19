@@ -11,6 +11,8 @@ module.exports = function(collection, options, callback) {
   var getColKey = 'length' in collection ? function(index) { return index; } : function(index) { return Object.keys(collection)[index]; };
   var colLen = 'length' in collection ? collection.length : Object.keys(collection).length;
 
+  var totalPages = Math.ceil(colLen / pageLimit);
+
   for (var i=start; i < colLen && i < stop; i++) {
     var item = collection[getColKey(i)];
     // console.log('iterating', item);
@@ -20,7 +22,7 @@ module.exports = function(collection, options, callback) {
   var previous = pageStart - 1
     , next = pageStart + 1;
 
-  if (next >= Math.ceil(colLen / pageLimit)) {
+  if (next >= totalPages) {
     next = null;
   }
 
@@ -32,5 +34,7 @@ module.exports = function(collection, options, callback) {
       current: pageStart
     , previous: previous
     , next: next
+    , totalPages: totalPages
+    , multiPages: totalPages > 1
   };
 };

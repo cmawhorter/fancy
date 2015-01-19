@@ -1,14 +1,29 @@
+var fs = require('fs');
+
 var express = require('express');
 var path = require('path');
 var logger = require('morgan');
 
 var express = require('express');
 
+var helpers = require('../helpers/index.js');
+var extensions = {
+  pagination: require('../../../examples/pagination-extension/pagination.js')
+};
+
 // FIXME: callback -> ready event
 
 // this is sync but let's keep the async signature the rest have
 module.exports = function(fancy, callback) {
-  var app = express();
+  var app = express()
+    , themeSupportPath = path.join(process.cwd(), './themes/' + fancy.options.theme + '/support/theme.js')
+    , themeSupport;
+
+  if (fs.existsSync(themeSupportPath)) {
+    themeSupport = require(themeSupportPath);
+  }
+
+  app.locals = app.locals || {};
 
   app.set('env', 'development');
   app.enable('case sensitive routing');
@@ -45,7 +60,14 @@ module.exports = function(fancy, callback) {
         return;
       }
       console.log('Rendering %s with locals: ', 'layouts/' + details.layout, details.res);
-      res.render('layouts/' + details.layout, details.res);
+      var context = details.res;
+      context.fancy = helpers(context);
+      if (themeSupport) {
+        context.theme = themeSupport(context);
+      }
+      // TODO: make extensions load from config or something
+      context.extensions = extensions;
+      res.render('layouts/' + details.layout, context);
     });
   });
   app.use('/', router);

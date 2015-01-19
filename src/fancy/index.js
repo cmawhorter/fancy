@@ -9,7 +9,6 @@ var express = require('express')
 
 var server = require('./server/index.js')
   , FancyDb = require('./db/index.js')
-  , helpers = require('./helpers/index.js')
   , parser = require('./parsers/index.js');
 
 function Fancy(options) {
@@ -107,9 +106,9 @@ Fancy.prototype.init = function(callback) {
       var page = _this.db.pages[relativePath]
         , pageAssets;
       if (page.assets) {
-        pageAssets = path.join(process.cwd(), pageAssets));
+        pageAssets = path.join(process.cwd(), pageAssets);
         console.log('\t-> %s', pageAssets);
-        _this.express.use(express.static(pageAssets);
+        _this.express.use(express.static(pageAssets));
       }
     }
     console.log('Done.');
@@ -127,20 +126,16 @@ Fancy.prototype.createResponse = function(url, page, params) {
     , config: this.options.config || {}
     , settings: this.options.settings
     , params: params || {}
-    , fancy: null
-    , extensions: {
-        pagination: require('../../examples/pagination-extension/pagination.js')
-      }
     , site: {
           pages: Object.keys(this.db.pages).map(function(item) {
             return _this.db.pages[item].toTemplateObject();
           })
         , resources: this.getResourcesForTemplate()
+        , meta: this.getMetaForTemplate()
+        , relationships: this.getRelationshipsForTemplate()
       }
     , page: page.toTemplateObject()
   };
-
-  res.fancy = helpers(res);
 
   // TODO: extend with libraries (moment, etc.)
   // e.g... res.moment = moment;
@@ -166,6 +161,40 @@ Fancy.prototype.getResourcesForTemplate = function() {
       var data = this.db.resources[k][i].toTemplateObject();
       console.log('\t\t%s', data.route);
       obj[k].push(data);
+    }
+  }
+  return obj;
+};
+
+Fancy.prototype.getMetaForTemplate = function() {
+  var obj = {};
+  console.log('Getting Meta for Response...');
+  for (var k in this.db.meta) {
+    console.log('\t%s', k);
+    obj[k] = [];
+    for (var i=0; i < this.db.meta[k].length; i++) {
+      var data = this.db.meta[k][i].toTemplateObject();
+      console.log('\t\t%s', data.route);
+      obj[k].push(data);
+    }
+  }
+  return obj;
+};
+
+Fancy.prototype.getRelationshipsForTemplate = function() {
+  var obj = {};
+  console.log('Getting Relationships for Response...');
+  for (var rel in this.db.relationships) {
+    obj[rel] = {};
+    console.log('\t%s', rel);
+    for (var relVal in this.db.relationships[rel]) {
+      obj[rel][relVal] = [];
+      console.log('\t\t%s', relVal);
+      for (var i=0; i < this.db.relationships[rel][relVal].length; i++) {
+        var data = this.db.relationships[rel][relVal][i].toTemplateObject();
+        console.log('\t\t\t%s', data.route);
+        obj[rel][relVal].push(data);
+      }
     }
   }
   return obj;
