@@ -7,7 +7,7 @@ var ncp = require('ncp').ncp
   , rimraf = require('rimraf');
 
 var Fancy = require('../../fancy/index.js')
-  , Build = require('../../build/index.js')
+  // , Build = require('../../build/index.js')
   , help = require('../../utils/help');
 
 var debug = require('debug')('http');

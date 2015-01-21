@@ -29,27 +29,21 @@ FancyPage.prototype.init = function(properties, callback) {
     properties = null;
   }
 
-  // FIXME: something is calling callback twice.... see db/index FIXME "#1 priority" about rewriting
-  var done = function() {
-    callback.apply(this, arguments);
-    done = function(){};
-  };
-
   var _this = this;
   _this.create(properties, function(err) {
     if (err) {
-      return done.call(_this, err);
+      return callback.call(_this, err);
     }
     _this.refresh(function(err) {
       if (err) {
-        return done.call(_this, err);
+        return callback.call(_this, err);
       }
       var assetPath = path.join(_this.relativePath, '/public');
       fs.exists(assetPath, function(exists) {
         if (exists) {
           _this.assets = assetPath;
         }
-        done.call(_this, null, _this);
+        callback.call(_this, null, _this);
       });
     });
   });
@@ -164,9 +158,10 @@ FancyPage.prototype.setProperties = function(properties, callback) {
 
   if (!properties) {
     callback(null);
+    return;
   }
 
-  if (!this.dataObject) {
+  if (!_this.dataObject) {
     throw new Error('Page data object not yet ready');
   }
 
@@ -264,10 +259,11 @@ FancyPage.prototype.getProperties = function() {
 };
 
 FancyPage.prototype.toTemplateObject = function() {
-  var obj = {};
+  var obj = {}
+    , properties = (this.dataObject || {}).properties || {};
   // console.log('To Template Object %s', this.relativePath);
-  for (var i=0; i < this.dataObject.properties.length; i++) {
-    var property = this.dataObject.properties[i];
+  for (var i=0; i < properties.length; i++) {
+    var property = properties[i];
     // console.log('\t-> %s: %s', property.name, property.content);
 
     if (obj[property.name]) {

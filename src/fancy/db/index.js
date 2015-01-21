@@ -168,7 +168,7 @@ FancyDb.prototype._addRelationshipsSync = function(page) {
   var properties = page.getProperties();
   for (var rel in properties) {
     var relValue = properties[rel];
-    if (typeof relValue === 'object' && 'length' in relValue) {
+    if (!!relValue && typeof relValue === 'object' && 'length' in relValue) {
       for (var i=0; i < relValue.length; i++) {
         this._addRelationshipSync(page, rel, relValue);
       }
@@ -181,7 +181,7 @@ FancyDb.prototype._addRelationshipsSync = function(page) {
 
 FancyDb.prototype._addRelationshipSync = function(page, rel, relValue) {
   console.log('\t\t-> (relationship) %s.%s: %s', page.relativePath, rel, rel == 'body' ? '[body]' : relValue);
-  if (typeof relValue !== 'object' || !('length' in relValue)) {
+  if (!relValue || typeof relValue !== 'object' || !('length' in relValue)) {
     relValue = [relValue];
   }
   for (var i=0; i < relValue.length; i++) {
@@ -273,7 +273,7 @@ FancyDb.prototype._reloadFiles = function(callback) {
           return taskCallback(null);
         }
         else {
-          _this.addFile(relativePath, taskCallback);
+          return _this.addFile(relativePath, taskCallback);
         }
       });
     });
@@ -287,14 +287,20 @@ FancyDb.prototype._reloadProviders = function(callback) {
     , tasks = {};
   _this.providers.forEach(function(provider) {
     console.log('\t-> Found provider %s...', provider.name);
-    tasks[provider.name] = provider.reload;
+    tasks[provider.name] = function(taskCallback) {
+      provider.reload(function(err, content) {
+        console.log('Provider %s returned data', provider.name, content);
+        taskCallback(err, content);
+      });
+    };
   });
   async.parallel(tasks, function(err, providerResources) {
     if (err) {
       return callback(err);
     }
+    console.log('_reloadProviders -> providerResources', providerResources);
     var subtasks = [];
-    for (var providerName in providerResources) {
+    Object.keys(providerResources).forEach(function(providerName) {
       var content = providerResources[providerName] || [];
       content.forEach(function(resource, index) {
         subtasks.push(function(subtaskCallback) {
@@ -304,8 +310,8 @@ FancyDb.prototype._reloadProviders = function(callback) {
           _this.addFile(relativePath, resource, subtaskCallback);
         });
       });
-      async.parallel(subtasks, callback);
-    }
+    });
+    async.parallel(subtasks, callback);
   });
 };
 

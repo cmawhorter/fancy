@@ -11,7 +11,14 @@ module.exports = function(target) {
       else {
         var keys = Object.keys(target);
         keys.forEach(function(key, index) {
-          callback([ key, target[key] ], index, target);
+          if (typeof target[key] === 'object' && 'length' in target[key]) {
+            target[key].forEach(function(val) {
+              callback([ key, val ], index, target);
+            });
+          }
+          else {
+            callback([ key, target[key] ], index, target);
+          }
         });
       }
     }

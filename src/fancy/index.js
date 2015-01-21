@@ -67,7 +67,9 @@ Fancy.prototype.init = function(callback) {
     console.log('Loading database...');
     _this.db = new FancyDb();
     (_this.options.config.providers || []).forEach(function(providerName) {
-      _this.db.providers.push(require(path.join(process.cwd(), './data/providers/' + providerName + '/index.js'))); // TODO: move paths someplace configurable
+      var providerPath = path.join(process.cwd(), './data/providers/' + providerName + '/index.js');
+      console.log('Loading provider %s...', providerPath);
+      _this.db.providers.push(require(providerPath)); // TODO: move paths someplace configurable
     });
     _this.db.init(function(err, db) {
       if (err) {

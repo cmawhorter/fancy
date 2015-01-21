@@ -1,8 +1,5 @@
 var cheerio = require('cheerio');
 
-// these meta keys are considered csv and auto-separated.  TODO: make this configurable?
-var arrayKeys = [ 'keywords' ];
-
 module.exports = function(contents, callback) {
   $ = cheerio.load(contents);
 
@@ -29,15 +26,7 @@ module.exports = function(contents, callback) {
       , val = $el.attr('content') || '';
 
     if (name) {
-      if (~arrayKeys.indexOf(name)) {
-        val = val.split(/\s*,\s*/g);
-        val.forEach(function(v) {
-          addProp(name, v);
-        });
-      }
-      else {
-        addProp(name, val);
-      }
+      addProp(name, val);
     }
   });
 
