@@ -11,6 +11,11 @@ var extensions = {
   pagination: require('../../../examples/pagination-extension/pagination.js')
 };
 
+
+process.on('uncaughtException', function(err) {
+  console.error('Error', err);
+});
+
 // FIXME: callback -> ready event
 
 // this is sync but let's keep the async signature the rest have
