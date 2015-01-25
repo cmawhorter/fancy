@@ -5,6 +5,7 @@ var async = require('async');
 
 var fingerprint = require('../../../utils/fingerprint.js')
   , iterator = require('../../../utils/iterator.js')
+  , help = require('../../../utils/help.js')
   , parsers = require('../../parsers/index.js')
   , orm = require('./orm.js');
 
@@ -21,8 +22,39 @@ function FancyPage(relativePath) {
   this.dataObject = null;
   this.layout = null;
   this.resource = null;
-  this.assets = null; // TODO: populate with static asset dir if it exists
+  this.assetPath = null;
+
+  this.isDirectory = false;
+  this.contentPath = null;
+  if (relativePath.indexOf(':') < 0 && help.isDirectory(relativePath)) {
+    this.isDirectory = true;
+    console.log('Content directory: finding page file...');
+    this.contentPath = this._findParseable('page');
+
+    if (!this.contentPath) {
+      throw new Error('Content directory does not contain page file. e.g. %s/page.md', relativePath);
+    }
+    else {
+      console.log('Content directory %s page file is %s', relativePath, this.contentPath);
+    }
+  }
+  else {
+    console.log('Not a content directory');
+    this.contentPath = this.relativePath;
+  }
 }
+
+FancyPage.prototype._findParseable = function(name) {
+  for (var i=0; i < parsers.available.length; i++) {
+    var ext = parsers.available[i];
+    var pagePath = path.join(this.relativePath, '/' + name + '.' + ext);
+    console.log('%s does page exist? %s', this.relativePath, pagePath);
+    if (fs.existsSync(pagePath)) {
+      return pagePath;
+    }
+  }
+  return null;
+};
 
 FancyPage.prototype.init = function(properties, callback) {
   if (typeof properties === 'function') {
@@ -39,12 +71,19 @@ FancyPage.prototype.init = function(properties, callback) {
       if (err) {
         return callback.call(_this, err);
       }
-      var assetPath = path.join(_this.relativePath, '/public');
+      var assetPath = path.join(_this.relativePath, '/public'); // if path is a directory and has a public asset directory, load them
       fs.exists(assetPath, function(exists) {
         if (exists) {
-          _this.assets = assetPath;
+          _this.assetPath = assetPath;
         }
-        callback.call(_this, null, _this);
+
+        if (!_this.hasRoute()) {
+          callback.call(_this, new Error('Page must have a route property'));
+          return
+        }
+        else {
+          callback.call(_this, null, _this);
+        }
       });
     });
   });
@@ -112,8 +151,8 @@ FancyPage.prototype.reload = function(callback) {
 
 FancyPage.prototype._reloadFile = function(callback) {
   var _this = this;
-  console.log('fingerprint %s', this.relativePath);
-  fingerprint.file(_this.relativePath, function(err, fingerprint) {
+  console.log('fingerprint %s', this.contentPath);
+  fingerprint.file(_this.contentPath, function(err, fingerprint) {
     console.log('\t-> fingerprint returned');
     if (err) {
       return callback.call(_this, err);
@@ -124,14 +163,13 @@ FancyPage.prototype._reloadFile = function(callback) {
       if (err) {
         return callback.call(_this, err);
       }
-      parsers(_this.relativePath, function(err, properties) {
-        console.log('\t-> parser returned');
+      _this.clearProperties(function(err) {
+        console.log('\t-> clearprops returned');
         if (err) {
           return callback.call(_this, err);
         }
-        // TODO: if parser data doesn't contain date, grab it from the last mod date of the file
-        _this.clearProperties(function(err) {
-          console.log('\t-> clearprops returned');
+        _this._parseFile(function(err, properties) {
+          console.log('\t-> parser returned');
           if (err) {
             return callback.call(_this, err);
           }
@@ -139,6 +177,34 @@ FancyPage.prototype._reloadFile = function(callback) {
         });
       });
     });
+  });
+};
+
+FancyPage.prototype._parseFile = function(callback) {
+  var _this = this;
+  parsers(_this.contentPath, function(err, properties) {
+    console.log('\t-> parser returned');
+    if (err) {
+      return callback(err);
+    }
+    // TODO: if parser data doesn't contain date, grab it from the last mod date of the file
+
+    // page doesn't contain a body and the page is a content directory.  try to grab the body as a separate file
+    // this really only useful for markdown body.md, otherwise it's better to just combine everything
+    if (!properties.body && _this.isDirectory) {
+      var bodyPath = _this._findParseable('body');
+      parsers(bodyPath, function(err, bodyProps) {
+        if (err) {
+          return callback(err);
+        }
+        properties.body = bodyProps.body;
+        callback(null, properties);
+      });
+    }
+    else {
+      callback(null, properties);
+      return;
+    }
   });
 };
 
@@ -150,6 +216,7 @@ FancyPage.prototype._reloadProviderObject = function(callback) {
 
 FancyPage.prototype.remove = function(callback) {
   // TODO: stub. removes from db
+  callback(null);
 };
 
 FancyPage.prototype.setProperties = function(properties, callback) {
@@ -257,6 +324,17 @@ FancyPage.prototype.clearProperties = function(callback) {
 
 FancyPage.prototype.getProperties = function() {
   return this.toTemplateObject();
+};
+
+FancyPage.prototype.hasRoute = function() {
+  var properties = (this.dataObject || {}).properties || {};
+  for (var i=0; i < properties.length; i++) {
+    var property = properties[i];
+    if ('route' === property.name) {
+      return true;
+    }
+  }
+  return false;
 };
 
 FancyPage.prototype.toTemplateObject = function() {

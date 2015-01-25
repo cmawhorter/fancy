@@ -9,7 +9,8 @@ var glob = require('glob')
 var fingerprint = require('../../utils/fingerprint.js')
   , help = require('../../utils/help.js')
   , FancyPage = require('./lib/page.js')
-  , orm = require('./lib/orm.js');
+  , orm = require('./lib/orm.js')
+  , parsers = require('../parsers/index.js');
 
 var Page = orm.models.Page
   , Property = orm.models.Property
@@ -126,6 +127,7 @@ FancyDb.prototype.createPage = function(relativePath, properties, callback) {
   _this.pages[relativePath] = page;
   page.init(properties, function(err) {
     if (err) {
+      delete _this.pages[relativePath];
       return callback(err);
     }
     console.log('\t-> Caching resource %s at %s', page.resource, relativePath);
@@ -255,7 +257,7 @@ FancyDb.prototype.reload = function(callback) {
 FancyDb.prototype._reloadFiles = function(callback) {
   console.log('Reloading pages from disk...');
   var _this = this;
-  glob('**/*.html', function(err, matches) {
+  glob('data/content/**/*.@(' + parsers.available.join('|') + ')', function(err, matches) {
     var tasks = [];
     if (err) {
       return callback(err);
@@ -264,12 +266,17 @@ FancyDb.prototype._reloadFiles = function(callback) {
       console.log('Page found... %s', relativePath);
       tasks.push(function(taskCallback) {
         if (help.isDirectory(relativePath)) {
-          // TODO: implement alternative data entry (i.e. md, html or txt)
-          console.warn('Directories are not currently supported...');
-          return taskCallback(null);
+          console.log('Is content directory: %s', relativePath);
+          if (/\.html$/i.test(relativePath)) { // only html directories supported
+            return _this.addFile(relativePath, taskCallback);
+          }
+          else {
+            console.warn('Warning: Only .html directory is allowed: %s', relativePath);
+            return taskCallback(null);
+          }
         }
-        else if (/\.html.*\.html$/i.test(relativePath)) { // path exists underneath a directory page, don't process
-          console.warn('HTML files in a content directory are disallowed: %s', relativePath);
+        else if (/\.html\/.*/i.test(relativePath)) { // html exists in subdir of a html dir
+          console.log('Ignoring content directory file: %s', relativePath);
           return taskCallback(null);
         }
         else {

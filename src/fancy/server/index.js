@@ -6,6 +6,8 @@ var logger = require('morgan');
 
 var express = require('express');
 
+var glob = require('glob');
+
 
 process.on('uncaughtException', function(err) {
   console.error('Error', err);
@@ -29,6 +31,14 @@ module.exports = function(fancy, callback) {
   app.use(logger('dev'));
   app.use(express.static(path.join(process.cwd(), './themes/' + fancy.options.theme + '/public')));
   app.use(express.static(path.join(process.cwd(), './data/assets')));
+
+  // initialize static handlers
+  var matches = glob.sync('./data/content/**/*.html/public');
+  for (var i=0; i < matches.length; i++) {
+    app.use(express.static(path.join(process.cwd(), matches[i])));
+  }
+
+  app.set('views', path.join(process.cwd(), './themes/' + fancy.options.theme + '/views'));
 
   function renderError(req, res, err) {
     res.status(err.status || 500);

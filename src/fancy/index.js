@@ -14,10 +14,6 @@ var server = require('./server/index.js')
 
 var helpers = require('./helpers/index.js');
 
-var extensions = {
-  pagination: require('../../examples/pagination-extension/pagination.js')
-};
-
 function Fancy(options) {
   options = options || {};
 
@@ -42,6 +38,8 @@ function Fancy(options) {
   this.server = null;
   this.db = null;
 
+  this.extensions = {};
+
   // load options
   for (var k in options) {
     if (k in this.options) {
@@ -61,6 +59,20 @@ function Fancy(options) {
     }
   }
   console.log('\tSite config.yml loaded', this.options.config);
+
+  console.log('Loading extensions...');
+  this.options.config.extensions = this.options.config.extensions || [];
+  for (var i=0; i < this.options.config.extensions.length; i++) {
+    var extensionName = this.options.config.extensions[i];
+    var extensionPath = path.join(process.cwd(), './extensions/' + extensionName + '/index.js');
+    if (fs.existsSync(extensionPath)) {
+      console.log('Loading extension %s...', extensionPath);
+      this.extensions[extensionName] = require(extensionPath);
+    }
+    else {
+      console.warn('Warning: Unable to load extension %s', extensionPath);
+    }
+  }
 }
 
 Fancy.prototype.init = function(callback) {
@@ -84,8 +96,13 @@ Fancy.prototype.init = function(callback) {
     _this.db = new FancyDb();
     (_this.options.config.providers || []).forEach(function(providerName) {
       var providerPath = path.join(process.cwd(), './data/providers/' + providerName + '/index.js');
-      console.log('Loading provider %s...', providerPath);
-      _this.db.providers.push(require(providerPath)); // TODO: move paths someplace configurable
+      if (fs.existsSync(providerPath)) {
+        console.log('Loading provider %s...', providerPath);
+        _this.db.providers.push(require(providerPath)); // TODO: move paths someplace configurable
+      }
+      else {
+        console.warn('Warning: Unable to load provider %s', providerPath);
+      }
     });
     _this.db.init(function(err, db) {
       if (err) {
@@ -119,17 +136,18 @@ Fancy.prototype.init = function(callback) {
     console.log('Fancy initialized. Starting server on port %d...', _this.options.port);
     _this.express.set('port', _this.options.port);
 
-    console.log('Initializing static asset handlers for pages...');
-    for (var relativePath in _this.db.pages) {
-      var page = _this.db.pages[relativePath]
-        , pageAssets;
-      if (page.assets) {
-        pageAssets = path.join(process.cwd(), pageAssets);
-        console.log('\t-> %s', pageAssets);
-        _this.express.use(express.static(pageAssets));
-      }
-    }
-    console.log('Done.');
+
+    // console.log('Initializing static asset handlers for pages...');
+    // for (var relativePath in _this.db.pages) {
+    //   var page = _this.db.pages[relativePath]
+    //     , pageAssets;
+    //   if (page.assetPath) {
+    //     pageAssets = path.join(process.cwd(), page.assetPath);
+    //     console.log('\t-> %s', pageAssets);
+    //     _this.express.use(express.static(pageAssets));
+    //   }
+    // }
+    // console.log('Done.');
 
     _this.server = _this.express.listen(_this.express.get('port'), function() {
       callback.call(_this, null, _this.server);
@@ -143,7 +161,7 @@ Fancy.prototype.createResponse = function(url, page, params) {
 
   Object.defineProperty(res, 'fancy', { value: helpers(res), enumerable: true });
   Object.defineProperty(res, 'theme', { value: (_this.theme.support || function(){})(res), enumerable: true });
-  Object.defineProperty(res, 'extensions', { value: extensions, enumerable: true }); // TODO: auto-load extensions
+  Object.defineProperty(res, 'extensions', { value: _this.extensions, enumerable: true }); // TODO: auto-load extensions
 
   // FIXME: poor form...
   function addToResponse(k, v) {
@@ -241,7 +259,7 @@ Fancy.prototype.requestPage = function(url, callback) {
       console.log('page found', page);
       return callback(null, {
           page: page
-        , layout: page.layout
+        , layout: page.layout || 'primary'
         , res: _this.createResponse(url, page)
       });
     }
@@ -262,7 +280,7 @@ Fancy.prototype.requestPage = function(url, callback) {
             if (params) {
               return callback(null, {
                   page: page
-                , layout: page.layout
+                , layout: page.layout || 'primary'
                 , res: _this.createResponse(url, page, params)
               });
             }

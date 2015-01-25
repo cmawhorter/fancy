@@ -20,7 +20,7 @@ module.exports = function(contents, callback) {
   });
   addProp('contentType', contentType);
 
-  $('meta').each(function() {
+  $('head>meta').each(function() {
     var $el = $(this)
       , name = $el.attr('name')
       , val = $el.attr('content') || '';
@@ -28,6 +28,14 @@ module.exports = function(contents, callback) {
     if (name) {
       addProp(name, val);
     }
+  });
+
+  $('head>property').each(function() {
+    var $el = $(this)
+      , name = $el.attr('key')
+      , val = $el.attr('value') || '';
+
+    addProp(name, val);
   });
 
   console.log('parser html properties', properties);

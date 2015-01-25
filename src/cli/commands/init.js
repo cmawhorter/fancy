@@ -24,8 +24,7 @@ module.exports = function(yargs) {
     , settings:   help.createDirectory(workingDir, 'data/settings')
     , assets:     help.createDirectory(workingDir, 'data/assets')
     , themes:     help.createDirectory(workingDir, 'themes')
-    , parsers:    help.createDirectory(workingDir, 'parsers')
-    , plugins:    help.createDirectory(workingDir, 'plugins')
+    , plugins:    help.createDirectory(workingDir, 'extensions')
   };
 
   var pkg = require('../../templates/package.json');
