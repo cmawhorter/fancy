@@ -14,6 +14,36 @@ function filterAndSort(ret, filterFn, sorterFn) {
 
 module.exports = function(ctx) {
   return {
+    value: function(k) {
+      var parts = k.split('.')
+        , ns = parts.shift()
+        , ret;
+      if (ns) {
+        switch (ns) {
+          case 'page':
+          case 'config':
+          case 'request':
+            ret = ctx[ns][parts.join('.')];
+          break;
+          case 'constant':
+            ret = ctx.constants[parts.shift()][parts.join('.')];
+          break;
+        }
+
+        // all page values are arrays.  if only one val exists, just return it
+        if ('page' === ns && !!ret && typeof ret === 'object' && 'length' in ret) {
+          if (1 === ret.length) {
+            ret = ret[0];
+          }
+          else {
+            ret = ret.join(', ');
+          }
+        }
+      }
+
+      return ret;
+    },
+
     resources: function(type, filterFn, sorterFn) {
       return filterAndSort(ctx.site.resources[type], filterFn, sorterFn);
     },
