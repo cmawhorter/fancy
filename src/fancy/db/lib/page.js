@@ -169,7 +169,7 @@ FancyPage.prototype.setProperties = function(properties, callback) {
   // console.log('setProperties', properties);
 
   iterator(properties).forEach(function(prop) {
-    var propName = prop[0].trim().toLowerCase()
+    var propName = prop[0]
       , propValue = prop[1];
 
     console.log('saving property', prop);
