@@ -9,7 +9,14 @@ var express = require('express')
 
 var server = require('./server/index.js')
   , FancyDb = require('./db/index.js')
-  , parser = require('./parsers/index.js');
+  , parser = require('./parsers/index.js')
+  , objectUtil = require('../utils/object.js');
+
+var helpers = require('./helpers/index.js');
+
+var extensions = {
+  pagination: require('../../examples/pagination-extension/pagination.js')
+};
 
 function Fancy(options) {
   options = options || {};
@@ -21,6 +28,15 @@ function Fancy(options) {
     , config: {}
     , settings: {}
   };
+
+  this.theme = {
+      supportPath: path.join(process.cwd(), './themes/' + this.options.theme + '/support/theme.js')
+    , support: null
+  }
+
+  if (fs.existsSync(this.theme.supportPath)) {
+    this.theme.support = require(this.theme.supportPath);
+  }
 
   this.express = null;
   this.server = null;
@@ -123,24 +139,34 @@ Fancy.prototype.init = function(callback) {
 
 Fancy.prototype.createResponse = function(url, page, params) {
   var _this = this;
-  var res = {
-      url: url
-    , config: this.options.config || {}
-    , settings: this.options.settings
-    , params: params || {}
-    , site: {
-          pages: Object.keys(this.db.pages).map(function(item) {
-            return _this.db.pages[item].toTemplateObject();
-          })
-        , resources: this.getResourcesForTemplate()
-        , meta: this.getMetaForTemplate()
-        , relationships: this.getRelationshipsForTemplate()
-      }
-    , page: page.toTemplateObject()
-  };
+  var res = {};
 
-  // TODO: extend with libraries (moment, etc.)
-  // e.g... res.moment = moment;
+  Object.defineProperty(res, 'fancy', { value: helpers(res), enumerable: true });
+  Object.defineProperty(res, 'theme', { value: (_this.theme.support || function(){})(res), enumerable: true });
+  Object.defineProperty(res, 'extensions', { value: extensions, enumerable: true }); // TODO: auto-load extensions
+
+  // FIXME: poor form...
+  function addToResponse(k, v) {
+    objectUtil.deepFreeze(v);
+    Object.defineProperty(res, k, { value: v, enumerable: true });
+  }
+
+  addToResponse('request', {
+      url: url
+    , params: params
+  });
+
+  addToResponse('config', _this.options.config || {});
+  addToResponse('settings', _this.options.settings || {});
+  addToResponse('page', page.toTemplateObject());
+  addToResponse('site', {
+      pages: Object.keys(_this.db.pages).map(function(item) {
+        return _this.db.pages[item].toTemplateObject();
+      })
+    , resources: _this.getResourcesForTemplate()
+    , meta: _this.getMetaForTemplate()
+    , relationships: _this.getRelationshipsForTemplate()
+  });
 
   return res;
 };

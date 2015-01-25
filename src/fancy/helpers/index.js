@@ -89,7 +89,7 @@ module.exports = function(ctx) {
       relative: function(mergeVals) {
         if (!ctx.page.urltemplate) return ctx.url;
 
-        var templateValues = Object.create(ctx.params);
+        var templateValues = Object.create(ctx.request.params);
         for (var k in mergeVals) {
           templateValues[k] = mergeVals[k];
         }
