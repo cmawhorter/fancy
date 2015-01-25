@@ -62,6 +62,7 @@ module.exports = function(fancy, callback) {
         return;
       }
       console.log('Rendering %s with locals: ', 'layouts/' + details.layout, details.res);
+      console.log('Known Routes:', fancy.knownRoutes);
       res.render('layouts/' + details.layout, details.res);
     });
   });

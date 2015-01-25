@@ -38,8 +38,9 @@ function Fancy(options) {
   this.server = null;
   this.db = null;
 
-  this.extensions = {};
+  this.knownRoutes = [];
 
+  this.extensions = {};
   // load options
   for (var k in options) {
     if (k in this.options) {
@@ -155,11 +156,21 @@ Fancy.prototype.init = function(callback) {
   });
 };
 
+Fancy.prototype.routeDiscovered = function(url) {
+  if (this.knownRoutes.indexOf(url) < 0) {
+    this.knownRoutes.push(url);
+  }
+};
+
 Fancy.prototype.createResponse = function(url, page, params) {
   var _this = this;
   var res = {};
 
+  _this.routeDiscovered(url);
   Object.defineProperty(res, 'fancy', { value: helpers(res), enumerable: true });
+  Object.defineProperty(res, 'yield', { value: function(yieldUrl) {
+    _this.routeDiscovered(yieldUrl);
+  }, enumerable: true });
   Object.defineProperty(res, 'theme', { value: (_this.theme.support || function(){})(res), enumerable: true });
   Object.defineProperty(res, 'extensions', { value: _this.extensions, enumerable: true }); // TODO: auto-load extensions
 

@@ -63,7 +63,7 @@ module.exports = function(ctx) {
     'if': {
       active: function(url, str, elseStr) {
         var ret;
-        ret = urlPattern.newPattern(ctx.url).match(url) ? str : elseStr || '';
+        ret = urlPattern.newPattern(ctx.request.url).match(url) ? str : elseStr || '';
         if (typeof ret === 'function') {
           ret();
         }
@@ -117,14 +117,14 @@ module.exports = function(ctx) {
       },
 
       relative: function(mergeVals) {
-        if (!ctx.page.urltemplate) return ctx.url;
+        if (!ctx.page.urlTemplate) return ctx.request.url;
 
         var templateValues = Object.create(ctx.request.params);
         for (var k in mergeVals) {
           templateValues[k] = mergeVals[k];
         }
 
-        var templateUrl = ctx.page.urltemplate;
+        var templateUrl = ctx.page.urlTemplate;
         if ('/' !== templateUrl.trim()[0] && /\s*\w.*\?.*\:.*/.test(templateUrl)) { // conditional, eval it
           console.log('url template needs eval', templateUrl);
           templateUrl = (function(template, ctx) {
