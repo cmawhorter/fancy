@@ -26,7 +26,7 @@ function Fancy(options) {
       theme: 'blah'
     , port: 3000
     , config: {}
-    , settings: {}
+    , constants: {}
   };
 
   this.theme = {
@@ -98,16 +98,16 @@ Fancy.prototype.init = function(callback) {
 
   // TODO: make async
   tasks.push(function(taskCallback) {
-    console.log('Loading all site settings...');
-    glob('./data/settings/**/*.yml', function(err, matches) {
+    console.log('Loading all site constants...');
+    glob('./data/constants/**/*.yml', function(err, matches) {
       if (err) {
         return callback(err);
       }
       matches.forEach(function(relativePath) {
-        var settingsKey = path.basename(relativePath, '.yml');
-        _this.options.settings[settingsKey] = yaml.load(fs.readFileSync(relativePath, 'utf8'));
+        var constantsKey = path.basename(relativePath, '.yml');
+        _this.options.constants[constantsKey] = yaml.load(fs.readFileSync(relativePath, 'utf8'));
       });
-      console.log('\tSite settings loaded.');
+      console.log('\tSite constants loaded.');
       taskCallback(null);
     });
   });
@@ -157,7 +157,7 @@ Fancy.prototype.createResponse = function(url, page, params) {
   });
 
   addToResponse('config', _this.options.config || {});
-  addToResponse('settings', _this.options.settings || {});
+  addToResponse('constants', _this.options.constants || {});
   addToResponse('page', page.toTemplateObject());
   addToResponse('site', {
       pages: Object.keys(_this.db.pages).map(function(item) {
