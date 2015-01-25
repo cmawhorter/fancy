@@ -16,20 +16,22 @@ var helpers = require('./helpers/index.js');
 
 function Fancy(options) {
   options = options || {};
-
   // defaults
   this.options = {
       theme: 'blah'
     , port: 3000
-    , config: {}
-    , constants: {}
+    // , contentDirectories: [] // TODO: this is going to change so disabling use for now
+    , providers: []
+    , extensions: []
+    , buildRoutes: []
   };
+
+  this.knownRoutes = [];
 
   this.theme = {
       supportPath: path.join(process.cwd(), './themes/' + this.options.theme + '/support/theme.js')
     , support: null
   }
-
   if (fs.existsSync(this.theme.supportPath)) {
     this.theme.support = require(this.theme.supportPath);
   }
@@ -38,7 +40,7 @@ function Fancy(options) {
   this.server = null;
   this.db = null;
 
-  this.knownRoutes = [];
+  this.constants = {};
 
   this.extensions = {};
   // load options
@@ -53,18 +55,22 @@ function Fancy(options) {
 
   console.log('Loading site config.yml...');
   var configFilepath = './config.yml';
+  var config;
   if (fs.existsSync(configFilepath)) {
-    var config = yaml.load(fs.readFileSync(configFilepath, 'utf8'));
+    config = yaml.load(fs.readFileSync(configFilepath, 'utf8')) || {};
     for (var k in config) {
-      this.options.config[k] = config[k];
+      this.options[k] = config[k];
     }
   }
-  console.log('\tSite config.yml loaded', this.options.config);
+  console.log('\tSite config.yml loaded', config);
+
+  // FIXME: should generalize this a bit into data directories, so providers, assets and constants are all loaded too
+  this.options.contentDirectories = [ 'data/content' ]; // always look relative
 
   console.log('Loading extensions...');
-  this.options.config.extensions = this.options.config.extensions || [];
-  for (var i=0; i < this.options.config.extensions.length; i++) {
-    var extensionName = this.options.config.extensions[i];
+  this.options.extensions = this.options.extensions || [];
+  for (var i=0; i < this.options.extensions.length; i++) {
+    var extensionName = this.options.extensions[i];
     var extensionPath = path.join(process.cwd(), './extensions/' + extensionName + '/index.js');
     if (fs.existsSync(extensionPath)) {
       console.log('Loading extension %s...', extensionPath);
@@ -94,8 +100,8 @@ Fancy.prototype.init = function(callback) {
 
   tasks.push(function(taskCallback) {
     console.log('Loading database...');
-    _this.db = new FancyDb();
-    (_this.options.config.providers || []).forEach(function(providerName) {
+    _this.db = new FancyDb(_this.options.contentDirectories);
+    (_this.options.providers || []).forEach(function(providerName) {
       var providerPath = path.join(process.cwd(), './data/providers/' + providerName + '/index.js');
       if (fs.existsSync(providerPath)) {
         console.log('Loading provider %s...', providerPath);
@@ -123,7 +129,7 @@ Fancy.prototype.init = function(callback) {
       }
       matches.forEach(function(relativePath) {
         var constantsKey = path.basename(relativePath, '.yml');
-        _this.options.constants[constantsKey] = yaml.load(fs.readFileSync(relativePath, 'utf8'));
+        _this.constants[constantsKey] = yaml.load(fs.readFileSync(relativePath, 'utf8'));
       });
       console.log('\tSite constants loaded.');
       taskCallback(null);
@@ -185,8 +191,8 @@ Fancy.prototype.createResponse = function(url, page, params) {
     , params: params
   });
 
-  addToResponse('config', _this.options.config || {});
-  addToResponse('constants', _this.options.constants || {});
+  addToResponse('config', _this.options || {});
+  addToResponse('constants', _this.constants || {});
   addToResponse('page', page.toTemplateObject());
   addToResponse('site', {
       pages: Object.keys(_this.db.pages).map(function(item) {

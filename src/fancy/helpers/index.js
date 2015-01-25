@@ -15,33 +15,51 @@ function filterAndSort(ret, filterFn, sorterFn) {
 module.exports = function(ctx) {
   return {
     value: function(k) {
-      var parts = k.split('.')
+      var parts = k.toLowerCase().trim().split('.')
         , ns = parts.shift()
         , ret;
       if (ns) {
+        var lookup;
         switch (ns) {
           case 'page':
           case 'config':
           case 'request':
-            ret = ctx[ns][parts.join('.')];
+            ret = ctx[ns];
           break;
           case 'constant':
-            ret = ctx.constants[parts.shift()][parts.join('.')];
+          case 'constants':
+            ret = ctx.constants[parts.shift()];
           break;
         }
 
-        // all page values are arrays.  if only one val exists, just return it
-        if ('page' === ns && !!ret && typeof ret === 'object' && 'length' in ret) {
-          if (1 === ret.length) {
-            ret = ret[0];
+        lookup = parts.join('.');
+        if (typeof ret === 'object' && lookup.length) {
+          for (var k in ret) {
+            if (k.toLowerCase().trim() === lookup) {
+              ret = ret[k];
+              break;
+            }
           }
-          else {
-            ret = ret.join(', ');
+
+          // all page values are arrays.  if only one val exists, just return it
+          if ('page' === ns && !!ret && typeof ret === 'object' && 'length' in ret) {
+            if (1 === ret.length) {
+              ret = ret[0];
+            }
+            else {
+              ret = ret.join(', ');
+            }
           }
         }
       }
 
-      return ret;
+      // null or undef ret empty string
+      if (ret === null || void 0 === ret) {
+        return '';
+      }
+      else {
+        return ret;
+      }
     },
 
     resources: function(type, filterFn, sorterFn) {
@@ -117,6 +135,7 @@ module.exports = function(ctx) {
       },
 
       relative: function(mergeVals) {
+        mergeVals = mergeVals || {};
         if (!ctx.page.urlTemplate) return ctx.request.url;
 
         var templateValues = Object.create(ctx.request.params);
