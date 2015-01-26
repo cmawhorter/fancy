@@ -47,7 +47,14 @@ var Property = models.Property = sequelize.define('property', {
     }
   },
   content: {
-    type: Sequelize.STRING
+    type: Sequelize.STRING,
+    set: function(v) {
+      this.setDataValue('content', null === v ? null : JSON.stringify(v));
+    },
+    get: function() {
+      var v = this.getDataValue('content');
+      return null === v ? null : JSON.parse(v);
+    }
   },
 }, {
   indexes: [

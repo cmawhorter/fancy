@@ -61,9 +61,23 @@ module.exports = function(fancy, callback) {
         renderError(req, res, err);
         return;
       }
-      console.log('Rendering %s with locals: ', 'layouts/' + details.layout, details.res);
+
       console.log('Known Routes:', fancy.knownRoutes);
-      res.render('layouts/' + details.layout, details.res);
+      var contentType = details.res.page.contentType || 'text/html';
+
+      if (contentType.split(';')[0].trim() == 'text/html') {
+        console.log('Rendering %s (%s) with locals: ', req.url, 'layouts/' + details.layout, details.res);
+        res.render('layouts/' + details.layout, details.res);
+      }
+      else if (contentType == 'application/json') {
+        console.log('Sending json for %s', req.url);
+        res.json(details.res.page.body);
+        return;
+      }
+      else {
+        renderError(req, res, new Error('Invalid content type: ' + contentType));
+        return;
+      }
     });
   });
   app.use('/', router);

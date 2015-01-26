@@ -123,13 +123,24 @@ Fancy.prototype.init = function(callback) {
   // TODO: make async
   tasks.push(function(taskCallback) {
     console.log('Loading all site constants...');
-    glob('./data/constants/**/*.yml', function(err, matches) {
+    glob('./data/constants/**/*.@(yml|json)', function(err, matches) {
       if (err) {
         return callback(err);
       }
       matches.forEach(function(relativePath) {
-        var constantsKey = path.basename(relativePath, '.yml');
-        _this.constants[constantsKey] = yaml.load(fs.readFileSync(relativePath, 'utf8'));
+        switch (path.extname(relativePath)) {
+          case '.yml':
+            var constantsKey = path.basename(relativePath, '.yml');
+            _this.constants[constantsKey] = yaml.load(fs.readFileSync(relativePath, 'utf8'));
+          break;
+          case '.json':
+            var constantsKey = path.basename(relativePath, '.json');
+            _this.constants[constantsKey] = JSON.parse(fs.readFileSync(relativePath, 'utf8'));
+          break;
+          default:
+            throw new Error('Invalid constant file format %s', relativePath);
+          break;
+        }
       });
       console.log('\tSite constants loaded.');
       taskCallback(null);
