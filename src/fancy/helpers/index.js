@@ -32,6 +32,8 @@ module.exports = function(ctx) {
           break;
         }
 
+        // TODO: add support for multi-tiered obj lit loopups via eval
+
         lookup = parts.join('.');
         if (typeof ret === 'object' && lookup.length) {
           for (var k in ret) {
