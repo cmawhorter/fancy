@@ -33,6 +33,7 @@ module.exports = function(fancy, callback) {
   app.use(express.static(path.join(process.cwd(), './data/assets')));
 
   // initialize static handlers
+  // TODO: support multiple content directories
   var matches = glob.sync('./data/content/**/*.html/public');
   for (var i=0; i < matches.length; i++) {
     app.use(express.static(path.join(process.cwd(), matches[i])));
