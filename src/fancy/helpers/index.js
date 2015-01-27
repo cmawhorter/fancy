@@ -54,12 +54,12 @@ var helpers = function(ctx, fancy) {
           var ret = objectUtil.retrieve(obj, k);
           return void 0 === ret ? defaultValue : ret;
         },
-        text: function() {
-          var val = this.value(k);
+        text: function(k) {
+          var val = content.value(k);
           return valueToText(val);
         },
-        first: function() {
-          var val = this.value(k);
+        first: function(k) {
+          var val = content.value(k);
           return valueToFirst(val);
         }
       };
