@@ -43,10 +43,11 @@ module.exports = function(fancy, callback) {
 
   function renderError(req, res, err) {
     res.status(err.status || 500);
-    res.render('layouts/error', {
+    res.render('layouts/error', fancy.createResponse(req.url, {
         message: err.message
       , error: err
-    });
+      , route: req.url
+    }));
   }
 
   app.use(function(err, req, res, next) {
@@ -63,6 +64,7 @@ module.exports = function(fancy, callback) {
         return;
       }
 
+      fancy.routeDiscovered(req.url);
       console.log('Known Routes:', fancy.knownRoutes);
       var contentType = details.res.page.contentType || 'text/html';
 

@@ -1,5 +1,10 @@
-var uriTemplates = require('uri-templates')
+var fs = require('fs');
+
+var ejs = require('ejs')
+  , uriTemplates = require('uri-templates')
   , urlPattern = require('url-pattern');
+
+var objectUtil = require('../../utils/object.js');
 
 function filterAndSort(ret, filterFn, sorterFn) {
   ret = ret || [];
@@ -12,78 +17,124 @@ function filterAndSort(ret, filterFn, sorterFn) {
   return ret;
 }
 
-module.exports = function(ctx) {
-  return {
-    value: function(k) {
-      var parts = k.toLowerCase().trim().split('.')
-        , ns = parts.shift()
-        , ret;
-      if (ns) {
-        var lookup;
-        switch (ns) {
-          case 'page':
-          case 'config':
-          case 'request':
-            ret = ctx[ns];
-          break;
-          case 'constant':
-          case 'constants':
-            ret = ctx.constants[parts.shift()];
-          break;
+function valueToText(val) {
+  var ret;
+  if (null === val || void 0 === val) {
+    ret = '';
+  }
+  else if (typeof val === 'object' && 'length' in val) {
+    ret = val.join(', ');
+  }
+  else if (val.toString) {
+    ret = val.toString();
+  }
+  return ret;
+}
+
+function valueToFirst(val) {
+  var ret = val;
+
+  if (typeof val === 'object' && 'length' in val) {
+    ret = val[0];
+  }
+
+  if (null === ret || void 0 === ret) {
+    return '';
+  }
+  else {
+    return ret.toString();
+  }
+}
+
+var helpers = function(ctx, fancy) {
+  var core = {
+    wrap: function(obj) {
+      return {
+        value: function(k, defaultValue) {
+          var ret = objectUtil.retrieve(obj, k);
+          return void 0 === ret ? defaultValue : ret;
+        },
+        text: function() {
+          var val = this.value(k);
+          return valueToText(val);
+        },
+        first: function() {
+          var val = this.value(k);
+          return valueToFirst(val);
         }
+      };
+    },
 
-        // TODO: add support for multi-tiered obj lit loopups via eval
+    partial: function(view, vals) {
+      vals = vals || {};
+      var res = fancy.createResponse(ctx.request.url, vals.page || ctx.page, ctx.request.params);
+      for (var k in vals) {
+        res[k] = vals[k];
+      }
+      console.log('partial scope', res);
+      if (!/\.ejs$/i.test(view)) {
+        view += '.ejs';
+      }
+      var viewPath = fancy.getView(ctx.page.layout, view);
+      var contents = fs.readFileSync(viewPath).toString();
+      return ejs.render(contents, {
+        locals: res,
+        filename: viewPath
+      });
+    },
 
-        lookup = parts.join('.');
-        if (typeof ret === 'object' && lookup.length) {
-          for (var k in ret) {
-            if (k.toLowerCase().trim() === lookup) {
-              ret = ret[k];
-              break;
-            }
-          }
-
-          // all page values are arrays.  if only one val exists, just return it
-          if ('page' === ns && !!ret && typeof ret === 'object' && 'length' in ret) {
-            if (1 === ret.length) {
-              ret = ret[0];
+    value: function(k, defaultValue) {
+      var ret;
+      if (k.trim().length) {
+        var parts = k.toLowerCase().split('.')
+          , ns = parts.shift();
+        ret = (ctx[ns] || {})[parts.join('.')];
+        // if a page search and it's not found, fall back to a deep search since we don't flatten page data
+        if ((ns === 'page' || ns === 'request') && void 0 === ret) {
+          var lowest = ctx[ns]
+            , search = [];
+          for (var i=0; i < parts.length; i++) {
+            if (void 0 !== lowest[parts[i]]) {
+              lowest = lowest[parts[i]];
             }
             else {
-              ret = ret.join(', ');
+              search.push(parts[i]);
             }
+          }
+          if (lowest) {
+            ret = objectUtil.retrieve(lowest, search.join('.'));
           }
         }
       }
+      return void 0 === ret ? defaultValue : ret;
+    },
 
-      // null or undef ret empty string
-      if (ret === null || void 0 === ret) {
-        return '';
-      }
-      else {
-        return ret;
-      }
+    text: function(k) {
+      var val = this.value(k);
+      return valueToText(val);
+    },
+
+    first: function(k) {
+      var val = this.value(k);
+      return valueToFirst(val);
     },
 
     resources: function(type, filterFn, sorterFn) {
-      return filterAndSort(ctx.site.resources[type], filterFn, sorterFn);
+      return filterAndSort(this.value('site.resources.' + type), filterFn, sorterFn);
     },
 
-    meta: function(property) {
-      return filterAndSort(ctx.site.meta[property], filterFn, sorterFn);
+    meta: function(property, filterFn, sorterFn) {
+      return filterAndSort(this.value('site.meta.' + property), filterFn, sorterFn);
     },
 
-    relationships: function(property, propertyValue, filterFn, sorterFn) {
-      var ret = ctx.site.relationships[property] || {};
-      if (propertyValue) {
-        ret = ret[propertyValue];
-      }
-      return filterAndSort(ret, filterFn, sorterFn);
+    relationships: function(property, filterFn, sorterFn) {
+      return filterAndSort(this.value('site.relationships.' + property), filterFn, sorterFn);
     },
 
     'if': {
       active: function(url, str, elseStr) {
         var ret;
-        ret = urlPattern.newPattern(ctx.request.url).match(url) ? str : elseStr || '';
+        ret = urlPattern.newPattern(this.value('request.url')).match(url) ? str : elseStr || '';
         if (typeof ret === 'function') {
           ret();
         }
@@ -107,59 +158,64 @@ module.exports = function(ctx) {
       //     return elseStr;
       //   }
       // }
-    },
-
-    utils: {
-      // FIXME: this completely ignores most languages in the world... better slug libs exist.  which one did i use last time?
-      slug: function(str) {
-        return (str || '').toLowerCase().trim().replace(/[^\w\W]|\s+/g, '-').replace(/\-\-+/g, '-').replace(/^\-+|\-+$/g, '');
-      },
-
-      // takes a single k/v dict and returns the parts for easy use
-      each: function(obj, callback) {
-        if (obj) {
-          var k = Object.keys(obj)[0];
-          callback(k, obj[k]);
-        }
-        else {
-          callback();
-        }
-      },
-
-      forEach: function(obj, callback) {
-        for (var k in obj) {
-          callback(obj[k], k);
-        }
-      },
-
-      once: function(key, fn) {
-        // TODO: stub. fn gets exec once and the result cached under key.  runs once per build.
-      },
-
-      relative: function(mergeVals) {
-        mergeVals = mergeVals || {};
-        if (!ctx.page.urlTemplate) return ctx.request.url;
-
-        var templateValues = Object.create(ctx.request.params);
-        for (var k in mergeVals) {
-          templateValues[k] = mergeVals[k];
-        }
-
-        var templateUrl = ctx.page.urlTemplate;
-        if ('/' !== templateUrl.trim()[0] && /\s*\w.*\?.*\:.*/.test(templateUrl)) { // conditional, eval it
-          console.log('url template needs eval', templateUrl);
-          templateUrl = (function(template, ctx) {
-            return eval(templateUrl);
-          })(templateValues, ctx);
-        }
-
-        console.log('url template is', templateUrl);
-
-        var url = uriTemplates(templateUrl).fillFromObject(templateValues);
-        // console.log('URI', page.urlTemplate || page.route, url);
-
-        return url;
-      }
     }
   };
+
+  core.utils = {
+    // FIXME: this completely ignores most languages in the world... better slug libs exist.  which one did i use last time?
+    slug: function(str) {
+      return (str || '').toLowerCase().trim().replace(/[^\w\W]|\s+/g, '-').replace(/\-\-+/g, '-').replace(/^\-+|\-+$/g, '');
+    },
+
+    // takes a single k/v dict and returns the parts for easy use
+    eachKey: function(obj, callback) {
+      if (obj) {
+        var k = Object.keys(obj)[0];
+        callback(k, obj[k]);
+      }
+      else {
+        callback();
+      }
+    },
+
+    forEach: function(obj, callback) {
+      for (var k in obj) {
+        callback(obj[k], k);
+      }
+    },
+
+    once: function(key, fn) {
+      // TODO: stub. fn gets exec once and the result cached under key.  runs once per build.
+    },
+
+    relative: function(mergeVals) {
+      mergeVals = mergeVals || {};
+      if (!core.first('page.urlTemplate')) return core.value('request.url');
+
+      var templateValues = Object.create(core.value('request.params', {}));
+      for (var k in mergeVals) {
+        templateValues[k] = mergeVals[k];
+      }
+
+      var templateUrl = core.first('page.urlTemplate');
+      if ('/' !== templateUrl.trim()[0] && /\s*\w.*\?.*\:.*/.test(templateUrl)) { // conditional, eval it
+        console.log('url template needs eval', templateUrl);
+        templateUrl = (function(template, ctx) {
+          return eval(templateUrl);
+        })(templateValues, ctx);
+      }
+
+      console.log('url template is', templateUrl);
+
+      var url = uriTemplates(templateUrl).fillFromObject(templateValues);
+      // console.log('URI', page.urlTemplate || page.route, url);
+
+      return url;
+    }
+  };
+
+
+  return core;
 };
+
+module.exports = helpers;

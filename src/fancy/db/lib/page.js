@@ -16,7 +16,6 @@ var Page = orm.models.Page
 // FIXME: using callback.call so callbacks refer to object is silly.  a ref can just be saved if needed
 // TODO: remove this object?  better to just build on top of sequelize objects maybe
 
-
 function FancyPage(relativePath) {
   this.relativePath = relativePath;
   this.dataObject = null;

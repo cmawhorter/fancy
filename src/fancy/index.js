@@ -10,7 +10,8 @@ var express = require('express')
 var server = require('./server/index.js')
   , FancyDb = require('./db/index.js')
   , parser = require('./parsers/index.js')
-  , objectUtil = require('../utils/object.js');
+  , objectUtil = require('../utils/object.js')
+  , fingerprint = require('../utils/fingerprint.js');
 
 var helpers = require('./helpers/index.js');
 
@@ -25,24 +26,6 @@ function Fancy(options) {
     , extensions: []
     , buildRoutes: []
   };
-
-  this.knownRoutes = [];
-
-  this.theme = {
-      supportPath: path.join(process.cwd(), './themes/' + this.options.theme + '/support/theme.js')
-    , support: null
-  }
-  if (fs.existsSync(this.theme.supportPath)) {
-    this.theme.support = require(this.theme.supportPath);
-  }
-
-  this.express = null;
-  this.server = null;
-  this.db = null;
-
-  this.constants = {};
-
-  this.extensions = {};
   // load options
   for (var k in options) {
     if (k in this.options) {
@@ -63,6 +46,30 @@ function Fancy(options) {
     }
   }
   console.log('\tSite config.yml loaded', config);
+
+
+  // other properties
+  this.knownRoutes = [];
+
+  this.theme = {
+      views: path.join(process.cwd(), './themes/' + this.options.theme + '/views')
+    , supportPath: path.join(process.cwd(), './themes/' + this.options.theme + '/support/theme.js')
+    , support: null
+  }
+  if (fs.existsSync(this.theme.supportPath)) {
+    this.theme.support = require(this.theme.supportPath);
+  }
+
+  this.express = null;
+  this.server = null;
+  this.db = null;
+
+  this.constants = {};
+
+  this.extensions = {};
+
+
+  // set of defaults
 
   // FIXME: should generalize this a bit into data directories, so providers, assets and constants are all loaded too
   this.options.contentDirectories = [ 'data/content' ]; // always look relative
@@ -179,40 +186,51 @@ Fancy.prototype.routeDiscovered = function(url) {
   }
 };
 
+Fancy.prototype.getView = function(currentLayout, relativePath) {
+  currentLayout = 'layouts/' + (currentLayout || 'primary') + '.ejs';
+  var viewPath = path.join(this.theme.views, path.dirname(currentLayout), relativePath);
+  return viewPath;
+};
+
+// page can be Page object or {}
 Fancy.prototype.createResponse = function(url, page, params) {
   var _this = this;
   var res = {};
 
-  _this.routeDiscovered(url);
-  Object.defineProperty(res, 'fancy', { value: helpers(res), enumerable: true });
+  Object.defineProperty(res, 'fancy', { value: helpers(res, this), enumerable: true });
   Object.defineProperty(res, 'yield', { value: function(yieldUrl) {
     _this.routeDiscovered(yieldUrl);
   }, enumerable: true });
-  Object.defineProperty(res, 'theme', { value: (_this.theme.support || function(){})(res), enumerable: true });
+  Object.defineProperty(res, 'theme', { value: (_this.theme.support || function(){ return {}; })(res), enumerable: true });
   Object.defineProperty(res, 'extensions', { value: _this.extensions, enumerable: true }); // TODO: auto-load extensions
 
-  // FIXME: poor form...
-  function addToResponse(k, v) {
-    objectUtil.deepFreeze(v);
-    Object.defineProperty(res, k, { value: v, enumerable: true });
-  }
 
-  addToResponse('request', {
+  Object.defineProperty(res, 'config', { value: objectUtil.flatten(_this.options || {}), enumerable: true });
+  var constants = objectUtil.flatten(_this.constants || {});
+  Object.defineProperty(res, 'constant', { value: constants, enumerable: true });
+  Object.defineProperty(res, 'constants', { value: constants, enumerable: true });
+
+  // deep freeze page and request so it doesn't get flattened (and matches other data structure if page.body is obj lit)
+
+  page = page.toTemplateObject ? page.toTemplateObject() : page;
+  objectUtil.deepFreeze(page);
+  Object.defineProperty(res, 'page', { value: page, enumerable: true });
+
+  var request = {
       url: url
-    , params: params
-  });
+    , params: params || {}
+  };
+  objectUtil.deepFreeze(request);
+  Object.defineProperty(res, 'request', { value: request, enumerable: true });
 
-  addToResponse('config', _this.options || {});
-  addToResponse('constants', _this.constants || {});
-  addToResponse('page', page.toTemplateObject());
-  addToResponse('site', {
+  Object.defineProperty(res, 'site', { value: objectUtil.flatten({
       pages: Object.keys(_this.db.pages).map(function(item) {
         return _this.db.pages[item].toTemplateObject();
       })
     , resources: _this.getResourcesForTemplate()
     , meta: _this.getMetaForTemplate()
     , relationships: _this.getRelationshipsForTemplate()
-  });
+  }), enumerable: true });
 
   return res;
 };

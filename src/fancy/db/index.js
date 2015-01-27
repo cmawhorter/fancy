@@ -188,6 +188,9 @@ FancyDb.prototype._addRelationshipsSync = function(page) {
 };
 
 FancyDb.prototype._addRelationshipSync = function(page, rel, relValue) {
+  if (rel.toLowerCase() === 'body') { // skip body
+    return;
+  }
   console.log('\t\t-> (relationship) %s.%s: %s', page.relativePath, rel, rel == 'body' ? '[body]' : relValue);
   if (!relValue || typeof relValue !== 'object' || !('length' in relValue)) {
     relValue = [relValue];
