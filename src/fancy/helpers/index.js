@@ -49,7 +49,7 @@ function valueToFirst(val) {
 var helpers = function(ctx, fancy) {
   var core = {
     wrap: function(obj) {
-      return {
+      var content = {
         value: function(k, defaultValue) {
           var ret = objectUtil.retrieve(obj, k);
           return void 0 === ret ? defaultValue : ret;
@@ -63,6 +63,14 @@ var helpers = function(ctx, fancy) {
           return valueToFirst(val);
         }
       };
+
+      for (var k in obj) {
+        if (!content[k]) {
+          content[k] = obj[k];
+        }
+      }
+
+      return content;
     },
 
     partial: function(view, vals) {
