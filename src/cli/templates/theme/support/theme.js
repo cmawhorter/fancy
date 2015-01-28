@@ -1,5 +1,8 @@
-module.exports = {
-  uppercase: function(str) {
-    return str.toUpperCase();
-  }
+module.exports = function(ctx) {
+  var theme = {
+    uppercase: function(str) {
+      return str.toUpperCase();
+    }
+  };
+  return theme;
 };
