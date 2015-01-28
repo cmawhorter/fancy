@@ -63,7 +63,7 @@ FancyPage.prototype.init = function(properties, callback) {
 
   var done = function() {
     if (!_this.hasRoute()) {
-      callback.call(_this, new Error('Page must have a route property'));
+      callback.call(_this, new Error('Page must have a route property: ' + _this.relativePath));
       return;
     }
     else {
