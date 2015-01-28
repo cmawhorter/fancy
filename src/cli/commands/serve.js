@@ -5,7 +5,6 @@ var Fancy = require('../../fancy/index')
 
 module.exports = function(yargs) {
   var argv = yargs.argv;
-  console.log('serve', argv);
 
   var port = 3000
     , dir = '.';
