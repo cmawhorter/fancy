@@ -18,6 +18,7 @@ var server = require('./server/index.js')
 var helpers = require('./helpers/index.js');
 
 function Fancy(options) {
+  this._responseCache = {};
   options = options || {};
   // defaults
   this.options = {
@@ -205,10 +206,11 @@ Fancy.prototype.createResponse = function(url, page, params) {
   Object.defineProperty(res, 'extensions', { value: _this.extensions, enumerable: true }); // TODO: auto-load extensions
 
 
-  Object.defineProperty(res, 'config', { value: objectUtil.flatten(_this.options || {}), enumerable: true });
-  var constants = objectUtil.flatten(_this.constants || {});
-  Object.defineProperty(res, 'constant', { value: constants, enumerable: true });
-  Object.defineProperty(res, 'constants', { value: constants, enumerable: true });
+  _this._responseCache.config = _this._responseCache.config || objectUtil.flatten(_this.options || {});
+  Object.defineProperty(res, 'config', { value: _this._responseCache.config, enumerable: true });
+  _this._responseCache.constants = _this._responseCache.constants || objectUtil.flatten(_this.constants || {});
+  Object.defineProperty(res, 'constant', { value: _this._responseCache.constants, enumerable: true });
+  Object.defineProperty(res, 'constants', { value: _this._responseCache.constants, enumerable: true });
 
   // deep freeze page and request so it doesn't get flattened (and matches other data structure if page.body is obj lit)
 
@@ -223,14 +225,15 @@ Fancy.prototype.createResponse = function(url, page, params) {
   objectUtil.deepFreeze(request);
   Object.defineProperty(res, 'request', { value: request, enumerable: true });
 
-  Object.defineProperty(res, 'site', { value: objectUtil.flatten({
+  _this._responseCache.site = _this._responseCache.site || objectUtil.flatten({
       pages: Object.keys(_this.db.pages).map(function(item) {
         return _this.db.pages[item].toTemplateObject();
       })
     , resources: _this.getResourcesForTemplate()
     , meta: _this.getMetaForTemplate()
     , relationships: _this.getRelationshipsForTemplate()
-  }), enumerable: true });
+  });
+  Object.defineProperty(res, 'site', { value: _this._responseCache.site, enumerable: true });
 
   res.print = function() {
     var html = '';
