@@ -8,9 +8,8 @@ var S = require('string')
 var objectUtil = require('../../utils/object.js');
 
 var utils = {
-  // FIXME: this completely ignores most languages in the world... better slug libs exist.  which one did i use last time?
   slug: function(str) {
-    return S(str || '').slugify();
+    return S(str || '').replaceAll('/', '-').slugify().s;
   },
 
   // takes a single k/v dict and returns the parts for easy use
