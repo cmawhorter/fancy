@@ -1,0 +1,5 @@
+<% if ('/' == fancy.first('page.route')) { %>
+  <title>Welcome! | <%= fancy.text('page.title') %></title>
+<% } else { %>
+  <title><%= fancy.text('page.title') %> | <%= fancy.text('constant.site.name') %></title>
+<% } %>
