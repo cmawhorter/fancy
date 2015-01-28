@@ -28,6 +28,7 @@ function Fancy(options) {
     , providers: []
     , extensions: []
     , buildRoutes: []
+    , strictMode: true
   };
   // load options
   for (var k in options) {
@@ -309,6 +310,7 @@ Fancy.prototype._reduceMatchingRoutes = function(pages) {
     // console.log('\t-> Page %s has property preferred? %s', page.relativePath, page.hasProperty('preferred'));
     return page && page.hasProperty('preferred');
   });
+  if (pages.length > 1 && !preferredPages.length && this.options.strictMode) throw new Error('Strict Mode: Multiple pages match url, with none marked preferred');
   if (!preferredPages.length) preferredPages = pages;
 
   var nonproviderPages = preferredPages.filter(function(page) {
