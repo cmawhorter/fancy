@@ -37,7 +37,7 @@ module.exports = function(yargs) {
   ];
 
   inquirer.prompt(questions, function(answers) {
-    if (answers.overwrite == 'overwrite') {
+    if (!answers.overwrite || answers.overwrite == 'overwrite') {
       var dirs = site.createDirectories(workingDir);
       site.copyTemplate(dirs, function() {
         console.log('Run: npm install && fancy serve');
