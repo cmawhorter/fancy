@@ -66,16 +66,21 @@ module.exports = function(fancy, callback) {
 
       fancy.routeDiscovered(req.url);
       var contentType = details.res.page.contentType || 'text/html';
-
-      if (contentType.split(';')[0].trim() == 'text/html') {
-        res.render('layouts/' + details.layout, details.res);
+      if (contentType.indexOf(';') > -1) {
+        contentType = contentType.split(';')[0].trim();
       }
-      else if (contentType == 'application/json') {
+
+      if (contentType == 'application/json') {
         res.json(details.res.page.body);
         return;
       }
+      else if (contentType == 'application/javascript') {
+        var jsVar = details.res.page.scopeTarget || 'window["' + req.url + '"]';
+        res.status(200).contentType('application/javascript').send(jsVar + ' = ' + JSON.stringify(details.res.page.body));
+        return;
+      }
       else {
-        renderError(req, res, new Error('Invalid content type: ' + contentType));
+        res.render('layouts/' + details.layout, details.res);
         return;
       }
     });
