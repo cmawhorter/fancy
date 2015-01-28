@@ -3,6 +3,21 @@ var fs = require('fs')
 
 var mkdirp = require('mkdirp');
 
+function tryLstat(targ) {
+  try {
+    return fs.lstatSync(targ);
+  }
+  catch (err) { // assuming not found
+    var retfalse = function() {
+      return false;
+    };
+    return {
+      isDirectory: retfalse,
+      isFile: retfalse
+    };
+  }
+}
+
 module.exports = {
   createDirectory: function(dest, optTarg) {
     var targ = dest;
@@ -27,7 +42,11 @@ module.exports = {
   },
 
   isDirectory: function(targ) {
-    return fs.lstatSync(targ).isDirectory();
+    return tryLstat(targ).isDirectory();
+  },
+
+  isFile: function(targ) {
+    return tryLstat(targ).isFile();
   },
 
   createFile: function(dir, targ, contents) {

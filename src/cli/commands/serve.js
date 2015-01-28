@@ -3,6 +3,8 @@ var debug = require('debug')('http');
 var Fancy = require('../../fancy/index')
   , help = require('../../utils/help');
 
+var site = require('../lib/site.js');
+
 module.exports = function(yargs) {
   var argv = yargs.argv;
 
@@ -26,6 +28,8 @@ module.exports = function(yargs) {
   }
 
   var cwd = help.getWorkingDirectory(dir);
+  site.verify(cwd);
+
   process.chdir(cwd);
   // console.log('cwd', cwd, 'port', port, 'dir', dir); process.exit();
 
