@@ -384,5 +384,7 @@ Fancy.prototype.requestPage = function(url, callback) {
 };
 
 Fancy.providers = providers;
+Fancy.utils = helpers.utils;
+Fancy.filters = helpers.filters;
 
 module.exports = Fancy;

@@ -1,10 +1,54 @@
 var fs = require('fs');
 
-var ejs = require('ejs')
+var S = require('string')
+  , ejs = require('ejs')
   , uriTemplates = require('uri-templates')
   , urlPattern = require('url-pattern');
 
 var objectUtil = require('../../utils/object.js');
+
+var utils = {
+  // FIXME: this completely ignores most languages in the world... better slug libs exist.  which one did i use last time?
+  slug: function(str) {
+    return S(str || '').slugify();
+  },
+
+  // takes a single k/v dict and returns the parts for easy use
+  eachKey: function(obj, callback) {
+    if (obj) {
+      var k = Object.keys(obj)[0];
+      callback(k, obj[k]);
+    }
+    else {
+      callback();
+    }
+  },
+
+  forEach: function(obj, callback) {
+    for (var k in obj) {
+      callback(obj[k], k);
+    }
+  },
+
+  once: function(key, fn) {
+    // TODO: stub. fn gets exec once and the result cached under key.  runs once per build.
+  }
+};
+
+var filters = {
+  invalid: function(element) {
+    return filters.null(element) && filters.undefined(element);
+  },
+
+  null: function(element) {
+    return null !== element;
+  },
+
+  undefined: function(element) {
+    return void 0 !== element;
+  },
+};
+
 
 function filterAndSort(ret, filterFn, sorterFn) {
   ret = ret || [];
@@ -55,6 +99,31 @@ var helpers = function(ctx, fancy) {
       }
       // console.log('fancy.find(%s): %j', id, ret);
       return ret;
+    },
+
+    relative: function(mergeVals) {
+      mergeVals = mergeVals || {};
+      if (!core.first('page.urlTemplate')) return core.value('request.url');
+
+      var templateValues = Object.create(core.value('request.params', {}));
+      for (var k in mergeVals) {
+        templateValues[k] = mergeVals[k];
+      }
+
+      var templateUrl = core.first('page.urlTemplate');
+      if ('/' !== templateUrl.trim()[0] && /\s*\w.*\?.*\:.*/.test(templateUrl)) { // conditional, eval it
+        // console.log('url template needs eval', templateUrl);
+        templateUrl = (function(template, ctx) {
+          return eval(templateUrl);
+        })(templateValues, ctx);
+      }
+
+      // console.log('url template is', templateUrl);
+
+      var url = uriTemplates(templateUrl).fillFromObject(templateValues);
+      // console.log('URI', page.urlTemplate || page.route, url);
+
+      return url;
     },
 
     wrap: function(obj) {
@@ -203,78 +272,16 @@ var helpers = function(ctx, fancy) {
       //     return elseStr;
       //   }
       // }
-    }
+    },
+
+    utils: utils,
+    filters: filters
   };
-
-  core.utils = {
-    // FIXME: this completely ignores most languages in the world... better slug libs exist.  which one did i use last time?
-    slug: function(str) {
-      return (str || '').toLowerCase().trim().replace(/[^\w\W]|\s+/g, '-').replace(/\-\-+/g, '-').replace(/^\-+|\-+$/g, '');
-    },
-
-    // takes a single k/v dict and returns the parts for easy use
-    eachKey: function(obj, callback) {
-      if (obj) {
-        var k = Object.keys(obj)[0];
-        callback(k, obj[k]);
-      }
-      else {
-        callback();
-      }
-    },
-
-    forEach: function(obj, callback) {
-      for (var k in obj) {
-        callback(obj[k], k);
-      }
-    },
-
-    once: function(key, fn) {
-      // TODO: stub. fn gets exec once and the result cached under key.  runs once per build.
-    },
-
-    relative: function(mergeVals) {
-      mergeVals = mergeVals || {};
-      if (!core.first('page.urlTemplate')) return core.value('request.url');
-
-      var templateValues = Object.create(core.value('request.params', {}));
-      for (var k in mergeVals) {
-        templateValues[k] = mergeVals[k];
-      }
-
-      var templateUrl = core.first('page.urlTemplate');
-      if ('/' !== templateUrl.trim()[0] && /\s*\w.*\?.*\:.*/.test(templateUrl)) { // conditional, eval it
-        // console.log('url template needs eval', templateUrl);
-        templateUrl = (function(template, ctx) {
-          return eval(templateUrl);
-        })(templateValues, ctx);
-      }
-
-      // console.log('url template is', templateUrl);
-
-      var url = uriTemplates(templateUrl).fillFromObject(templateValues);
-      // console.log('URI', page.urlTemplate || page.route, url);
-
-      return url;
-    }
-  };
-
-  core.filters = {
-    invalid: function(element) {
-      return core.filters.null(element) && core.filters.undefined(element);
-    },
-
-    null: function(element) {
-      return null !== element;
-    },
-
-    undefined: function(element) {
-      return void 0 !== element;
-    },
-  };
-
 
   return core;
 };
+
+helpers.utils = utils;
+helpers.filters = filters;
 
 module.exports = helpers;
