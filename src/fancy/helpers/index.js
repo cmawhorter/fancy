@@ -48,11 +48,34 @@ function valueToFirst(val) {
 
 var helpers = function(ctx, fancy) {
   var core = {
+    find: function(id) {
+      var ret = core.value('site.relationships.id.' + id);
+      if (toString.call(ret) === '[object Array]' && 1 === ret.length) {
+        ret = ret[0];
+      }
+      // console.log('fancy.find(%s): %j', id, ret);
+      return ret;
+    },
+
     wrap: function(obj) {
+      if (!obj || typeof obj !== 'object') {
+        return obj;
+      }
+
       var content = {
         value: function(k, defaultValue) {
           var ret = objectUtil.retrieve(obj, k);
-          return void 0 === ret ? defaultValue : ret;
+          ret = void 0 === ret ? defaultValue : ret;
+
+          var retType = toString.call(ret);
+          if (retType === '[object Object]') {
+            ret = core.wrap(ret);
+          }
+          else if (retType === '[object Array]') {
+            ret = ret.map(core.wrap);
+          }
+
+          return ret;
         },
         text: function(k) {
           var val = content.value(k);
@@ -64,10 +87,11 @@ var helpers = function(ctx, fancy) {
         }
       };
 
+      // FIXME: disallow direct access to data?  regular core.value should match if so
       for (var k in obj) {
-        if (!content[k]) {
+        // if (!content[k]) {
           content[k] = obj[k];
-        }
+        // }
       }
 
       return content;
@@ -79,7 +103,7 @@ var helpers = function(ctx, fancy) {
       for (var k in vals) {
         res[k] = vals[k];
       }
-      console.log('partial scope', res);
+      // console.log('partial scope', res);
       if (!/\.ejs$/i.test(view)) {
         view += '.ejs';
       }
@@ -114,35 +138,48 @@ var helpers = function(ctx, fancy) {
           }
         }
       }
-      return void 0 === ret ? defaultValue : ret;
+
+      ret = void 0 === ret ? defaultValue : ret;
+
+      var retType = toString.call(ret);
+      // console.log('fancy.value(%s) -> %s', k, retType);
+      if (retType === '[object Object]') {
+        ret = core.wrap(ret);
+      }
+      else if (retType === '[object Array]') {
+        // console.log('\t-> Wrapping');
+        ret = ret.map(core.wrap);
+      }
+
+      return ret;
     },
 
     text: function(k) {
-      var val = this.value(k);
+      var val = core.value(k);
       return valueToText(val);
     },
 
     first: function(k) {
-      var val = this.value(k);
+      var val = core.value(k);
       return valueToFirst(val);
     },
 
     resources: function(type, filterFn, sorterFn) {
-      return filterAndSort(this.value('site.resources.' + type), filterFn, sorterFn);
+      return filterAndSort(core.value('site.resources.' + type), filterFn, sorterFn);
     },
 
     meta: function(property, filterFn, sorterFn) {
-      return filterAndSort(this.value('site.meta.' + property), filterFn, sorterFn);
+      return filterAndSort(core.value('site.meta.' + property), filterFn, sorterFn);
     },
 
     relationships: function(property, filterFn, sorterFn) {
-      return filterAndSort(this.value('site.relationships.' + property), filterFn, sorterFn);
+      return filterAndSort(core.value('site.relationships.' + property), filterFn, sorterFn);
     },
 
     'if': {
       active: function(url, str, elseStr) {
         var ret;
-        ret = urlPattern.newPattern(this.value('request.url')).match(url) ? str : elseStr || '';
+        ret = urlPattern.newPattern(core.value('request.url')).match(url) ? str : elseStr || '';
         if (typeof ret === 'function') {
           ret();
         }
@@ -207,19 +244,33 @@ var helpers = function(ctx, fancy) {
 
       var templateUrl = core.first('page.urlTemplate');
       if ('/' !== templateUrl.trim()[0] && /\s*\w.*\?.*\:.*/.test(templateUrl)) { // conditional, eval it
-        console.log('url template needs eval', templateUrl);
+        // console.log('url template needs eval', templateUrl);
         templateUrl = (function(template, ctx) {
           return eval(templateUrl);
         })(templateValues, ctx);
       }
 
-      console.log('url template is', templateUrl);
+      // console.log('url template is', templateUrl);
 
       var url = uriTemplates(templateUrl).fillFromObject(templateValues);
       // console.log('URI', page.urlTemplate || page.route, url);
 
       return url;
     }
+  };
+
+  core.filters = {
+    invalid: function(element) {
+      return core.filters.null(element) && core.filters.undefined(element);
+    },
+
+    null: function(element) {
+      return null !== element;
+    },
+
+    undefined: function(element) {
+      return void 0 !== element;
+    },
   };
 
 

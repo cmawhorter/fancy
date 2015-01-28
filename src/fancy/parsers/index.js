@@ -52,7 +52,7 @@ function parse(relativePath, callback) {
     if (err) {
       return callback(err);
     }
-    console.log('parsing', relativePath, format);
+    // console.log('parsing', relativePath, format);
     formats[format](contents, callback);
   });
 }

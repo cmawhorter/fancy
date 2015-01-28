@@ -10,8 +10,10 @@ var express = require('express')
 var server = require('./server/index.js')
   , FancyDb = require('./db/index.js')
   , parser = require('./parsers/index.js')
+  , help = require('../utils/help.js')
   , objectUtil = require('../utils/object.js')
-  , fingerprint = require('../utils/fingerprint.js');
+  , fingerprint = require('../utils/fingerprint.js')
+  , providers = require('../utils/providers.js');
 
 var helpers = require('./helpers/index.js');
 
@@ -45,7 +47,7 @@ function Fancy(options) {
       this.options[k] = config[k];
     }
   }
-  console.log('\tSite config.yml loaded', config);
+  console.log('Done loading site config.yml');
 
 
   // other properties
@@ -80,13 +82,14 @@ function Fancy(options) {
     var extensionName = this.options.extensions[i];
     var extensionPath = path.join(process.cwd(), './extensions/' + extensionName + '/index.js');
     if (fs.existsSync(extensionPath)) {
-      console.log('Loading extension %s...', extensionPath);
+      // console.log('Loading extension %s...', extensionPath);
       this.extensions[extensionName] = require(extensionPath);
     }
     else {
       console.warn('Warning: Unable to load extension %s', extensionPath);
     }
   }
+  console.log('Done loading extensions');
 }
 
 Fancy.prototype.init = function(callback) {
@@ -94,24 +97,23 @@ Fancy.prototype.init = function(callback) {
     , tasks = [];
 
   tasks.push(function(taskCallback) {
-    console.log('Loading web server...');
+    var notifier = help.notifier('Loading web server');
     server(_this, function(err, app) {
       if (err) {
         return taskCallback(err);
       }
       _this.express = app;
-      console.log('\tWeb server loaded.');
+      notifier.done();
       taskCallback(null);
     });
   });
 
   tasks.push(function(taskCallback) {
-    console.log('Loading database...');
     _this.db = new FancyDb(_this.options.contentDirectories);
     (_this.options.providers || []).forEach(function(providerName) {
       var providerPath = path.join(process.cwd(), './data/providers/' + providerName + '/index.js');
       if (fs.existsSync(providerPath)) {
-        console.log('Loading provider %s...', providerPath);
+        // console.log('Loading provider %s...', providerPath);
         _this.db.providers.push(require(providerPath)); // TODO: move paths someplace configurable
       }
       else {
@@ -122,14 +124,13 @@ Fancy.prototype.init = function(callback) {
       if (err) {
         return taskCallback(err);
       }
-      console.log('\tDatabase loaded.');
       taskCallback(null);
     });
   });
 
   // TODO: make async
   tasks.push(function(taskCallback) {
-    console.log('Loading all site constants...');
+    var notifier = help.notifier('Site constants');
     glob('./data/constants/**/*.@(yml|json)', function(err, matches) {
       if (err) {
         return callback(err);
@@ -149,7 +150,7 @@ Fancy.prototype.init = function(callback) {
           break;
         }
       });
-      console.log('\tSite constants loaded.');
+      notifier.done();
       taskCallback(null);
     });
   });
@@ -158,9 +159,7 @@ Fancy.prototype.init = function(callback) {
     if (err) {
       return callback(err);
     }
-    console.log('Fancy initialized. Starting server on port %d...', _this.options.port);
     _this.express.set('port', _this.options.port);
-
 
     // console.log('Initializing static asset handlers for pages...');
     // for (var relativePath in _this.db.pages) {
@@ -175,6 +174,7 @@ Fancy.prototype.init = function(callback) {
     // console.log('Done.');
 
     _this.server = _this.express.listen(_this.express.get('port'), function() {
+      console.log('Fancy initialized and listening on port %d', _this.options.port);
       callback.call(_this, null, _this.server);
     });
   });
@@ -232,6 +232,14 @@ Fancy.prototype.createResponse = function(url, page, params) {
     , relationships: _this.getRelationshipsForTemplate()
   }), enumerable: true });
 
+  res.print = function() {
+    var html = '';
+    for (var i=0; i < arguments.length; i++) {
+      html += '<pre>' + JSON.stringify(arguments[i], null, 2) + '</pre>';
+    }
+    return html;
+  };
+
   return res;
 };
 
@@ -245,13 +253,13 @@ Fancy.prototype.createResponse = function(url, page, params) {
 
 Fancy.prototype.getResourcesForTemplate = function() {
   var obj = {};
-  console.log('Getting Resources for Response...');
+  // console.log('Getting Resources for Response...');
   for (var k in this.db.resources) {
-    console.log('\t%s', k);
+    // console.log('\t%s', k);
     obj[k] = [];
     for (var i=0; i < this.db.resources[k].length; i++) {
       var data = this.db.resources[k][i].toTemplateObject();
-      console.log('\t\t%s', data.route);
+      // console.log('\t\t%s', data.route);
       obj[k].push(data);
     }
   }
@@ -260,13 +268,13 @@ Fancy.prototype.getResourcesForTemplate = function() {
 
 Fancy.prototype.getMetaForTemplate = function() {
   var obj = {};
-  console.log('Getting Meta for Response...');
+  // console.log('Getting Meta for Response...');
   for (var k in this.db.meta) {
-    console.log('\t%s', k);
+    // console.log('\t%s', k);
     obj[k] = [];
     for (var i=0; i < this.db.meta[k].length; i++) {
       var data = this.db.meta[k][i].toTemplateObject();
-      console.log('\t\t%s', data.route);
+      // console.log('\t\t%s', data.route);
       obj[k].push(data);
     }
   }
@@ -275,16 +283,16 @@ Fancy.prototype.getMetaForTemplate = function() {
 
 Fancy.prototype.getRelationshipsForTemplate = function() {
   var obj = {};
-  console.log('Getting Relationships for Response...');
+  // console.log('Getting Relationships for Response...');
   for (var rel in this.db.relationships) {
     obj[rel] = {};
-    console.log('\t%s', rel);
+    // console.log('\t%s', rel);
     for (var relVal in this.db.relationships[rel]) {
       obj[rel][relVal] = [];
-      console.log('\t\t%s', relVal);
+      // console.log('\t\t%s', relVal);
       for (var i=0; i < this.db.relationships[rel][relVal].length; i++) {
         var data = this.db.relationships[rel][relVal][i].toTemplateObject();
-        console.log('\t\t\t%s', data.route);
+        // console.log('\t\t\t%s', data.route);
         obj[rel][relVal].push(data);
       }
     }
@@ -292,52 +300,86 @@ Fancy.prototype.getRelationshipsForTemplate = function() {
   return obj;
 };
 
+Fancy.prototype._reduceMatchingRoutes = function(pages) {
+  // console.log('Reducing matching routes...');
+  var preferredPages = pages.filter(function(page) {
+    // console.log('\t-> Page %s has property preferred? %s', page.relativePath, page.hasProperty('preferred'));
+    return page && page.hasProperty('preferred');
+  });
+  if (!preferredPages.length) preferredPages = pages;
+
+  var nonproviderPages = preferredPages.filter(function(page) {
+    // console.log('\t-> Page %s is not provider? %s', page.relativePath, 0 !== page.relativePath.indexOf('provider:'));
+    return page && 0 !== page.relativePath.indexOf('provider:');
+  });
+  if (!nonproviderPages.length) nonproviderPages = preferredPages;
+
+  // console.log('\t-> Matches: ', nonproviderPages.length);
+
+  if (nonproviderPages.length) {
+    return nonproviderPages[0];
+  }
+  else {
+    return null;
+  }
+};
+
 // returns response object via callback
 Fancy.prototype.requestPage = function(url, callback) {
   console.log('Getting page for %s...', url);
   var _this = this;
 
-  _this.db.findPageByRoute(url, function(err, page) {
+  _this.db.findPageByRoute(url, function(err, pages) {
     if (err) {
       return callback(err);
     }
-    if (page) {
-      console.log('page found', page);
-      return callback(null, {
-          page: page
-        , layout: page.layout || 'primary'
-        , res: _this.createResponse(url, page)
-      });
-    }
-    else { // no direct match found.  urlPattern matching
+
+    var templateMatchParams = {};
+    if (!pages) { // no direct match found.  urlPattern matching
+      console.log('\t-> No exact matching routes');
+      pages = [];
       for (var relativePath in _this.db.pages) {
         var page = _this.db.pages[relativePath];
-        console.log('\t-> does page %s match?', page.relativePath);
+        // console.log('\t-> does page %s match?', page.relativePath);
         if (!page.dataObject.properties) {
-          console.log('No properties found', page);
+          console.log('ERROR. The universe has imploded and a page did not contain properties.  Things should be built in a way this cannot happen, yet it did.  I cannot continue.  Here is the page: ', page);
           process.exit();
         }
         for (var i=0; i < page.dataObject.properties.length; i++) {
           var property = page.dataObject.properties[i];
           if (property.name === 'route') {
-            console.log('url pattern matching "%s" to "%s"', property.content, url);
+            // console.log('url pattern matching "%s" to "%s"', property.content, url);
             var params = urlPattern.newPattern(property.content).match(url);
             // console.log(url, k, params);
             if (params) {
-              return callback(null, {
-                  page: page
-                , layout: page.layout || 'primary'
-                , res: _this.createResponse(url, page, params)
-              });
+              templateMatchParams[page.relativePath] = params;
+              pages.push(page);
+              break;
             }
           }
         }
       }
-      var err = new Error('Not Found');
-      err.status = 404;
-      return callback(err);
     }
+
+    if (pages) {
+      console.log('\t-> %s found pages', pages.length);
+      var reducedPage = _this._reduceMatchingRoutes(pages);
+      if (reducedPage) {
+        callback(null, {
+            page: reducedPage
+          , layout: reducedPage.layout || 'primary'
+          , res: _this.createResponse(url, reducedPage, templateMatchParams[reducedPage.relativePath])
+        });
+        return;
+      }
+    }
+
+    var err = new Error('Not Found');
+    err.status = 404;
+    return callback(err);
   });
 };
+
+Fancy.providers = providers;
 
 module.exports = Fancy;

@@ -1,5 +1,4 @@
 module.exports = function(target) {
-  console.log('iterator', target);
   return {
     forEach: function(callback) {
       if (!target) {

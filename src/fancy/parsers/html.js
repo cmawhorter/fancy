@@ -38,7 +38,7 @@ module.exports = function(contents, callback) {
     addProp(name, val);
   });
 
-  console.log('parser html properties', properties);
+  // console.log('parser html properties', properties);
 
   callback(null, properties);
 };

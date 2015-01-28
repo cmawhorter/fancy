@@ -19,6 +19,7 @@ var Page = orm.models.Page
 function FancyPage(relativePath) {
   this.relativePath = relativePath;
   this.dataObject = null;
+  this._properties = null; // FIXME: turn properties back on when db is improved
   this.layout = null;
   this.resource = null;
   this.assetPath = null;
@@ -38,7 +39,6 @@ function FancyPage(relativePath) {
     }
   }
   else {
-    console.log('Not a content directory');
     this.contentPath = this.relativePath;
   }
 }
@@ -61,6 +61,16 @@ FancyPage.prototype.init = function(properties, callback) {
     properties = null;
   }
 
+  var done = function() {
+    if (!_this.hasRoute()) {
+      callback.call(_this, new Error('Page must have a route property'));
+      return;
+    }
+    else {
+      callback.call(_this, null, _this);
+    }
+  };
+
   var _this = this;
   _this.create(properties, function(err) {
     if (err) {
@@ -70,20 +80,18 @@ FancyPage.prototype.init = function(properties, callback) {
       if (err) {
         return callback.call(_this, err);
       }
-      var assetPath = path.join(_this.relativePath, '/public'); // if path is a directory and has a public asset directory, load them
-      fs.exists(assetPath, function(exists) {
-        if (exists) {
-          _this.assetPath = assetPath;
-        }
-
-        if (!_this.hasRoute()) {
-          callback.call(_this, new Error('Page must have a route property'));
-          return
-        }
-        else {
-          callback.call(_this, null, _this);
-        }
-      });
+      if (_this.isDirectory) {
+        var assetPath = path.join(_this.relativePath, '/public'); // if path is a directory and has a public asset directory, load them
+        fs.exists(assetPath, function(exists) {
+          if (exists) {
+            _this.assetPath = assetPath;
+          }
+          done();
+        });
+      }
+      else {
+        done();
+      }
     });
   });
 };
@@ -105,7 +113,7 @@ FancyPage.prototype.create = function(properties, callback) {
 
   Page.find({
     where: { path: _this.relativePath },
-    include: [ Property ]
+    // include: [ Property ] // FIXME: turn properties back on when db is improved
   }).done(function(err, dataObject) {
     if (err) {
       return done(err);
@@ -124,12 +132,13 @@ FancyPage.prototype.refresh = function(callback) {
   var _this = this;
   Page.find({
     where: { path: _this.relativePath },
-    include: [ Property ]
+    // include: [ Property ] // FIXME: turn properties back on when db is improved
   }).done(function(err, dataObject) {
     if (err) {
       return callback.call(_this, err);
     }
     _this.dataObject = dataObject;
+    _this.dataObject.properties = _this._properties;
     callback.call(_this, null);
   });
 };
@@ -150,30 +159,24 @@ FancyPage.prototype.reload = function(callback) {
 
 FancyPage.prototype._reloadFile = function(callback) {
   var _this = this;
-  console.log('fingerprint %s', this.contentPath);
+  // console.log('fingerprint %s', this.contentPath);
   fingerprint.file(_this.contentPath, function(err, fingerprint) {
-    console.log('\t-> fingerprint returned');
+    // console.log('\t-> fingerprint returned');
     if (err) {
       return callback.call(_this, err);
     }
     _this.dataObject.fingerprint = fingerprint;
     _this.dataObject.save().done(function(err) {
-      console.log('\t-> save returned');
+      // console.log('\t-> save returned');
       if (err) {
         return callback.call(_this, err);
       }
-      _this.clearProperties(function(err) {
-        console.log('\t-> clearprops returned');
+      _this._parseFile(function(err, properties) {
+        // console.log('\t-> parser returned');
         if (err) {
           return callback.call(_this, err);
         }
-        _this._parseFile(function(err, properties) {
-          console.log('\t-> parser returned');
-          if (err) {
-            return callback.call(_this, err);
-          }
-          _this.setProperties(properties, callback.bind(_this));
-        });
+        _this.setProperties(properties, callback.bind(_this));
       });
     });
   });
@@ -182,7 +185,7 @@ FancyPage.prototype._reloadFile = function(callback) {
 FancyPage.prototype._parseFile = function(callback) {
   var _this = this;
   parsers(_this.contentPath, function(err, properties) {
-    console.log('\t-> parser returned');
+    // console.log('\t-> parser returned');
     if (err) {
       return callback(err);
     }
@@ -238,8 +241,6 @@ FancyPage.prototype.setProperties = function(properties, callback) {
     var propName = prop[0]
       , propValue = prop[1];
 
-    console.log('saving property', prop);
-
     switch (propName) {
       // case 'resource':
       //   var resourceName = propValue.trim().toLowerCase();
@@ -288,52 +289,92 @@ FancyPage.prototype.setProperties = function(properties, callback) {
     }
 
     tasks.push(function(taskCallback) {
-      Property.create({ name: propName, content: propValue }).done(function(err, property) {
-        if (err) {
-          return taskCallback(err);
-        }
-        console.log('%s -> %s: %s', _this.relativePath, propName, propValue);
-        _this.dataObject.addProperty(property).done(taskCallback);
-      });
+      taskCallback(null, { name: propName, content: propValue });
+
+      // FIXME: turn properties back on when db is improved
+
+      // Property.create({ name: propName, content: propValue }).done(function(err, property) {
+      //   if (err) {
+      //     return taskCallback(err);
+      //   }
+      //   // _this.dataObject.addProperty(property).done(taskCallback);
+      //   taskCallback(null, property);
+      // });
     });
   });
 
-  async.parallel(tasks, function(err) {
+  async.parallel(tasks, function(err, properties) {
     if (err) {
       return callback.call(_this, err);
     }
-    _this.refresh(callback.bind(_this));
+
+    _this._properties =
+    _this.dataObject.properties = properties;
+
+    // FIXME: turn properties back on when db is improved
+
+    // _this.dataObject.addProperties(properties).then(function() {
+      _this.refresh(callback.bind(_this));
+    // });
   });
 };
 
 FancyPage.prototype.clearProperties = function(callback) {
-  console.log('Clearing properties...');
-  var ids = [];
-  (this.dataObject.properties || []).forEach(function(property) {
-    ids.push(property.id);
-  });
-  if (ids.length) {
-    Property.destroy({ where: { id: ids } }).done(callback);
-  }
-  else {
-    console.log('No properties to clear');
-    callback(null);
-  }
+  callback(null);
+
+  // FIXME: turn properties back on when db is improved
+
+  // // console.log('Clearing properties...');
+  // var ids = [];
+  // (this.dataObject.properties || []).forEach(function(property) {
+  //   ids.push(property.id);
+  // });
+  // if (ids.length) {
+  //   Property.destroy({ where: { id: ids } }).done(callback);
+  // }
+  // else {
+  //   // console.log('No properties to clear');
+  //   callback(null);
+  // }
 };
 
 FancyPage.prototype.getProperties = function() {
   return this.toTemplateObject();
 };
 
-FancyPage.prototype.hasRoute = function() {
+FancyPage.prototype.getProperty = function(name) {
+  var ret = [];
+  name = name.toLowerCase();
   var properties = (this.dataObject || {}).properties || {};
   for (var i=0; i < properties.length; i++) {
     var property = properties[i];
-    if ('route' === property.name) {
-      return true;
+    if (name === property.name.toLowerCase()) {
+      ret.push(property.content);
+    }
+  }
+  if (1 === ret.length) {
+    ret = ret[0];
+  }
+  return ret;
+};
+
+FancyPage.prototype.hasProperty = function(name, val) {
+  var checkVal = void 0 !== val;
+  name = name.toLowerCase();
+  var properties = (this.dataObject || {}).properties || {};
+  for (var i=0; i < properties.length; i++) {
+    var property = properties[i];
+    if (name === property.name.toLowerCase()) {
+      if (!checkVal || (checkVal && property.content == val)) {
+        return true;
+      }
     }
   }
   return false;
+};
+
+FancyPage.prototype.hasRoute = function() {
+  return this.hasProperty('route');
 };
 
 FancyPage.prototype.toTemplateObject = function() {

@@ -21,7 +21,7 @@ module.exports = {
   // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/freeze#Examples
   deepFreeze: function(o) {
     var prop, propKey;
-    console.log('deepFreezing', o);
+    // console.log('deepFreezing', o);
     Object.freeze(o); // First freeze the object.
     for (propKey in o) {
       prop = o[propKey];

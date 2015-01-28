@@ -25,6 +25,7 @@ module.exports = function(yargs) {
     , assets:     help.createDirectory(workingDir, 'data/assets')
     , themes:     help.createDirectory(workingDir, 'themes')
     , plugins:    help.createDirectory(workingDir, 'extensions')
+    , providercache: help.createDirectory(workingDir, '.fancy/providercache')
   };
 
   var pkg = require('../../templates/package.json');

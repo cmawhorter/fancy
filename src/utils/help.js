@@ -34,9 +34,30 @@ module.exports = {
     fs.writeFileSync(path.join(dir, targ), contents || '');
   },
 
-  cmds: {
-    express: function() {
-      return path.join(__dirname, '../node_modules/.bin/express');
-    }
+  notifier: function(message, interval) {
+    console.log('%s...', message);
+    var percent = 0;
+    var gc = [];
+    gc.push(setInterval(function() {
+      if (percent) {
+        console.log('Still %s... %d\% complete', message, percent);
+      }
+      else {
+        console.log('Still %s...', message);
+      }
+    }, interval || 2000));
+    return {
+      add: function(fn, interval) {
+        gc.push(setInterval(fn, interval));
+      },
+      update: function(p) {
+        percent = Math.floor(p * 100);
+      },
+      done: function() {
+        gc.map(clearInterval);
+        console.log('Done %s.', message);
+      }
+    };
   }
+
 }
