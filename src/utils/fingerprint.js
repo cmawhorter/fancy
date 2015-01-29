@@ -42,15 +42,31 @@ function fingerObject(obj, algo) {
   return hash.digest('hex');
 }
 
+function fingerArray(arr, algo, deep) {
+  var hash = crypto.createHash(algo || 'md5');
+  if (deep) {
+    for (var i=0; i < arr.length; i++) {
+      var obj = keys[i];
+      hash.update(fingerObject(obj, algo));
+    }
+  }
+  else {
+    hash.update(arr.length);
+  }
+  return hash.digest('hex');
+}
+
 module.exports = {
     file: fingerFile
   , stringSync: fingerString
   , objectSync: fingerObject
+  , arraySync: fingerArray
   , sync: function(obj, algo) {
       switch (toString.call(obj)) {
         case '[object Object]':
-        case '[object Array]':
           return fingerObject(obj, algo);
+        case '[object Array]':
+          return fingerArray(obj, algo);
         default:
           return fingerString(obj, algo);
       }
