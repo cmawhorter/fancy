@@ -3,17 +3,17 @@ var fs = require('fs')
 
 var fingerprint = require('./fingerprint.js');
 
-var providers = {
-  cachePath: './.fancy/providercache/',
-  cache: function(key, val, callback) {
+var cache = {
+  cachePath: './.fancy/cache/',
+  io: function(key, val, callback) {
     if (typeof val === 'function') {
       callback = val;
       val = void 0;
     }
     callback = callback || function(){};
     var hashKey = fingerprint.stringSync(key);
-    var cachePath = path.join(process.cwd(), providers.cachePath, hashKey);
-    // console.log('providers.cache(%s): %s', key, cachePath);
+    var cachePath = path.join(process.cwd(), cache.cachePath, hashKey);
+    // console.log('cache.cache(%s): %s', key, cachePath);
     if (void 0 !== val) {
       // console.log('\t-> writing %j', val);
       fs.writeFile(cachePath, JSON.stringify(val), callback);
@@ -37,4 +37,4 @@ var providers = {
   }
 };
 
-module.exports = providers;
+module.exports = cache;
