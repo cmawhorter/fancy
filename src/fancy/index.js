@@ -226,6 +226,12 @@ Fancy.prototype.createResponse = function(url, page, params) {
   objectUtil.deepFreeze(request);
   Object.defineProperty(res, 'request', { value: request, enumerable: true });
 
+  var env = {
+    stage: process.env.NODE_ENV || 'production'
+  };
+  objectUtil.deepFreeze(env);
+  Object.defineProperty(res, 'env', { value: env, enumerable: true });
+
   _this._responseCache.site = _this._responseCache.site || objectUtil.flatten({
       pages: Object.keys(_this.db.pages).map(function(item) {
         return _this.db.pages[item].toTemplateObject();
