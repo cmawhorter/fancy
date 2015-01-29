@@ -51,6 +51,11 @@ module.exports = function(fancy, callback) {
     renderError(req, res, err);
   });
 
+  // TODO: implement staged content so that robots can be conditionally supplied via content directory
+  app.use('/robots.txt', function(req, res) {
+    res.status(200).contentType('text/plain').send([ 'User-agent: *', 'Disallow: /' ].join('\n'));
+  });
+
   var router = express.Router();
   router.get('*', function(req, res, next) {
     console.log('Looking up page for %s...', req.url);
