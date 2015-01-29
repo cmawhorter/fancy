@@ -10,7 +10,7 @@ module.exports = {
     var dirs = {
         cwd:        workingDir
       , db:         help.createDirectory(workingDir, '.fancy/db')
-      , providercache: help.createDirectory(workingDir, '.fancy/providercache')
+      , cache:      help.createDirectory(workingDir, '.fancy/cache')
       , content:    help.createDirectory(workingDir, 'data/content')
       , providers:  help.createDirectory(workingDir, 'data/providers')
       , constants:  help.createDirectory(workingDir, 'data/constants')
@@ -24,7 +24,7 @@ module.exports = {
   verify: function(workingDir) {
     var required = [
       { location: '.fancy/db', create: true, directory: true },
-      { location: '.fancy/providercache', create: true, directory: true },
+      { location: '.fancy/cache', create: true, directory: true },
 
       { location: 'data/content', create: false, directory: true },
       { location: 'themes', create: false, directory: true },
