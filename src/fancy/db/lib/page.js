@@ -5,6 +5,7 @@ var async = require('async');
 
 var fingerprint = require('../../../utils/fingerprint.js')
   , iterator = require('../../../utils/iterator.js')
+  , cache = require('../../../utils/cache.js')
   , help = require('../../../utils/help.js')
   , parsers = require('../../parsers/index.js')
   , orm = require('./orm.js');
@@ -159,26 +160,47 @@ FancyPage.prototype.reload = function(callback) {
 
 FancyPage.prototype._reloadFile = function(callback) {
   var _this = this;
-  // console.log('fingerprint %s', this.contentPath);
+
+  // FIXME: turn properties back on when db is improved
+
+  // // console.log('fingerprint %s', this.contentPath);
   fingerprint.file(_this.contentPath, function(err, fingerprint) {
-    // console.log('\t-> fingerprint returned');
+  //   // console.log('\t-> fingerprint returned');
     if (err) {
       return callback.call(_this, err);
     }
-    _this.dataObject.fingerprint = fingerprint;
-    _this.dataObject.save().done(function(err) {
-      // console.log('\t-> save returned');
+  //   _this.dataObject.fingerprint = fingerprint;
+  //   _this.dataObject.save().done(function(err) {
+  //     // console.log('\t-> save returned');
+  //     if (err) {
+  //       return callback.call(_this, err);
+  //     }
+
+    var cacheKey = 'fancy:content:' + fingerprint;
+    cache.io(cacheKey, function(err, data) {
       if (err) {
         return callback.call(_this, err);
       }
-      _this._parseFile(function(err, properties) {
-        // console.log('\t-> parser returned');
-        if (err) {
-          return callback.call(_this, err);
-        }
-        _this.setProperties(properties, callback.bind(_this));
-      });
+      if (void 0 === data) { // not cached
+        console.log('cache.io MISS: %s', _this.contentPath);
+        _this._parseFile(function(err, properties) {
+          if (err) {
+            return callback.call(_this, err);
+          }
+          cache.io(cacheKey, properties, function(err, data) {
+            if (err) {
+              return callback.call(_this, err);
+            }
+            _this.setProperties(properties, callback.bind(_this));
+          });
+        });
+      }
+      else {
+        _this.setProperties(data, callback.bind(_this));
+      }
     });
+
+  //   });
   });
 };
 

@@ -3,6 +3,8 @@ var fs = require('fs')
 
 var fingerprint = require('./fingerprint.js');
 
+// TODO: create cache.cleanup and at first cache.io access call it
+
 var cache = {
   cachePath: './.fancy/cache/',
   io: function(key, val, callback) {
@@ -34,7 +36,7 @@ var cache = {
         });
       });
     }
-  }
+  },
 };
 
 module.exports = cache;

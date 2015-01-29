@@ -4,6 +4,7 @@
   "description": "fancy ===",
   "main": "src/fancy/index.js",
   "scripts": {
+    "start": "bin/fancy serve",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
