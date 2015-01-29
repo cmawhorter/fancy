@@ -63,6 +63,10 @@ module.exports = {
     }
   },
 
+  getContentDirectoryPath: function(filePath) {
+    return filePath.replace(/\.html\/(page|body)\.\w+$/i, '.html');
+  },
+
   notifier: function(message, interval) {
     console.log('%s...', message);
     var percent = 0;

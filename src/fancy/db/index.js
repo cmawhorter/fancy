@@ -62,19 +62,23 @@ FancyDb.prototype._watchFiles = function(callback) {
 
       watcher.on('changed', function(absolutePath) {
         var relativePath = help.absoluteToRelative(absolutePath);
-        // console.log('%s changed', relativePath);
-        _this.reloadFile(relativePath, function(err) {
-          if (err) {
-            throw err;
-          }
-          _this.dataChangedHandler(relativePath);
-        });
+        relativePath = help.getContentDirectoryPath(relativePath);
+        if (_this.isValidFile(relativePath)) {
+          console.log('%s changed', relativePath);
+          _this.reloadFile(relativePath, function(err) {
+            if (err) {
+              throw err;
+            }
+            _this.dataChangedHandler(relativePath);
+          });
+        }
       });
 
       watcher.on('added', function(absolutePath) {
         var relativePath = help.absoluteToRelative(absolutePath);
-        // console.log('%s was added', relativePath);
+        relativePath = help.getContentDirectoryPath(relativePath);
         if (_this.isValidFile(relativePath)) {
+          console.log('%s was added', relativePath);
           _this.addFile(relativePath, function(err) {
             if (err) {
               throw err;
@@ -86,13 +90,16 @@ FancyDb.prototype._watchFiles = function(callback) {
 
       watcher.on('deleted', function(absolutePath) {
         var relativePath = help.absoluteToRelative(absolutePath);
-        // console.log('%s deleted', relativePath);
-        _this.removeFile(relativePath, function(err) {
-          if (err) {
-            throw err;
-          }
-          _this.dataChangedHandler(relativePath);
-        });
+        relativePath = help.getContentDirectoryPath(relativePath);
+        if (_this.isValidFile(relativePath)) {
+          console.log('%s deleted', relativePath);
+          _this.removeFile(relativePath, function(err) {
+            if (err) {
+              throw err;
+            }
+            _this.dataChangedHandler(relativePath);
+          });
+        }
       });
 
       callback(null);
@@ -396,7 +403,7 @@ FancyDb.prototype._reloadFiles = function(callback) {
     }
   });
   _this._pagesAdded += tasks.length;
-  console.log('\t-> Content directories contain %s resources', tasks.length);
+  console.log('\t-> Content data contains %s resources', tasks.length);
   async.parallelLimit(tasks, 8, callback);
 };
 
