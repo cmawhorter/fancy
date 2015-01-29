@@ -354,12 +354,12 @@ Fancy.prototype.requestPage = function(url, callback) {
     }
 
     var templateMatchParams = {};
-    if (!pages) { // no direct match found.  urlPattern matching
+    if (!pages.length) { // no direct match found.  urlPattern matching
       console.log('\t-> No exact matching routes');
       pages = [];
       for (var relativePath in _this.db.pages) {
         var page = _this.db.pages[relativePath];
-        // console.log('\t-> does page %s match?', page.relativePath);
+        console.log('\t-> does page %s match?', page.relativePath);
         if (!page.dataObject.properties) {
           console.log('ERROR. The universe has imploded and a page did not contain properties.  Things should be built in a way this cannot happen, yet it did.  I cannot continue.  Here is the page: ', page);
           process.exit();
