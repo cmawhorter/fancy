@@ -13,7 +13,7 @@ var server = require('./server/index.js')
   , help = require('../utils/help.js')
   , objectUtil = require('../utils/object.js')
   , fingerprint = require('../utils/fingerprint.js')
-  , providers = require('../utils/providers.js');
+  , cache = require('../utils/cache.js');
 
 var helpers = require('./helpers/index.js');
 
@@ -111,7 +111,7 @@ Fancy.prototype.init = function(callback) {
   });
 
   tasks.push(function(taskCallback) {
-    _this.db = new FancyDb(_this.options.contentDirectories);
+    _this.db = new FancyDb(_this.options.contentDirectories, _this.clearResponseCache);
     (_this.options.providers || []).forEach(function(providerName) {
       var providerPath = path.join(process.cwd(), './data/providers/' + providerName + '/index.js');
       if (fs.existsSync(providerPath)) {
@@ -255,6 +255,11 @@ Fancy.prototype.createResponse = function(url, page, params) {
 //   return obj;
 // };
 
+Fancy.prototype.clearResponseCache = function(relativePath) {
+  // console.log('clearing response cache because of %s', relativePath);
+  this._responseCache = {};
+};
+
 Fancy.prototype.getResourcesForTemplate = function() {
   var obj = {};
   // console.log('Getting Resources for Response...');
@@ -388,7 +393,7 @@ Fancy.prototype.requestPage = function(url, callback) {
   });
 };
 
-Fancy.providers = providers;
+Fancy.cache = cache;
 Fancy.utils = helpers.utils;
 Fancy.filters = helpers.filters;
 

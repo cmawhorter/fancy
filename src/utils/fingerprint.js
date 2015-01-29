@@ -46,4 +46,13 @@ module.exports = {
     file: fingerFile
   , stringSync: fingerString
   , objectSync: fingerObject
+  , sync: function(obj, algo) {
+      switch (toString.call(obj)) {
+        case '[object Object]':
+        case '[object Array]':
+          return fingerObject(obj, algo);
+        default:
+          return fingerString(obj, algo);
+      }
+    }
 };

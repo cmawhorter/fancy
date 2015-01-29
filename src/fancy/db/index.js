@@ -20,8 +20,9 @@ var PROVIDER_PREFIX = 'provider:';
 
 // FIXME: #1 priority. now that it's clear what needs to happen here, the entire FancyDb/FancyPage stuff is tangled and needs some attention: this needs to be an abstracting/caching layer between fancy and db
 
-function FancyDb(contentDirectories) {
+function FancyDb(contentDirectories, dataChangedHandler) {
   this.contentDirectories = contentDirectories || [];
+  this.dataChangedHandler = dataChangedHandler || function(){};
   this.pages = {};
   this.resources = {};
   this.meta = {};
@@ -37,49 +38,66 @@ FancyDb.prototype.init = function(callback) {
 
   orm.sequelize.sync({ force: true }).then(function() {
     _this.reload(function(err) { // reload from disk
-      // FIXME: watching broken for now
-      // tasks.push(function(taskCallback) {
-      //   _this._watchFiles(taskCallback);
-      // });
+      tasks.push(function(taskCallback) {
+        _this._watchFiles(taskCallback);
+      });
       // tasks.push(function(taskCallback) {
       //   _this._watchProviders(taskCallback);
       // });
-      // async.parallel(tasks, function(err) {
+      async.parallel(tasks, function(err) {
         callback.call(_this, err);
-      // });
+      });
     });
   });
 };
 
 FancyDb.prototype._watchFiles = function(callback) {
-  callback(null);
-  // TODO: after everything else is a bit more stable turn this back on and make it work right
-  // var _this = this;
-  // _this.contentDirectories.forEach(function(contentDirectory) {
-  //   console.log('Watching files in content directory: %s', contentDirectory)
-  //   gaze(contentDirectory + '/**/*.html', function(err, watcher) { // set up file watcher for changes
-  //     if (err) {
-  //       return callback(err);
-  //     }
+  var _this = this;
+  _this.contentDirectories.forEach(function(contentDirectory) {
+    // console.log('Watching files in content directory: %s', contentDirectory)
+    gaze(contentDirectory + '/**/*.html', function(err, watcher) { // set up file watcher for changes
+      if (err) {
+        return callback(err);
+      }
 
-  //     watcher.on('changed', function(relativePath) {
-  //       console.log('%s changed', relativePath);
-  //       _this.reloadFile(relativePath);
-  //     });
+      watcher.on('changed', function(absolutePath) {
+        var relativePath = help.absoluteToRelative(absolutePath);
+        // console.log('%s changed', relativePath);
+        _this.reloadFile(relativePath, function(err) {
+          if (err) {
+            throw err;
+          }
+          _this.dataChangedHandler(relativePath);
+        });
+      });
 
-  //     watcher.on('added', function(relativePath) {
-  //       console.log('%s was added', relativePath);
-  //       _this.addFile(relativePath);
-  //     });
+      watcher.on('added', function(absolutePath) {
+        var relativePath = help.absoluteToRelative(absolutePath);
+        // console.log('%s was added', relativePath);
+        if (_this.isValidFile(relativePath)) {
+          _this.addFile(relativePath, function(err) {
+            if (err) {
+              throw err;
+            }
+            _this.dataChangedHandler(relativePath);
+          });
+        }
+      });
 
-  //     watcher.on('deleted', function(relativePath) {
-  //       console.log('%s deleted', relativePath);
-  //       _this.removeFile(relativePath);
-  //     });
+      watcher.on('deleted', function(absolutePath) {
+        var relativePath = help.absoluteToRelative(absolutePath);
+        // console.log('%s deleted', relativePath);
+        _this.removeFile(relativePath, function(err) {
+          if (err) {
+            throw err;
+          }
+          _this.dataChangedHandler(relativePath);
+        });
+      });
 
-  //     callback(null);
-  //   });
-  // });
+      callback(null);
+    });
+  });
 };
 
 FancyDb.prototype._watchProviders = function(callback) {
@@ -183,6 +201,18 @@ FancyDb.prototype._addResourceSync = function(page) {
   }
 };
 
+FancyDb.prototype._removeResourceSync = function(page) {
+  for (var relName in this.resources) {
+    var results = this.resources[relName];
+    for (var i=0; i < results.length; i++) {
+      if (results[i].relativePath == page.relativePath) {
+        // console.log('\t-> removing resource %s => %s', relName, page.relativePath);
+        results.splice(i, 1);
+      }
+    }
+  }
+};
+
 FancyDb.prototype._addMetaSync = function(page) {
   var properties = page.getProperties();
   for (var rel in properties) {
@@ -193,6 +223,18 @@ FancyDb.prototype._addMetaSync = function(page) {
     }
     if (this.meta[rel].indexOf(page) < 0) {
       this.meta[rel].push(page);
+    }
+  }
+};
+
+FancyDb.prototype._removeMetaSync = function(page) {
+  for (var relName in this.meta) {
+    var results = this.meta[relName];
+    for (var i=0; i < results.length; i++) {
+      if (results[i].relativePath == page.relativePath) {
+        // console.log('\t-> removing meta %s => %s', relName, page.relativePath);
+        results.splice(i, 1);
+      }
     }
   }
 };
@@ -208,6 +250,20 @@ FancyDb.prototype._addRelationshipsSync = function(page) {
     }
     else {
       this._addRelationshipSync(page, rel, relValue);
+    }
+  }
+};
+
+FancyDb.prototype._removeRelationshipsSync = function(page) {
+  for (var relName in this.relationships) {
+    for (var relVal in this.relationships[relName]) {
+      var results = this.relationships[relName][relVal];
+      for (var i=0; i < results.length; i++) {
+        if (results[i].relativePath == page.relativePath) {
+          // console.log('\t-> removing relationship %s: %s => %s', relName, relVal, page.relativePath);
+          results.splice(i, 1);
+        }
+      }
     }
   }
 };
@@ -245,7 +301,7 @@ FancyDb.prototype.addFile = function(relativePath, properties, callback) {
     , page = _this.getPage(relativePath);
 
   if (page) {
-    callback(null, page);
+    callback(null, page, true);
   }
   else {
     _this.createPage(relativePath, properties, callback);
@@ -255,20 +311,27 @@ FancyDb.prototype.addFile = function(relativePath, properties, callback) {
 FancyDb.prototype.removeFile = function(relativePath, callback) {
   // console.log('Removing page file %s', relativePath);
   var _this = this
-    , page = _this.getPage(relativePath)
-    , index = _this.resources[page.resource].indexOf(page);
-  if (index > -1) {
-    _this.resources[page.resource].splice(index, 1);
+    , page = _this.getPage(relativePath);
+  if (page) {
+    _this._removeRelationshipsSync(page);
+    _this._removeMetaSync(page);
+    _this._removeResourceSync(page);
+    delete _this.pages[relativePath];
+    page.remove(callback);
   }
-  delete _this.pages[relativePath];
-  page.remove(callback);
+  else {
+    callback(null);
+  }
 };
 
 FancyDb.prototype.reloadFile = function(relativePath, callback) {
-  // console.log('Reloading page file %s', relativePath);
-  var _this = this
-    , page = _this.getPage(relativePath);
-  page.reload(callback);
+  var _this = this;
+  _this.removeFile(relativePath, function(err) {
+    if (err) {
+      return callback(err);
+    }
+    _this.addFile(relativePath, callback);
+  });
 };
 
 FancyDb.prototype.reload = function(callback) {
@@ -293,6 +356,25 @@ FancyDb.prototype.reload = function(callback) {
   });
 };
 
+FancyDb.prototype.isValidFile = function(relativePath) {
+  var valid = false;
+  if (help.isDirectory(relativePath)) {
+    if (/\.html$/i.test(relativePath)) { // only html directories supported
+      valid = true;
+    }
+    else {
+      console.warn('Warning: Only .html directory is allowed: %s', relativePath);
+    }
+  }
+  else if (/\.html\/.*/i.test(relativePath)) { // html exists in subdir of a html dir
+    console.log('Ignoring content directory file: %s', relativePath);
+  }
+  else {
+    valid = true;
+  }
+  return valid;
+};
+
 FancyDb.prototype._reloadFiles = function(callback) {
   var _this = this
     , matches = [];
@@ -307,23 +389,7 @@ FancyDb.prototype._reloadFiles = function(callback) {
   var tasks = []
     , totalFound = 0;
   matches.forEach(function(relativePath) {
-    var add = false;
-    if (help.isDirectory(relativePath)) {
-      if (/\.html$/i.test(relativePath)) { // only html directories supported
-        add = true;
-      }
-      else {
-        console.warn('Warning: Only .html directory is allowed: %s', relativePath);
-      }
-    }
-    else if (/\.html\/.*/i.test(relativePath)) { // html exists in subdir of a html dir
-      console.log('Ignoring content directory file: %s', relativePath);
-    }
-    else {
-      add = true;
-    }
-
-    if (add) {
+    if (_this.isValidFile(relativePath)) {
       tasks.push(function(taskCallback) {
         _this.addFile(relativePath, taskCallback);
       });

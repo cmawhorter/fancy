@@ -53,6 +53,16 @@ module.exports = {
     fs.writeFileSync(path.join(dir, targ), contents || '');
   },
 
+  absoluteToRelative: function(absolutePath, cwd) {
+    cwd = cwd || process.cwd();
+    if (0 === absolutePath.indexOf(cwd)) {
+      return path.normalize(absolutePath.substr(cwd.length)).substr(1);
+    }
+    else {
+      throw new Error('Path does not match cwd: ' + cwd + ' => ' + absolutePath);
+    }
+  },
+
   notifier: function(message, interval) {
     console.log('%s...', message);
     var percent = 0;

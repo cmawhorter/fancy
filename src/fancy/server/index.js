@@ -1,13 +1,10 @@
-var fs = require('fs');
+var fs = require('fs')
+  , path = require('path');
 
-var express = require('express');
-var path = require('path');
-var logger = require('morgan');
-
-var express = require('express');
-
-var glob = require('glob');
-
+var express = require('express')
+  , logger = require('morgan')
+  , express = require('express')
+  , glob = require('glob');
 
 process.on('uncaughtException', function(err) {
   console.error('Error', err.stack);
