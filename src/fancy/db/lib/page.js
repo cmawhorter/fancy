@@ -204,6 +204,29 @@ FancyPage.prototype._reloadFile = function(callback) {
   });
 };
 
+// properties can be hash or array of [k, v]
+FancyPage.prototype._propertiesObjectHasKey = function(properties, key) {
+  properties = properties || [];
+  key = key.toLowerCase();
+  var type = toString.call(properties);
+  if (type === '[object Array]') {
+    for (var i=0; i < properties.length; i++) {
+      if (properties[i][0].toLowerCase() == key) {
+        return true;
+      }
+    }
+  }
+  else if (type === '[object Object]') {
+    for (var k in properties) {
+      if (k.toLowerCase() == key) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+};
+
 FancyPage.prototype._parseFile = function(callback) {
   var _this = this;
   parsers(_this.contentPath, function(err, properties) {
@@ -215,7 +238,7 @@ FancyPage.prototype._parseFile = function(callback) {
 
     // page doesn't contain a body and the page is a content directory.  try to grab the body as a separate file
     // this really only useful for markdown body.md, otherwise it's better to just combine everything
-    if (!properties.body && _this.isDirectory) {
+    if (!_this._propertiesObjectHasKey(properties, 'body') && _this.isDirectory) {
       var bodyPath = _this._findParseable('body');
       parsers(bodyPath, function(err, bodyProps) {
         if (err) {
