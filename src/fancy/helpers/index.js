@@ -144,31 +144,31 @@ var helpers = function(ctx, fancy) {
         return obj;
       }
 
-      var content = {
-        __wrapped: true,
-        value: function(k, defaultValue) {
-          var ret = objectUtil.retrieve(obj, k);
-          ret = void 0 === ret ? defaultValue : ret;
+      var content = {};
 
-          var retType = toString.call(ret);
-          if (retType === '[object Object]') {
-            ret = core.wrap(ret);
-          }
-          else if (retType === '[object Array]') {
-            ret = ret.map(core.wrap);
-          }
+      Object.defineProperty(content, '__wrapped', { value: true });
+      Object.defineProperty(content, 'value', { value: function(k, defaultValue) {
+        var ret = objectUtil.retrieve(obj, k);
+        ret = void 0 === ret ? defaultValue : ret;
 
-          return ret;
-        },
-        text: function(k) {
-          var val = content.value(k);
-          return valueToText(val);
-        },
-        first: function(k) {
-          var val = content.value(k);
-          return valueToFirst(val);
+        var retType = toString.call(ret);
+        if (retType === '[object Object]') {
+          ret = core.wrap(ret);
         }
-      };
+        else if (retType === '[object Array]') {
+          ret = ret.map(core.wrap);
+        }
+
+        return ret;
+      }});
+      Object.defineProperty(content, 'text', { value: function(k) {
+        var val = content.value(k);
+        return valueToText(val);
+      }});
+      Object.defineProperty(content, 'first', { value: function(k) {
+        var val = content.value(k);
+        return valueToFirst(val);
+      }});
 
       // FIXME: disallow direct access to data?  regular core.value should match if so
       for (var k in obj) {
