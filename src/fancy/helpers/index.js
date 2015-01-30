@@ -100,16 +100,30 @@ var helpers = function(ctx, fancy) {
       return ret;
     },
 
-    relative: function(mergeVals) {
-      mergeVals = mergeVals || {};
-      if (!core.first('page.urlTemplate')) return core.value('request.url');
+    url: function(id) {
+      return core.relative(null, core.find(id));
+    },
 
-      var templateValues = Object.create(core.value('request.params', {}));
+    relative: function(mergeVals, page) {
+      mergeVals = mergeVals || {};
+      var templateUrl;
+      if (page) {
+        page = core.wrap(page);
+        templateUrl = page.first('urlTemplate');
+      }
+      else {
+        templateUrl = core.first('page.urlTemplate');
+      }
+
+      if (!templateUrl.length) {
+        return page ? page.first('route') : core.value('request.url');
+      }
+
+      var templateValues = core.value('request.params');
       for (var k in mergeVals) {
         templateValues[k] = mergeVals[k];
       }
 
-      var templateUrl = core.first('page.urlTemplate');
       if ('/' !== templateUrl.trim()[0] && /\s*\w.*\?.*\:.*/.test(templateUrl)) { // conditional, eval it
         // console.log('url template needs eval', templateUrl);
         templateUrl = (function(template, ctx) {
@@ -126,11 +140,12 @@ var helpers = function(ctx, fancy) {
     },
 
     wrap: function(obj) {
-      if (!obj || typeof obj !== 'object') {
+      if (!obj || typeof obj !== 'object' || obj.__wrapped) {
         return obj;
       }
 
       var content = {
+        __wrapped: true,
         value: function(k, defaultValue) {
           var ret = objectUtil.retrieve(obj, k);
           ret = void 0 === ret ? defaultValue : ret;
@@ -189,8 +204,7 @@ var helpers = function(ctx, fancy) {
         var parts = k.toLowerCase().split('.')
           , ns = parts.shift();
         ret = (ctx[ns] || {})[parts.join('.')];
-        // if a page search and it's not found, fall back to a deep search since we don't flatten page data
-        if ((ns === 'page' || ns === 'request') && void 0 === ret) {
+        if (void 0 === ret) {
           var lowest = ctx[ns]
             , search = [];
           for (var i=0; i < parts.length; i++) {
@@ -201,8 +215,9 @@ var helpers = function(ctx, fancy) {
               search.push(parts[i]);
             }
           }
+          console.log('value search', lowest, search);
           if (lowest) {
-            ret = objectUtil.retrieve(lowest, search.join('.'));
+            ret = search.length ? objectUtil.retrieve(lowest, search.join('.')) : lowest;
           }
         }
       }

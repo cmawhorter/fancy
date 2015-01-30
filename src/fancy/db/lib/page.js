@@ -29,14 +29,14 @@ function FancyPage(relativePath) {
   this.contentPath = null;
   if (relativePath.indexOf(':') < 0 && help.isDirectory(relativePath)) {
     this.isDirectory = true;
-    console.log('Content directory: finding page file...');
+    // console.log('Content directory: finding page file...');
     this.contentPath = this._findParseable('page');
 
     if (!this.contentPath) {
       throw new Error('Content directory does not contain page file. e.g. %s/page.md', relativePath);
     }
     else {
-      console.log('Content directory %s page file is %s', relativePath, this.contentPath);
+      // console.log('Content directory %s page file is %s', relativePath, this.contentPath);
     }
   }
   else {
@@ -48,7 +48,7 @@ FancyPage.prototype._findParseable = function(name) {
   for (var i=0; i < parsers.available.length; i++) {
     var ext = parsers.available[i];
     var pagePath = path.join(this.relativePath, '/' + name + '.' + ext);
-    console.log('%s does page exist? %s', this.relativePath, pagePath);
+    // console.log('%s does page exist? %s', this.relativePath, pagePath);
     if (fs.existsSync(pagePath)) {
       return pagePath;
     }
