@@ -1,8 +1,7 @@
 var fs = require('fs')
   , path = require('path');
 
-var express = require('express')
-  , async = require('async')
+var async = require('async')
   , glob = require('glob')
   , yaml = require('js-yaml')
   , urlPattern = require('url-pattern');
@@ -22,13 +21,15 @@ function Fancy(options) {
   options = options || {};
   // defaults
   this.options = {
-      theme: 'blah'
+      theme: null
     , port: 3000
     // , contentDirectories: [] // TODO: this is going to change so disabling use for now
     , providers: []
     , extensions: []
     , buildRoutes: []
     , strictMode: true
+      // FIXME: cluster concurrency is poorly structured but seemingly works
+    , concurrency: 0 // require('os').cpus().length
   };
   // load options
   for (var k in options) {
@@ -51,6 +52,9 @@ function Fancy(options) {
   }
   console.log('Done loading site config.yml');
 
+  if (!this.options.theme) {
+    throw new Error('Fancy: A theme is required but none was specified');
+  }
 
   // other properties
   this.knownRoutes = [];
@@ -64,7 +68,6 @@ function Fancy(options) {
     this.theme.support = require(this.theme.supportPath);
   }
 
-  this.express = null;
   this.server = null;
   this.db = null;
 
@@ -100,11 +103,10 @@ Fancy.prototype.init = function(callback) {
 
   tasks.push(function(taskCallback) {
     var notifier = help.notifier('Loading web server');
-    server(_this, function(err, app) {
+    server(_this, function(err) {
       if (err) {
         return taskCallback(err);
       }
-      _this.express = app;
       notifier.done();
       taskCallback(null);
     });
@@ -161,30 +163,18 @@ Fancy.prototype.init = function(callback) {
     if (err) {
       return callback(err);
     }
-    _this.express.set('port', _this.options.port);
-
-    // console.log('Initializing static asset handlers for pages...');
-    // for (var relativePath in _this.db.pages) {
-    //   var page = _this.db.pages[relativePath]
-    //     , pageAssets;
-    //   if (page.assetPath) {
-    //     pageAssets = path.join(process.cwd(), page.assetPath);
-    //     console.log('\t-> %s', pageAssets);
-    //     _this.express.use(express.static(pageAssets));
-    //   }
-    // }
-    // console.log('Done.');
-
-    _this.server = _this.express.listen(_this.express.get('port'), function() {
-      console.log('Fancy initialized and listening on port %d', _this.options.port);
-      callback.call(_this, null, _this.server);
-    });
+    console.log('Fancy initialized and listening on port %d', _this.options.port);
+    callback.call(_this, null);
   });
 };
 
 Fancy.prototype.routeDiscovered = function(url) {
   if (this.knownRoutes.indexOf(url) < 0) {
     this.knownRoutes.push(url);
+    return true;
+  }
+  else {
+    return false;
   }
 };
 
@@ -345,7 +335,7 @@ Fancy.prototype._reduceMatchingRoutes = function(pages) {
 
 // returns response object via callback
 Fancy.prototype.requestPage = function(url, callback) {
-  console.log('Getting page for %s...', url);
+  // console.log('Getting page for %s...', url);
   var _this = this;
 
   _this.db.findPageByRoute(url, function(err, pages) {
@@ -355,11 +345,11 @@ Fancy.prototype.requestPage = function(url, callback) {
 
     var templateMatchParams = {};
     if (!pages.length) { // no direct match found.  urlPattern matching
-      console.log('\t-> No exact matching routes');
+      // console.log('\t-> No exact matching routes');
       pages = [];
       for (var relativePath in _this.db.pages) {
         var page = _this.db.pages[relativePath];
-        console.log('\t-> does page %s match?', page.relativePath);
+        // console.log('\t-> does page %s match?', page.relativePath);
         if (!page.dataObject.properties) {
           console.log('ERROR. The universe has imploded and a page did not contain properties.  Things should be built in a way this cannot happen, yet it did.  I cannot continue.  Here is the page: ', page);
           process.exit();
@@ -381,7 +371,7 @@ Fancy.prototype.requestPage = function(url, callback) {
     }
 
     if (pages) {
-      console.log('\t-> %s found pages', pages.length);
+      // console.log('\t-> %s found pages', pages.length);
       var reducedPage = _this._reduceMatchingRoutes(pages);
       if (reducedPage) {
         callback(null, {

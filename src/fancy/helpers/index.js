@@ -119,7 +119,7 @@ var helpers = function(ctx, fancy) {
         return page ? page.first('route') : core.value('request.url');
       }
 
-      var templateValues = core.value('request.params');
+      var templateValues = core.value('request.params', {});
       for (var k in mergeVals) {
         templateValues[k] = mergeVals[k];
       }
@@ -207,17 +207,19 @@ var helpers = function(ctx, fancy) {
         if (void 0 === ret) {
           var lowest = ctx[ns]
             , search = [];
-          for (var i=0; i < parts.length; i++) {
-            if (void 0 !== lowest[parts[i]]) {
-              lowest = lowest[parts[i]];
-            }
-            else {
-              search.push(parts[i]);
-            }
-          }
-          console.log('value search', lowest, search);
           if (lowest) {
-            ret = search.length ? objectUtil.retrieve(lowest, search.join('.')) : lowest;
+            for (var i=0; i < parts.length; i++) {
+              if (void 0 !== lowest[parts[i]]) {
+                lowest = lowest[parts[i]];
+              }
+              else {
+                search.push(parts[i]);
+              }
+            }
+            // console.log('value search', lowest, search);
+            if (lowest) {
+              ret = search.length ? objectUtil.retrieve(lowest, search.join('.')) : lowest;
+            }
           }
         }
       }
