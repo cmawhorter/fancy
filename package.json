@@ -1,6 +1,6 @@
 {
   "name": "fancy",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "fancy ===",
   "main": "src/fancy/index.js",
   "scripts": {
@@ -11,6 +11,7 @@
   "license": "MIT",
   "dependencies": {
     "async": "^0.9.0",
+    "bunyan": "^1.3.3",
     "chalk": "^0.5.1",
     "cheerio": "^0.18.0",
     "debounce": "^1.0.0",
@@ -32,7 +33,6 @@
     "request": "^2.51.0",
     "rimraf": "^2.2.8",
     "sequelize": "^2.0.0-rc4",
-    "sqlite3": "^3.0.4",
     "string": "^3.0.0",
     "uri-templates": "^0.1.5",
     "url-pattern": "^0.6.0",
