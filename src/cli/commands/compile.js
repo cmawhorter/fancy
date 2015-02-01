@@ -2,10 +2,7 @@ var fs = require('fs')
   , path = require('path')
   , url = require('url');
 
-var ncp = require('ncp').ncp
-  , async = require('async')
-  , mkdirp = require('mkdirp')
-  , rimraf = require('rimraf')
+var rimraf = require('rimraf')
   , portfinder = require('portfinder');
 
 portfinder.basePort = 3000;
