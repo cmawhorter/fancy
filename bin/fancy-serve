@@ -1,0 +1,25 @@
+#!/usr/bin/env node
+
+var argv = require('yargs').usage('Usage: $0 -x [num] -y [num]', {
+  p: {
+      alias: 'port'
+    , default: 8000
+  },
+
+  w: {
+      alias: 'workers'
+    , default: 0
+  },
+
+  c: {
+      alias: 'content'
+    , default: 'content'
+  },
+
+  t: {
+      alias: 'theme'
+    , default: null
+  },
+}).argv;
+
+require('../src/server/www.js').start(argv);
