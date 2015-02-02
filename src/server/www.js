@@ -56,11 +56,12 @@ module.exports = {
       });
 
       // TODO: ? implement staged content so that robots can be conditionally supplied via content directory
-      app.use('/robots.txt', helpers.robotsRoute);
+      app.get('/robots.txt', helpers.robotsRoute);
+      app.get('/favicon.ico', helpers.route404);
 
       var router = express.Router();
       router.get('*', function(req, res, next) {
-        tell('request handled', process.pid);
+        tell('request handled', process.pid, Math.random(), req.url);
         res.status(200).contentType('text/plain').send('hello from ' + process.pid + '.');
         // fancy.requestPage(req.url, function(err, details) {
         //   if (err) {

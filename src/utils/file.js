@@ -13,6 +13,11 @@ module.exports = {
     return ext.length ? ext.substr(1) : '';
   },
 
+  name: function(f) {
+    var ext = path.extname(f);
+    return path.basename(f, ext);
+  },
+
   validateName: function(filename) {
     return regex.latin.test(filename);
   }
