@@ -429,11 +429,16 @@ FancyDb.prototype._reloadProviders = function(callback) {
     Object.keys(providerResources).forEach(function(providerName) {
       var content = providerResources[providerName] || [];
       content.forEach(function(resource, index) {
-        subtasks.push(function(subtaskCallback) {
-          var resId = 'id' in resource ? resource.id : index
-            , relativePath = PROVIDER_PREFIX + providerName + '/' + resId;
-          _this.addFile(relativePath, resource, subtaskCallback);
-        });
+        if (resource) {
+          subtasks.push(function(subtaskCallback) {
+            var resId = 'id' in resource ? resource.id : index
+              , relativePath = PROVIDER_PREFIX + providerName + '/' + resId;
+            _this.addFile(relativePath, resource, subtaskCallback);
+          });
+        }
+        else {
+          console.warn('Warning: Provider %s sent a null resource: %j', providerName, resource);
+        }
       });
     });
     async.parallelLimit(subtasks, 8, callback);
