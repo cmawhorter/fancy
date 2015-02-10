@@ -64,29 +64,20 @@ function directoryParser(relativePath, properties, defaultLocale, callback) {
 
 module.exports = {
   process: function(relativePath, siteLocale, callback) {
-    isDirectory(function(yes) {
-      var properties = new Properties()
+    file.isDirectory(relativePath, E.bubbles(callback, function(yes) {
+      var properties = new Properties(relativePath)
         , filename = file.name(relativePath)
         , defaultLocale = i18n.localeStringToParts(filename).locale || siteLocale;
       (yes ? directoryParser : fileParser)(relativePath, properties, defaultLocale, E.bubbles(callback, function() {
         callback(null, properties);
       }));
-    });
+    }));
   },
 
   processFile: fileParser,
   processDirectory: directoryParser,
 
-  // converts a property name in the format of "route" or "route.en-US" or "route.en" to a locale property object {'en-US':[['route','...']]}
-  localeProperty: function(key, value, defaultLocale) {
-    var localeStr = i18n.localeStringToParts(key || '__unknown');
-    return {
-        locale: localeStr.locale || defaultLocale
-      , key: localeStr.root
-      , value: value || ''
-    };
-  },
-
   validateFormat: validateFormat,
-  parsers: availableParsers
+  parsers: availableParsers,
+  available: Object.keys(availableParsers)
 };

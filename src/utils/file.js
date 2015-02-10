@@ -1,7 +1,8 @@
 var fs = require('fs')
   , path = require('path');
 
-var regex = require('./regex.js');
+var regex = require('./regex.js')
+  , E = require('./E.js');
 
 module.exports = {
   abs: function(relative) {
@@ -20,5 +21,18 @@ module.exports = {
 
   validateName: function(filename) {
     return regex.latin.test(filename);
-  }
+  },
+
+  isDirectory: function(targ, callback) {
+    fs.stat(targ, E.bubbles(callback, function(stats) {
+      callback(null, stats.isDirectory());
+    }));
+  },
+
+  isFile: function(targ, callback) {
+    fs.stat(targ, E.bubbles(callback, function(stats) {
+      callback(null, stats.isFile());
+    }));
+  },
+
 }

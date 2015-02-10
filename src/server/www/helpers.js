@@ -1,7 +1,11 @@
 var cluster = require('cluster');
-var express = require('express');
+
+var express = require('express')
+  , messenger = require('messenger');
 
 var file = require('../../utils/file.js');
+
+var dbClient;
 
 module.exports = {
   fork: function() {
@@ -12,6 +16,11 @@ module.exports = {
     res.status(200)
       .contentType('text/plain')
       .send('User-agent: *\nDisallow: /');
+  },
+
+  db: function(port) {
+    dbClient = dbClient || messenger.createSpeaker(port)
+    return dbClient;
   },
 
   addStaticRoute: function addStaticRoute(app, relative) {

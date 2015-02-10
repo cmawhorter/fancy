@@ -17,7 +17,7 @@ var PROPERTIES_FILENAME = '_properties'
 function processFile(dirFile) {
   var filename = file.name(dirFile)
     , format = parsers.validateFormat(filename)
-    , properties = new Properties()
+    , properties = new Properties(dirFile)
     , filename = file.name(dirFile)
     , defaultLocale = i18n.localeStringToParts(filename).locale || null;
 

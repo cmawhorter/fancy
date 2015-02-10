@@ -1,10 +1,10 @@
 var cheerio = require('cheerio');
-var parsers = require('../../content-parsers/parsers.js');
+var help = require('../lib/help.js');
 
 function elementToProperty(properties, $el, defaultLocale) {
   var key, value, locale;
   if ($el.length) {
-    switch ($el[0].tag) {
+    switch ($el[0].name) {
       case 'meta':
       case 'property':
         key = $el.attr('key') || $el.attr('name');
@@ -25,7 +25,7 @@ function elementToProperty(properties, $el, defaultLocale) {
       locale = $el.attr('lang');
     }
   }
-  properties.append(parsers.localeProperty(key, value, locale || defaultLocale));
+  properties.append(help.localeProperty(key, value, locale || defaultLocale));
 }
 
 module.exports = function(contents, properties, defaultLocale, relativePath) {
