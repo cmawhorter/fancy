@@ -5,7 +5,7 @@ var _ = require('lodash')
   , async = require('async');
 
 var parsers = require('../parsers.js')
-  , Properties = require('../../db/properties.js');
+  , Properties = require('../../data/properties.js');
 
 var E = require('../../utils/E.js')
   , filters = require('../../utils/filters.js')

@@ -4,7 +4,7 @@ var path = require('path')
 var express = require('express')
   , glob = require('glob');
 
-var watcher = require('../db/watcher.js');
+var watcher = require('./watcher.js');
 
 var E = require('../utils/E.js')
   , tell = require('../utils/tell.js')
@@ -79,6 +79,7 @@ module.exports = {
 
         db.request('find', { url: req.url, locale: null }, function(data) {
           if (!data || !data.result || data.result.error) {
+            console.log('not found in db');
             return helpers.renderError(req, res, new Error(data.result.error));
           }
 

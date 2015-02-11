@@ -1,6 +1,6 @@
 var fs = require('fs');
 
-var Properties = require('../db/properties.js');
+var Properties = require('../data/properties.js');
 
 var file = require('../utils/file.js')
   , E = require('../utils/E.js')

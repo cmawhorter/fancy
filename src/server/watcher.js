@@ -2,8 +2,8 @@ var path = require('path');
 
 var messenger = require('messenger');
 
-var Properties = require('./properties.js')
-  , Site = require('./site.js')
+var Properties = require('../data/properties.js')
+  , Site = require('./watcher/site.js')
   , parsers = require('../content-parsers/parsers.js');
 
 var E = require('../utils/E.js')
