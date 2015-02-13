@@ -1,4 +1,6 @@
-var cluster = require('cluster');
+var fs = require('fs')
+  , url = require('url')
+  , cluster = require('cluster');
 
 var express = require('express')
   , messenger = require('messenger');
@@ -8,6 +10,35 @@ var file = require('../../utils/file.js');
 var dbClient;
 
 module.exports = {
+  loadPackage: function(fancyGlobals) {
+    var json;
+    try {
+      json = JSON.parse(fs.readFileSync('./package.json'));
+    }
+    catch (e) {
+      console.warn(e.message);
+    }
+    fancyGlobals.config = ((json || {}).fancy) || {};
+  },
+
+  loadEnv: function(fancyGlobals) {
+    var passEnvVars = fancyGlobals.config.env || { stage: ['NODE_ENV', 'production'] };
+    for (var k in passEnvVars) {
+      var envVal = passEnvVars[k];
+      fancyGlobals.env[k] = process.env[envVal[0]] || envVal[1];
+    }
+  },
+
+  buildRequest: function(req) {
+    var parsedUrl = url.parse(req.url, true);
+    return {
+        url: req.url
+      , params: {}
+      , query: parsedUrl.query
+      , locale: req.locale || 'en-US' // TODO: extract locale from request
+    };
+  },
+
   fork: function() {
     return cluster.fork();
   },

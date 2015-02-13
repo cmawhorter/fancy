@@ -55,7 +55,6 @@ Properties.prototype.get = function(locale) {
       data[k] = localeData[k];
     }
   }
-  console.log('get data', this.data);
   return data;
 };
 

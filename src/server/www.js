@@ -4,7 +4,8 @@ var path = require('path')
 var express = require('express')
   , glob = require('glob');
 
-var watcher = require('./watcher.js');
+var watcher = require('./watcher.js')
+  , Context = require('../data/context.js');
 
 var E = require('../utils/E.js')
   , tell = require('../utils/tell.js')
@@ -17,6 +18,10 @@ module.exports = {
     options = options || {};
     var dbPort = options.port + 1;
     var db = helpers.db(dbPort);
+
+    var fancyGlobals = { config: {}, env: {} };
+    helpers.loadPackage(fancyGlobals);
+    helpers.loadEnv(fancyGlobals);
 
     if (!options.workers || cluster.isMaster) {
       watcher.start({
@@ -83,10 +88,13 @@ module.exports = {
             return helpers.renderError(req, res, new Error(data.result.error));
           }
 
-          var page = data.result
-            , body = page.body.length > 1 ? page.body : page.body[0]
-            , layout = page.layout ? page.layout[0] : 'primary'
-            , contentType = page.contenttype ? page.contenttype[0] : 'text/html';
+          var context = new Context(data.result, helpers.buildRequest(req), [/* TODO: theme */], [/* TODO: extensions */], fancyGlobals, function(yieldUrl) {
+            // TODO: db.request
+            console.log('URL discovered %s', yieldUrl);
+          });
+
+          var contentType = context.page.text('contenttype', 'text/html')
+            , body = context.page.first('body');
 
           if (contentType.indexOf(';') > -1) {
             contentType = contentType.split(';')[0].trim();
@@ -97,14 +105,12 @@ module.exports = {
             return;
           }
           else if (contentType == 'application/javascript') {
-            var jsVar = page.scopeTarget ? page.scopeTarget[0] : 'window["' + req.url + '"]';
+            var jsVar = context.page.text('scopetarget', 'window["' + req.url + '"]');
             res.status(200).contentType('application/javascript').send(jsVar + ' = ' + JSON.stringify(body));
             return;
           }
           else {
-            var locals = Object.create(page);
-            page.locale = data.locale || 'en-US';
-            res.render('layouts/' + layout, locals);
+            res.render('layouts/' + context.page.first('layout', 'primary'), context);
             return;
           }
         });
