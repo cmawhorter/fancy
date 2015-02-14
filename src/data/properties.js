@@ -135,10 +135,6 @@ Properties.prototype.getParamsForUrl = function(url) {
   return null;
 };
 
-
-
-
-
 Properties.create = function(relativePath, obj) {
   if (Properties.isLocaleData(obj)) {
     var properties = new Properties(relativePath);

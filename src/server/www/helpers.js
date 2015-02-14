@@ -10,7 +10,7 @@ var file = require('../../utils/file.js');
 var dbClient;
 
 module.exports = {
-  loadPackage: function(fancyGlobals) {
+  loadPackage: function() {
     var json;
     try {
       json = JSON.parse(fs.readFileSync('./package.json'));
@@ -18,15 +18,17 @@ module.exports = {
     catch (e) {
       console.warn(e.message);
     }
-    fancyGlobals.config = ((json || {}).fancy) || {};
+    return ((json || {}).fancy) || {};
   },
 
-  loadEnv: function(fancyGlobals) {
-    var passEnvVars = fancyGlobals.config.env || { stage: ['NODE_ENV', 'production'] };
+  loadEnv: function(configEnv) {
+    var passEnvVars = configEnv || { stage: ['NODE_ENV', 'production'] };
+    var obj = {};
     for (var k in passEnvVars) {
       var envVal = passEnvVars[k];
-      fancyGlobals.env[k] = process.env[envVal[0]] || envVal[1];
+      obj[k] = process.env[envVal[0]] || envVal[1];
     }
+    return obj;
   },
 
   buildRequest: function(req) {

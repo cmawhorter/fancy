@@ -20,7 +20,19 @@ module.exports = {
     server.on('find', function(message, data) {
       var properties = site.getPageForUrl(data.url);
       if (properties) {
-        message.reply({ result: properties.getAsHash(data.locale) });
+        var resources = null;
+        if (properties.hasProperty('resource')) {
+          resources = site.findByProperty('resource', properties.getProperty('resource')[0]).map(function(element) {
+            return element.getAsHash(data.locale);
+          });
+        }
+        message.reply({
+          result: {
+              page: properties.getAsHash(data.locale)
+            , filepath: properties.relativePath
+            , resources: resources
+          }
+        });
       }
       else {
         message.reply({ result: { error: 'Not Found', code: 404 } });

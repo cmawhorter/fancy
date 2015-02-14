@@ -5,7 +5,7 @@ var express = require('express')
   , glob = require('glob');
 
 var watcher = require('./watcher.js')
-  , Context = require('../data/context.js');
+  , context = require('../data/context.js');
 
 var E = require('../utils/E.js')
   , tell = require('../utils/tell.js')
@@ -18,10 +18,21 @@ module.exports = {
     options = options || {};
     var dbPort = options.port + 1;
     var db = helpers.db(dbPort);
+    var theme = './' + (options.theme ? 'themes/' + options.theme : 'theme');
+    var viewPath = file.abs(theme + '/views');
 
-    var fancyGlobals = { config: {}, env: {} };
-    helpers.loadPackage(fancyGlobals);
-    helpers.loadEnv(fancyGlobals);
+    var config = helpers.loadPackage();
+    var createContext = context({
+        extensions: null
+      , theme: null
+      , viewPath: viewPath
+      , config: config
+      , env: helpers.loadEnv(config.env)
+      , yieldHandler: function(yieldUrl) {
+          // TODO: db.request
+          console.log('URL discovered %s', yieldUrl);
+        }
+    });
 
     if (!options.workers || cluster.isMaster) {
       watcher.start({
@@ -54,10 +65,8 @@ module.exports = {
       app.enable('case sensitive routing');
       app.enable('strict routing');
 
-      var theme = './' + (options.theme ? 'themes/' + options.theme : 'theme');
-
       // view engine setup
-      app.set('views', file.abs(theme + '/views'));
+      app.set('views', viewPath);
       app.set('view engine', 'ejs');
       app.disable('view cache');
 
@@ -88,10 +97,9 @@ module.exports = {
             return helpers.renderError(req, res, new Error(data.result.error));
           }
 
-          var context = new Context(data.result, helpers.buildRequest(req), [/* TODO: theme */], [/* TODO: extensions */], fancyGlobals, function(yieldUrl) {
-            // TODO: db.request
-            console.log('URL discovered %s', yieldUrl);
-          });
+          console.log('Found', data);
+
+          var context = createContext(data.result.filepath, data.result.page, helpers.buildRequest(req), data.result.resources);
 
           var contentType = context.page.text('contenttype', 'text/html')
             , body = context.page.first('body');
