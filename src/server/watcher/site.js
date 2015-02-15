@@ -12,10 +12,11 @@ var E = require('../../utils/E.js')
   , tell = require('../../utils/tell.js')
   , log = require('../../utils/log.js');
 
-function Site(dataPath, providers) {
+function Site(dataPath, providers, onChanged) {
   var _this = this;
   var dbDest = '.fancy';
   this.dataPath = path.normalize(dataPath + '/');
+  this.onChanged = onChanged || function(){};
   this.provided = {};
   this.voyeur = new Voyeur({
     saveDestination: path.join(dbDest, 'db.json'),
@@ -28,6 +29,7 @@ function Site(dataPath, providers) {
         }
         console.log('\t-> %s = %j', item.path, properties.getProperty('route'));
         item.data('properties', properties);
+        _this.onChanged(properties.getProperty('route')[0]);
         callback(null);
       });
     },
@@ -51,9 +53,11 @@ function Site(dataPath, providers) {
         else {
           console.warn('Provider path collision: %s exists', properties.relativePath);
         }
+        _this.onChanged(properties.getProperty('route')[0]);
       })
       .on('item:changed', function(properties) {
         // console.log('provider changed -> %s', properties.relativePath);
+        _this.onChanged(properties.getProperty('route')[0]);
       })
       .on('item:removed', function(properties) {
         // console.log('provider removed -> %s', properties.relativePath);
@@ -107,6 +111,7 @@ Site.prototype.start = function() {
   this.voyeur.on('item:imported', function(item) {
     // re-initialize saved data
     item.data('properties', Properties.create(item.path, item.data('properties').data));
+    _this.onChanged(item.data('properties').getProperty('route')[0]);
   });
 
   var targetPath = path.join(this.dataPath, '/**/*.@(' + parsers.available.join('|') + ')');

@@ -231,6 +231,7 @@ module.exports = function ContextFactoryGenerator(fancyGlobals) {
     , yieldHandler = fancyGlobals.yieldHandler
     , config = fancyGlobals.config
     , env = fancyGlobals.env
+    , liveReloadPort = fancyGlobals.liveReloadPort || 35729
     , theme = null
     , extensions = [];
 
@@ -261,6 +262,7 @@ module.exports = function ContextFactoryGenerator(fancyGlobals) {
       , request: request
       , config: config
       , env: env
+      , liveReloadPort: liveReloadPort
     });
     context.init();
     return context;
