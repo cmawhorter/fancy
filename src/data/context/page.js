@@ -52,12 +52,13 @@ Page.prototype.first = function(key, defaultValue) {
 };
 
 Page.prototype.text = function(key, defaultValue) {
-  return this.value(key, defaultValue).toString();
+  var val = this.value(key, defaultValue);
+  return void 0 === val ? '' : val.toString();
 };
 
 Page.url = function(request, page, vals) {
   vals = vals || {};
-  var templateUrl = page.urlTemplate.toString();
+  var templateUrl = page.text('urlTemplate');
   if (!templateUrl.length) {
     return page.route;
   }

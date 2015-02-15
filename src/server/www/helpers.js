@@ -3,7 +3,7 @@ var fs = require('fs')
   , cluster = require('cluster');
 
 var express = require('express')
-  , messenger = require('messenger');
+  , async = require('async');
 
 var file = require('../../utils/file.js');
 
@@ -41,6 +41,33 @@ module.exports = {
     };
   },
 
+  resolveContext: function(sock, context, callback) {
+    var tasks = [];
+    context.__uses.forEach(function(using) {
+      tasks.push(function(taskCallback) {
+        var obj = { key: using.key };
+        if (typeof using.value === 'function') {
+          obj.fn = using.value.toString();
+        }
+        else {
+          obj.value = using.value;
+        }
+        sock.send('matching', obj, function(data) {
+          using.result.retrieved = data.pages;
+          taskCallback();
+        });
+      });
+
+    });
+    async.parallel(tasks, function(err) {
+      if (err) {
+        return callback(err);
+      }
+      context.commitUsing();
+      callback(null);
+    });
+  },
+
   fork: function() {
     return cluster.fork();
   },
@@ -49,11 +76,6 @@ module.exports = {
     res.status(200)
       .contentType('text/plain')
       .send('User-agent: *\nDisallow: /');
-  },
-
-  db: function(port) {
-    dbClient = dbClient || messenger.createSpeaker(port)
-    return dbClient;
   },
 
   addStaticRoute: function addStaticRoute(app, relative) {

@@ -1,7 +1,10 @@
 var path = require('path')
+  , fs = require('fs')
   , cluster = require('cluster');
 
 var express = require('express')
+  , axon = require('axon')
+  , ejs = require('ejs')
   , glob = require('glob');
 
 var watcher = require('./watcher.js')
@@ -17,9 +20,11 @@ module.exports = {
   start: function(options) {
     options = options || {};
     var dbPort = options.port + 1;
-    var db = helpers.db(dbPort);
-    var theme = './' + (options.theme ? 'themes/' + options.theme : 'theme');
-    var viewPath = file.abs(theme + '/views');
+    var themePath = './' + (options.theme ? 'themes/' + options.theme : 'theme');
+    var viewPath = file.abs(themePath + '/views');
+
+    var sock = axon.socket('req');
+    sock.bind(dbPort);
 
     var config = helpers.loadPackage();
     var createContext = context({
@@ -70,7 +75,8 @@ module.exports = {
       app.set('view engine', 'ejs');
       app.disable('view cache');
 
-      helpers.addStaticRoute(app, theme + '/public');
+
+      helpers.addStaticRoute(app, path.join(themePath, 'public'));
       helpers.addStaticRoute(app, './data/assets');
 
       var matches = glob.sync(file.abs('./data/' + options.content + '/**/*.html/public'));
@@ -82,7 +88,7 @@ module.exports = {
         helpers.renderError(req, res, err);
       });
 
-      // TODO: ? implement staged content so that robots can be conditionally supplied via content directory
+      // TODO: supply these from content directory?
       app.get('/robots.txt', helpers.robotsRoute);
       app.get('/favicon.ico', helpers.route404);
 
@@ -91,15 +97,13 @@ module.exports = {
         tell('request handled', process.pid, Math.random(), req.url);
         // res.status(200).contentType('text/plain').send('hello from ' + process.pid + '.');
 
-        db.request('find', { url: req.url, locale: null }, function(data) {
-          if (!data || !data.result || data.result.error) {
+        sock.send('find', { url: req.url, locale: null }, function(data) {
+          if (!data || data.error) {
             console.log('not found in db');
-            return helpers.renderError(req, res, new Error(data.result.error));
+            return helpers.renderError(req, res, new Error(data.error.message || 'DB Error'));
           }
 
-          console.log('Found', data);
-
-          var context = createContext(data.result.filepath, data.result.page, helpers.buildRequest(req), data.result.resources);
+          var context = createContext(data.filepath, data.properties, helpers.buildRequest(req), data.resources);
 
           var contentType = context.page.text('contenttype', 'text/html')
             , body = context.page.first('body');
@@ -118,7 +122,26 @@ module.exports = {
             return;
           }
           else {
-            res.render('layouts/' + context.page.first('layout', 'primary'), context);
+            var layout = 'layouts/' + context.page.first('layout', 'primary')
+              , layoutPath = path.join(viewPath, layout + '.ejs')
+              , viewContents = fs.readFileSync(layoutPath).toString();
+            var html = ejs.render(viewContents, {
+                locals: context
+              , filename: layoutPath
+            });
+            if (context.__uses) {
+              console.log('has uses: ', context.__uses.length, context.__uses);
+              helpers.resolveContext(sock, context, function(err) {
+                if (err) {
+                  return helpers.renderError(req, res, new Error('Unable to retrieve all uses data'));
+                }
+                res.render(layout, context);
+              });
+            }
+            else {
+              console.log('no uses');
+              res.status(200).contentType('text/html; charset=utf-8').send(html);
+            }
             return;
           }
         });

@@ -6,7 +6,7 @@ var _ = require('lodash')
   , ejs = require('ejs');
 
 var Page = require('./context/page.js')
-  , Resources = require('./context/resources.js');
+  , Collection = require('./context/collection.js');
 
 // https://github.com/tj/ejs#options
 var RESERVED_KEYS = [ 'cache', 'filename', 'scope', 'debug', 'compileDebug', 'client', 'open', 'close' ];
@@ -15,6 +15,9 @@ function EmptyModule() { return {}; }
 
 function Context(viewPath, theme, extensions, yieldHandler, locals) {
   var _this = this;
+  this.__uses = [];
+  this.__usesResolved = false;
+
   locals = locals || {};
   locals.page = locals.page || {};
   locals.request = locals.request || {};
@@ -32,7 +35,7 @@ function Context(viewPath, theme, extensions, yieldHandler, locals) {
   // this.site = {}; // removed
 
   if (locals.resources && Array.isArray(locals.resources)) {
-    this.resources = new Resources(locals.request, locals.resources);
+    this.resources = new Collection(locals.request, locals.resources);
   }
 
   this.themeModule = locals.theme;
@@ -50,11 +53,15 @@ function Context(viewPath, theme, extensions, yieldHandler, locals) {
   // import other locals
   for (var k in locals) {
     var key = k.toLowerCase().trim();
-    if (!(k in this) && RESERVED_KEYS.indexOf(key) < 0) {
-      this[key] = locals[k];
+    if (this._validKey(key)) {
+      this[key] = locals[key];
     }
   }
 }
+
+Context.prototype._validKey = function(key) {
+  return !(key in this) && RESERVED_KEYS.indexOf(key) < 0;
+};
 
 Context.prototype.init = function() {
   var _this = this;
@@ -67,7 +74,9 @@ Context.prototype.init = function() {
     _this.extensions[element] = (_this.extensions[element] || EmptyModule)(_this);
   });
 
-  Object.freeze(_this);
+  // FIXME: enable? or maybe just conditionally deepFreeze properties?
+  // disabling now so that commitUsing can work
+  // Object.freeze(_this);
 };
 
 Context.prototype.clone = function(locals) {
@@ -88,12 +97,63 @@ Context.prototype.partial = function(partial, locals) {
   if (!/\.ejs$/i.test(partial)) {
     partial += '.ejs';
   }
-  console.log('this.viewPath', this.viewPath);
   var viewPath = path.join(this.viewPath, 'partials', partial)
     , viewContents = fs.readFileSync(viewPath).toString();
   return ejs.render(viewContents, {
       locals: this.clone(locals)
     , filename: viewPath
+  });
+};
+
+Context.prototype.uses = function(key, value) {
+  if (this.__usesResolved) { // been there done that.  noop this.
+    return {
+      as: function(){}
+    };
+  }
+  else {
+    var _this = this;
+    var result = {}
+      , placeholder = new Collection(_this.request, [])
+      , contextKey = 'using:' + (typeof value === 'function' ? key : value)
+      , unaliasedRef = {
+          contextKey: contextKey,
+          key: key,
+          value: value,
+          result: result
+        };
+    _this[contextKey] = placeholder; // avoid undefined/null errors
+    _this.__uses.push(unaliasedRef);
+    return {
+      as: function(alias) {
+        _this[alias] = placeholder; // avoid undefined/null errors
+        delete _this[contextKey]; // cleanup.  we're aliasing.
+        var unaliasedIndex = _this.__uses.indexOf(unaliasedRef);
+        if (unaliasedIndex > -1) {
+          _this.__uses.splice(unaliasedIndex, 1);
+        }
+        _this.__uses.push({
+          contextKey: alias,
+          key: key,
+          value: value,
+          result: result
+        });
+      }
+    };
+  }
+};
+
+Context.prototype.commitUsing = function() {
+  var _this = this;
+  _this.__usesResolved = true;
+  _this.__uses.forEach(function(using) {
+    if (_this._validKey(using.contextKey)) {
+      // FIXME: decide on whether third parameter should be this.current, this.page or neither.  until then don't pass either to not create backwards compat problem
+      _this[using.contextKey] = new Collection(_this.request, (using.result || {}).retrieved || []);
+    }
+    else {
+      throw new Error('Invalid using key "' + using.contextKey + '"');
+    }
   });
 };
 

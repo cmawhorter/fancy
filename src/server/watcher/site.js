@@ -116,6 +116,14 @@ Site.prototype.start = function() {
   return this;
 };
 
+Site.prototype.forEach = function(fn) {
+  this.forEachInDb(function(relativePath, item) {
+    var properties = item.data('properties');
+    fn(relativePath, properties);
+  });
+  this.forEachInProviders(fn);
+};
+
 Site.prototype.forEachInDb = function(fn) {
   var db = this.voyeur.all();
   for (var relativePath in db) {
@@ -129,16 +137,44 @@ Site.prototype.forEachInProviders = function(fn) {
   }
 };
 
-Site.prototype.findByProperty = function(propertyName, propertyValue) {
-  var pages = [];
-  this.forEachInDb(function(relativePath, item) {
-    var properties = item.data('properties');
-    if (properties && properties.hasMatchingProperty(propertyName, propertyValue)) {
-      pages.push(properties);
+Site.prototype.aggregate = function(propertyName) {
+  var result = [];
+  this.forEach(function(relativePath, properties) {
+    var props = properties.getProperty(propertyName);
+    if (props.length) {
+      console.log('\t-> props', props);
+      for (var j=0; j < props.length; j++) {
+        var prop = props[j];
+        if (result.indexOf(prop) < 0) {
+          result.push(prop);
+          console.log('\t\t-> discovered prop %s', prop);
+        }
+      }
     }
   });
-  this.forEachInProviders(function(relativePath, properties) {
-    if (properties.hasMatchingProperty(propertyName, propertyValue)) {
+  return result;
+};
+
+Site.prototype.findByAny = function(propertyName) {
+  var possibilities = this.aggregate(propertyName)
+    , pages = {};
+  console.log('findByAny %s', propertyName);
+  for (var i=0; i < possibilities.length; i++) {
+    var possibility = possibilities[i];
+    console.log('\t-> possibility %s', possibility);
+    pages[possibility] = this.findByProperty(propertyName, possibility);
+  }
+  return pages;
+};
+
+Site.prototype.findByProperty = function(propertyName, propertyValue) {
+  var fnMatcher = typeof propertyValue === 'function' ? propertyValue : function(properties) {
+    return properties.hasMatchingProperty(propertyName, propertyValue);
+  };
+
+  var pages = [];
+  this.forEach(function(relativePath, properties) {
+    if (fnMatcher.call(properties, properties)) {
       pages.push(properties);
     }
   });
@@ -149,14 +185,7 @@ Site.prototype.getPageForUrl = function(url) {
   var pages = this.findByProperty('route', url);
   if (!pages.length) { // no direct match found.  urlPattern matching
     // console.log('\t-> No exact matching routes');
-    this.forEachInDb(function(relativePath, item) {
-      var properties = item.data('properties');
-      // console.log('\t-> does page %s match?', properties.relativePath);
-      if (properties && properties.getParamsForUrl(url)) {
-        pages.push(properties);
-      }
-    });
-    this.forEachInProviders(function(relativePath, properties) {
+    this.forEach(function(relativePath, properties) {
       // console.log('\t-> does provider %s match?', properties.relativePath, properties.getProperty('route'));
       if (properties.getParamsForUrl(url)) {
         pages.push(properties);
