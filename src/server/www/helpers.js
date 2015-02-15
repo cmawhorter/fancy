@@ -2,8 +2,7 @@ var fs = require('fs')
   , url = require('url')
   , cluster = require('cluster');
 
-var express = require('express')
-  , async = require('async');
+var express = require('express');
 
 var file = require('../../utils/file.js');
 
@@ -39,33 +38,6 @@ module.exports = {
       , query: parsedUrl.query
       , locale: req.locale || 'en-US' // TODO: extract locale from request
     };
-  },
-
-  resolveContext: function(sock, context, callback) {
-    var tasks = [];
-    context.__uses.forEach(function(using) {
-      tasks.push(function(taskCallback) {
-        var obj = { key: using.key };
-        if (typeof using.value === 'function') {
-          obj.fn = using.value.toString();
-        }
-        else {
-          obj.value = using.value;
-        }
-        sock.send('matching', obj, function(data) {
-          using.result.retrieved = data.pages;
-          taskCallback();
-        });
-      });
-
-    });
-    async.parallel(tasks, function(err) {
-      if (err) {
-        return callback(err);
-      }
-      context.commitUsing();
-      callback(null);
-    });
   },
 
   fork: function() {

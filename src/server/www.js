@@ -104,6 +104,19 @@ module.exports = {
           }
 
           var context = createContext(data.filepath, data.properties, helpers.buildRequest(req), data.resources);
+          context.usingResolver = function(using, taskCallback) {
+            var obj = { key: using.key };
+            if (typeof using.value === 'function') {
+              obj.fn = using.value.toString();
+            }
+            else {
+              obj.value = using.value;
+            }
+            sock.send('matching', obj, function(data) {
+              using.result.retrieved = data.pages;
+              taskCallback();
+            });
+          };
 
           var contentType = context.page.text('contenttype', 'text/html')
             , body = context.page.first('body');
@@ -130,8 +143,7 @@ module.exports = {
               , filename: layoutPath
             });
             if (context.__uses) {
-              console.log('has uses: ', context.__uses.length, context.__uses);
-              helpers.resolveContext(sock, context, function(err) {
+              context.resolve(function(err) {
                 if (err) {
                   return helpers.renderError(req, res, new Error('Unable to retrieve all uses data'));
                 }
@@ -139,7 +151,6 @@ module.exports = {
               });
             }
             else {
-              console.log('no uses');
               res.status(200).contentType('text/html; charset=utf-8').send(html);
             }
             return;

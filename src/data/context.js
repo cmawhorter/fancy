@@ -2,11 +2,14 @@ var fs = require('fs')
   , path = require('path');
 
 var _ = require('lodash')
+  , async = require('async')
   , he = require('he')
   , ejs = require('ejs');
 
 var Page = require('./context/page.js')
   , Collection = require('./context/collection.js');
+
+var fingerprint = require('../utils/fingerprint.js');
 
 // https://github.com/tj/ejs#options
 var RESERVED_KEYS = [ 'cache', 'filename', 'scope', 'debug', 'compileDebug', 'client', 'open', 'close' ];
@@ -17,6 +20,7 @@ function Context(viewPath, theme, extensions, yieldHandler, locals) {
   var _this = this;
   this.__uses = [];
   this.__usesResolved = false;
+  this.__partialContextCache = {};
 
   locals = locals || {};
   locals.page = locals.page || {};
@@ -49,6 +53,7 @@ function Context(viewPath, theme, extensions, yieldHandler, locals) {
   };
 
   this.parentContext = null;
+  this.childContexts = [];
 
   // import other locals
   for (var k in locals) {
@@ -88,6 +93,9 @@ Context.prototype.clone = function(locals) {
   var context = new Context(this.viewPath, this.theme, this.extensions, this.yieldHandler, locals);
   context.current = this.current;
   context.parentContext = this;
+  this.childContexts.push(context);
+  context.usingResolver = this.usingResolver;
+  context.__usesResolved = this.__usesResolved;
   context.init();
   return context;
 };
@@ -98,11 +106,21 @@ Context.prototype.partial = function(partial, locals) {
     partial += '.ejs';
   }
   var viewPath = path.join(this.viewPath, 'partials', partial)
-    , viewContents = fs.readFileSync(viewPath).toString();
-  return ejs.render(viewContents, {
-      locals: this.clone(locals)
+    , viewContents = fs.readFileSync(viewPath).toString()
+    , uid = Context.uidPartial(partial, locals)
+    , childContext
+    , html;
+
+  childContext = this.__partialContextCache[uid] = this.__partialContextCache[uid] || this.clone(locals);
+
+  html = ejs.render(viewContents, {
+      locals: childContext
     , filename: viewPath
   });
+
+  this.__uses += childContext.__uses;
+
+  return html;
 };
 
 Context.prototype.uses = function(key, value) {
@@ -121,7 +139,9 @@ Context.prototype.uses = function(key, value) {
           key: key,
           value: value,
           result: result
-        };
+        }
+      , task;
+
     _this[contextKey] = placeholder; // avoid undefined/null errors
     _this.__uses.push(unaliasedRef);
     return {
@@ -143,7 +163,30 @@ Context.prototype.uses = function(key, value) {
   }
 };
 
-Context.prototype.commitUsing = function() {
+Context.prototype.resolve = function(callback) {
+  var _this = this
+    , tasks = [];
+  _this.__uses.forEach(function(using) {
+    tasks.push(function(taskCallback) {
+      _this.usingResolver(using, taskCallback);
+    });
+  });
+  // propagate down tree
+  _this.childContexts.forEach(function(element) {
+    tasks.push(function(taskCallback) {
+      element.resolve(taskCallback);
+    });
+  });
+  async.parallel(tasks, function(err) {
+    if (err) {
+      return callback(err);
+    }
+    _this._commitUsing();
+    callback();
+  });
+};
+
+Context.prototype._commitUsing = function() {
   var _this = this;
   _this.__usesResolved = true;
   _this.__uses.forEach(function(using) {
@@ -167,6 +210,20 @@ Context.prototype.print = function() {
     html += '<pre>' + he.encode(JSON.stringify(arguments[i], null, 2)) + '</pre>';
   }
   return html;
+};
+
+Context.prototype.toJSON = function() {
+  var obj = {};
+  for (var k in this) {
+    if (k !== 'childContexts' && k !== 'parentContext' && 0 !== k.indexOf('__')) {
+      obj[k] = this[k];
+    }
+  }
+  return obj;
+};
+
+Context.uidPartial = function(path, locals) {
+  return fingerprint.sync(path + fingerprint.sync(locals));
 };
 
 module.exports = function ContextFactoryGenerator(fancyGlobals) {
