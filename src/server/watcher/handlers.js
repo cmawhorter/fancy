@@ -37,7 +37,7 @@ module.exports = function(site) {
     urls: function(data, reply) {
       var urls = [];
       site.forEach(function(relativePath, properties) {
-        var pageUrl = new Page(properties.getAsHash(data.locale)).url;
+        var pageUrl = new Page(properties.getAsHash(data.locale)).url();
         if (urls.indexOf(pageUrl) < 0) {
           urls.push(pageUrl);
         }

@@ -16,6 +16,7 @@ var E = require('../utils/E.js')
 
 module.exports = {
   start: function(options, callback) {
+    callback = callback || function(){};
     options = options || {};
     var providers = [ path.join(process.cwd(), './data/providers/products/index.js') ];
     options.lrPort = options.lrPort || 35729;
@@ -46,7 +47,7 @@ module.exports = {
     var handlers = messageHandlers(site);
 
     var sock = axon.socket('rep');
-    sock.connect(options.port);
+    sock.bind(options.port);
 
     sock.on('message', function(task, data, reply) {
       var handler = handlers[task];

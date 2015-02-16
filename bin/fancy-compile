@@ -27,6 +27,6 @@ require('../src/server/www.js').start({
   require('../src/compilation/compiler.js').start(argv, function(err) {
     if (err) throw err;
     process.exit(0);
-  })
+  });
 });
 

@@ -1,15 +1,11 @@
+var uriTemplates = require('uri-templates');
+
 var __uid = 0
   , __uid_cache = {};
 
 function Page(data) {
   var _this = this;
   data = Page.fix(data);
-
-  Object.defineProperty(this, 'url', {
-    value: function(vals) {
-      return Page.url(_this, vals);
-    }
-  });
 
   // add generated id
   if (!('id' in data)) {
@@ -56,11 +52,11 @@ Page.prototype.text = function(key, defaultValue) {
   return void 0 === val ? '' : val.toString();
 };
 
-Page.url = function(page, vals) {
+Page.prototype.url = function(vals) {
   vals = vals || {};
-  var templateUrl = page.text('urlTemplate');
+  var templateUrl = this.text('urlTemplate');
   if (!templateUrl.length) {
-    return page.route;
+    return (this.route || '/' + this.id).toString();
   }
 
   var templateValues = Object.create(vals);

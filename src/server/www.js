@@ -18,14 +18,17 @@ var E = require('../utils/E.js')
 
 module.exports = {
   start: function(options, callback) {
+    callback = callback || function(){};
     options = options || {};
     options.lrPort = options.lrPort || 35729;
     var dbPort = options.port + 1;
     var themePath = './' + (options.theme ? 'themes/' + options.theme : 'theme');
     var viewPath = file.abs(themePath + '/views');
 
+    tell('Starting server...');
+
     var sock = axon.socket('req');
-    sock.bind(dbPort);
+    sock.connect(dbPort);
 
     var config = helpers.loadPackage();
     var createContext = context({
@@ -42,6 +45,7 @@ module.exports = {
     });
 
     if (!options.workers || cluster.isMaster) {
+      tell('Master starting watcher');
       watcher.start({
           target: './data/' + options.content
         , port: dbPort
@@ -79,7 +83,6 @@ module.exports = {
       app.set('view engine', 'ejs');
       app.disable('view cache');
 
-
       helpers.addStaticRoute(app, path.join(themePath, 'public'));
       helpers.addStaticRoute(app, './data/assets');
 
@@ -94,7 +97,7 @@ module.exports = {
 
       var router = express.Router();
       router.get('*', function(req, res, next) {
-        tell('request handled', process.pid, Math.random(), req.url);
+        tell('Handled', process.pid, new Date().getTime(), req.url);
         // res.status(200).contentType('text/plain').send('hello from ' + process.pid + '.');
 
         sock.send('find', { url: req.url, locale: null }, function(data) {
@@ -120,8 +123,6 @@ module.exports = {
 
           var contentType = context.page.text('contenttype', 'text/html')
             , body = context.page.first('body');
-
-          console.log('www (contenttype) => %s', contentType);
 
           if (contentType.indexOf(';') > -1) {
             contentType = contentType.split(';')[0].trim().toLowerCase();
