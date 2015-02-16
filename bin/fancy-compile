@@ -24,7 +24,7 @@ require('../src/server/www.js').start({
   , theme: null
 }, function(err) {
   if (err) throw err;
-  require('../src/compile/compiler.js').start(argv, function(err) {
+  require('../src/compilation/compiler.js').start(argv, function(err) {
     if (err) throw err;
     process.exit(0);
   })
