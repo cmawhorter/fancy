@@ -8,7 +8,7 @@ var argv = require('yargs').usage('Usage: $0 -x [num] -y [num]', {
 
   t: {
       alias: 'target'
-    , default: './.fancy/tmp'
+    , default: './.fancy/compiled'
   },
 
   w: {
