@@ -10,7 +10,7 @@ var callbacks = {
       throw new Error('E.event expects one arguments: callback<Function>');
     }
     return callbacks.bubble(callback, noop);
-  }
+  },
 
   bubble: function errorBubblesCallback(callback, immediateCallback) {
     if (typeof callback !== 'function' || typeof immediateCallback !== 'function') {
