@@ -1,13 +1,13 @@
 var __uid = 0
   , __uid_cache = {};
 
-function Page(request, data) {
+function Page(data) {
   var _this = this;
   data = Page.fix(data);
 
   Object.defineProperty(this, 'url', {
     value: function(vals) {
-      return Page.url(request, _this, vals);
+      return Page.url(_this, vals);
     }
   });
 
@@ -56,7 +56,7 @@ Page.prototype.text = function(key, defaultValue) {
   return void 0 === val ? '' : val.toString();
 };
 
-Page.url = function(request, page, vals) {
+Page.url = function(page, vals) {
   vals = vals || {};
   var templateUrl = page.text('urlTemplate');
   if (!templateUrl.length) {

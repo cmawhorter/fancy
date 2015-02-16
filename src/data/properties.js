@@ -13,6 +13,7 @@ function Properties(relativePath, locale) {
 }
 
 Properties.prototype.add = function(properties, locale) {
+  var _this = this;
   if (Properties.isLocaleData(properties)) {
     for (var locale in properties) {
       this.add(properties, locale);
@@ -22,7 +23,9 @@ Properties.prototype.add = function(properties, locale) {
     locale = locale || this.selectedLocale;
     i18n.validateCountryCode(locale);
     this.data[locale] = this.data[locale] || [];
-    Array.prototype.push.apply(this.data[locale], properties || []);
+    (properties || []).forEach(function(element) {
+      _this.data[locale].push([ element[0].trim().toLowerCase(), element[1] ]);
+    });
   }
 };
 
@@ -32,6 +35,7 @@ Properties.prototype.append = function(key, value, locale) {
     value = key.value;
     key = key.key;
   }
+  key = key.trim().toLowerCase();
   locale = locale || i18n.GLOBAL;
   this.add([ [key,value] ], locale);
 };

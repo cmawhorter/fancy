@@ -17,7 +17,7 @@ var E = require('../utils/E.js')
   , helpers = require('./www/helpers.js');
 
 module.exports = {
-  start: function(options) {
+  start: function(options, callback) {
     options = options || {};
     options.lrPort = options.lrPort || 35729;
     var dbPort = options.port + 1;
@@ -47,7 +47,7 @@ module.exports = {
         , port: dbPort
         , lrPort: options.lrPort
         , themePath: themePath
-      });
+      }, callback);
     }
 
     if (options.workers && cluster.isMaster) {
@@ -92,10 +92,6 @@ module.exports = {
         helpers.renderError(req, res, err);
       });
 
-      // TODO: supply these from content directory?
-      app.get('/robots.txt', helpers.robotsRoute);
-      app.get('/favicon.ico', helpers.route404);
-
       var router = express.Router();
       router.get('*', function(req, res, next) {
         tell('request handled', process.pid, Math.random(), req.url);
@@ -125,40 +121,45 @@ module.exports = {
           var contentType = context.page.text('contenttype', 'text/html')
             , body = context.page.first('body');
 
+          console.log('www (contenttype) => %s', contentType);
+
           if (contentType.indexOf(';') > -1) {
-            contentType = contentType.split(';')[0].trim();
+            contentType = contentType.split(';')[0].trim().toLowerCase();
           }
 
-          if (contentType == 'application/json') {
-            res.json(body);
-            return;
-          }
-          else if (contentType == 'application/javascript') {
-            var jsVar = context.page.text('scopetarget', 'window["' + req.url + '"]');
-            res.status(200).contentType('application/javascript').send(jsVar + ' = ' + JSON.stringify(body));
-            return;
-          }
-          else {
-            var layout = 'layouts/' + context.page.first('layout', 'primary')
-              , layoutPath = path.join(viewPath, layout + '.ejs')
-              , viewContents = fs.readFileSync(layoutPath).toString();
-            var html = ejs.render(viewContents, {
-                locals: context
-              , filename: layoutPath
-            });
-            if (context.__uses) {
-              context.resolve(function(err) {
-                if (err) {
-                  return helpers.renderError(req, res, new Error('Unable to retrieve all uses data'));
-                }
-                res.render(layout, context);
+          switch (contentType) {
+            case 'application/json':
+              res.json(body);
+              return;
+            case 'application/javascript':
+              var jsVar = context.page.text('scopetarget', 'window["' + req.url + '"]');
+              res.status(200).contentType('application/javascript').send(jsVar + ' = ' + JSON.stringify(body));
+              return;
+            case 'text/plain':
+              res.status(200).contentType('text/plain').send(body);
+              return;
+            default:
+            case 'text/html':
+              var layout = 'layouts/' + context.page.first('layout', 'primary')
+                , layoutPath = path.join(viewPath, layout + '.ejs')
+                , viewContents = fs.readFileSync(layoutPath).toString();
+              var html = ejs.render(viewContents, {
+                  locals: context
+                , filename: layoutPath
               });
+              if (context.__uses) {
+                context.resolve(function(err) {
+                  if (err) {
+                    return helpers.renderError(req, res, new Error('Unable to retrieve all uses data'));
+                  }
+                  res.render(layout, context);
+                });
+              }
+              else {
+                res.status(200).contentType('text/html; charset=utf-8').send(html);
+              }
+              return;
             }
-            else {
-              res.status(200).contentType('text/html; charset=utf-8').send(html);
-            }
-            return;
-          }
         });
       });
       app.use('/', router);

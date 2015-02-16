@@ -1,3 +1,5 @@
+var Page = require('../../data/context/page.js');
+
 function toHash(result, locale) {
   return result.map(function(element) {
     return element.getAsHash(locale);
@@ -31,5 +33,16 @@ module.exports = function(site) {
       var pages = site.findByProperty(data.key, data.value || eval('(' + data.fn + ')'));
       reply({ pages: toHash(pages, data.locale) });
     },
+
+    urls: function(data, reply) {
+      var urls = [];
+      site.forEach(function(relativePath, properties) {
+        var pageUrl = new Page(properties.getAsHash(data.locale)).url;
+        if (urls.indexOf(pageUrl) < 0) {
+          urls.push(pageUrl);
+        }
+      });
+      reply({ urls: urls });
+    }
   }
 };

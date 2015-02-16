@@ -15,7 +15,7 @@ var E = require('../utils/E.js')
   , messageHandlers = require('./watcher/handlers.js');
 
 module.exports = {
-  start: function(options) {
+  start: function(options, callback) {
     options = options || {};
     var providers = [ path.join(process.cwd(), './data/providers/products/index.js') ];
     options.lrPort = options.lrPort || 35729;
@@ -42,7 +42,7 @@ module.exports = {
     }
 
     // FIXME: remove throttle?
-    var site = new Site(options.target, providers, _.throttle(lrNotify, 100)).start();
+    var site = new Site(options.target, providers, _.throttle(lrNotify, 100)).start(callback);
     var handlers = messageHandlers(site);
 
     var sock = axon.socket('rep');
@@ -57,5 +57,7 @@ module.exports = {
         reply({ error: 500, message: 'No handler for: ' + task });
       }
     });
+
+    return site;
   }
 };

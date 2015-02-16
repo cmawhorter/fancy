@@ -84,7 +84,7 @@ function Site(dataPath, providers, onChanged) {
   mkdirp.sync(dbDest);
 }
 
-Site.prototype.start = function() {
+Site.prototype.start = function(callback) {
   var _this = this;
 
   [
@@ -116,7 +116,7 @@ Site.prototype.start = function() {
 
   var targetPath = path.join(this.dataPath, '/**/*.@(' + parsers.available.join('|') + ')');
   var watchOptions = { ignored: '**/*.html/*/**' };
-  this.voyeur.start(targetPath, watchOptions);
+  this.voyeur.start(targetPath, watchOptions, callback);
 
   return this;
 };

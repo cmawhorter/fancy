@@ -22,4 +22,6 @@ var argv = require('yargs').usage('Usage: $0 -x [num] -y [num]', {
   },
 }).argv;
 
-require('../src/server/www.js').start(argv);
+require('../src/server/www.js').start(argv, function(err) {
+  if (err) throw err;
+});

@@ -5,6 +5,13 @@ function slice(args) {
 function noop() {}
 
 var callbacks = {
+  event: function errorEventBubblesCallback(callback) {
+    if (typeof callback !== 'function') {
+      throw new Error('E.event expects one arguments: callback<Function>');
+    }
+    return callbacks.bubble(callback, noop);
+  }
+
   bubble: function errorBubblesCallback(callback, immediateCallback) {
     if (typeof callback !== 'function' || typeof immediateCallback !== 'function') {
       throw new Error('E.bubble expects two arguments: callback<Function>, immediateCallback<Function>');

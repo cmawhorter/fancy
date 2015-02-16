@@ -33,7 +33,8 @@ var argv = yargs.usage(usage)
   .argv;
 
 var cmds = {
-  serve: path.join(__dirname, '../../bin/fancy-serve')
+    serve: path.join(__dirname, '../../bin/fancy-serve')
+  , compile: path.join(__dirname, '../../bin/fancy-compile')
 };
 
 var cmd;
@@ -43,6 +44,10 @@ switch (argv._[0]) {
   case 'start':
   case 'test':
     cmd = 'serve';
+  break;
+
+  case 'compile':
+    cmd = 'compile';
   break;
 
   default:

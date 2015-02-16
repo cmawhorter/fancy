@@ -2,11 +2,10 @@ var Page = require('./page.js');
 
 // FIXME: inherits array, but doesn't wrap -- which could lead to all sorts of problems bc of direct data access
 
-function Collection(request, pages, activePage) {
+function Collection(pages, activePage) {
   var _this = this;
   pages = pages || [];
   var _cursor;
-  this.request = request;
 
   for (var i=0; i < pages.length; i++) {
     _this.push(pages[i]);
@@ -25,7 +24,7 @@ Collection.prototype._push = Collection.prototype.push;
 Collection.prototype.push = function() {
   for (var i=0; i < arguments.length; i++) {
     var arg = arguments[i];
-    this._push(arg instanceof Page ? arg : new Page(this.request, arg));
+    this._push(arg instanceof Page ? arg : new Page(arg));
   }
 };
 

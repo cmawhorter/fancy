@@ -33,13 +33,13 @@ function Context(viewPath, theme, extensions, yieldHandler, locals) {
   this.config = locals.config;
 
   this.resources = null;
-  this.current = this.page = locals.page instanceof Page ? locals.page : new Page(locals.request, locals.page);
+  this.current = this.page = locals.page instanceof Page ? locals.page : new Page(locals.page);
   this.request = locals.request;
   this.env = locals.env;
   // this.site = {}; // removed
 
   if (locals.resources && Array.isArray(locals.resources)) {
-    this.resources = new Collection(locals.request, locals.resources);
+    this.resources = new Collection(locals.resources);
   }
 
   this.themeModule = locals.theme;
@@ -132,7 +132,7 @@ Context.prototype.uses = function(key, value) {
   else {
     var _this = this;
     var result = {}
-      , placeholder = new Collection(_this.request, [])
+      , placeholder = new Collection([])
       , contextKey = 'using:' + (typeof value === 'function' ? key : value)
       , unaliasedRef = {
           contextKey: contextKey,
@@ -192,7 +192,7 @@ Context.prototype._commitUsing = function() {
   _this.__uses.forEach(function(using) {
     if (_this._validKey(using.contextKey)) {
       // FIXME: decide on whether third parameter should be this.current, this.page or neither.  until then don't pass either to not create backwards compat problem
-      _this[using.contextKey] = new Collection(_this.request, (using.result || {}).retrieved || []);
+      _this[using.contextKey] = new Collection((using.result || {}).retrieved || []);
     }
     else {
       throw new Error('Invalid using key "' + using.contextKey + '"');

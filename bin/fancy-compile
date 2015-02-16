@@ -1,0 +1,32 @@
+#!/usr/bin/env node
+
+var argv = require('yargs').usage('Usage: $0 -x [num] -y [num]', {
+  p: {
+      alias: 'port'
+    , default: 28000
+  },
+
+  t: {
+      alias: 'target'
+    , default: './.fancy/tmp'
+  },
+
+  w: {
+      alias: 'workers'
+    , default: 0
+  }
+}).argv;
+
+require('../src/server/www.js').start({
+    port: argv.port
+  , workers: argv.workers
+  , content: 'content'
+  , theme: null
+}, function(err) {
+  if (err) throw err;
+  require('../src/compile/compiler.js').start(argv, function(err) {
+    if (err) throw err;
+    process.exit(0);
+  })
+});
+
