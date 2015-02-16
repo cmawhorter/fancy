@@ -47,6 +47,8 @@ module.exports = {
       }, 2);
 
       // TODO: get yield urls and append to end of queue
+      // TODO: get other extraneous features like redirects and other stuff
+
       q.drain = function() {
         tell('Writing index...');
         fs.writeFileSync(path.join(options.target, 'index.json'), JSON.stringify(dictionary, null, 2));
