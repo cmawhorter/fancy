@@ -20,7 +20,7 @@ module.exports = {
   start: function(options, callback) {
     callback = callback || function(){};
     options = options || {};
-    options.lrPort = options.lrPort || 35729;
+    options.livereloadport = options.livereloadport || 35729;
     var dbPort = options.port + 1;
     var themePath = './' + (options.theme ? 'themes/' + options.theme : 'theme');
     var viewPath = file.abs(themePath + '/views');
@@ -31,6 +31,12 @@ module.exports = {
     sock.connect(dbPort);
 
     var config = helpers.loadPackage();
+    for (var k in options) {
+      var configKey = 'serve:' + k;
+      if (!(configKey in config)) {
+        config[configKey] = options[k];
+      }
+    }
     var createContext = context({
         extensions: null
       , theme: null
@@ -41,7 +47,7 @@ module.exports = {
           // TODO: db.request
           console.log('URL discovered %s', yieldUrl);
         }
-      , liveReloadPort: options.lrPort
+      , liveReloadPort: options.livereloadport
     });
 
     if (!options.workers || cluster.isMaster) {
@@ -49,7 +55,7 @@ module.exports = {
       watcher.start({
           target: './data/' + options.content
         , port: dbPort
-        , lrPort: options.lrPort
+        , livereloadport: options.livereloadport
         , themePath: themePath
       }, callback);
     }

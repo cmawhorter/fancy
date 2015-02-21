@@ -19,10 +19,10 @@ module.exports = {
     callback = callback || function(){};
     options = options || {};
     var providers = [ path.join(process.cwd(), './data/providers/products/index.js') ];
-    options.lrPort = options.lrPort || 35729;
+    options.livereloadport = options.livereloadport || 35729;
 
-    tinylr().listen(options.lrPort, function() {
-      // console.log('... Listening on %s ...', options.lrPort);
+    tinylr().listen(options.livereloadport, function() {
+      console.log('Live Reload listening on :%s', options.livereloadport);
     });
 
     var watcher = chokidar.watch(options.themePath + '/**/*.@(ejs|js|css)', {
@@ -39,7 +39,7 @@ module.exports = {
     });
 
     function lrNotify(urlPath) {
-      request('http://localhost:' + options.lrPort + '/changed?files=' + urlPath);
+      request('http://localhost:' + options.livereloadport + '/changed?files=' + urlPath);
     }
 
     // FIXME: remove throttle?

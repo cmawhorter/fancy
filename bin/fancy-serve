@@ -1,9 +1,15 @@
 #!/usr/bin/env node
 
+var portfinder = require('portfinder');
+
+var MAX_PORT = 65535
+  , MIN_PORT = 1
+  , BASE_PORT = 8000;
+
 var argv = require('yargs').usage('Usage: $0 -x [num] -y [num]', {
   p: {
       alias: 'port'
-    , default: 8000
+    , default: BASE_PORT
   },
 
   w: {
@@ -20,8 +26,36 @@ var argv = require('yargs').usage('Usage: $0 -x [num] -y [num]', {
       alias: 'theme'
     , default: null
   },
+
+  l: {
+      alias: 'livereloadport'
+    , default: 'auto'
+  }
 }).argv;
 
-require('../src/server/www.js').start(argv, function(err) {
-  if (err) throw err;
-});
+function validPort(port) {
+  port = parseInt(port, 10);
+  return !isNaN(port) && port >= MIN_PORT && port <= MAX_PORT;
+}
+
+function loadServer() {
+  require('../src/server/www.js').start(argv, function(err) {
+    if (err) throw err;
+  });
+}
+
+if (!validPort(argv.port)) {
+  argv.port = BASE_PORT;
+}
+
+if (!validPort(argv.livereloadport)) {
+  portfinder.basePort = argv.port + 100;
+  portfinder.getPort(function(err, port) {
+    if (err) throw err;
+    argv.livereloadport = port;
+    loadServer();
+  });
+}
+else {
+  loadServer();
+}
