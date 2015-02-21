@@ -16,13 +16,16 @@ Add a `fancy` entry to your sites package.json or alternatively create a fancy.j
   "name": "MyFancyWebsite",
   // ... snip ...
   "fancy": {
-    // enforces best practices
+    // enforce best practices
     "strict": true,
 
     "data": {
       // supported extensions for content data
       // note: removing html will also remove support for content directories
       "formats": "json,js,yml,yaml,md,markdown,html,txt",
+
+      // whitelist of types of files that will be served/built in asset directories
+      "assets": "png,gif,jpg",
     },
 
     // import env variables and make available to theme (whitelist)
@@ -45,6 +48,10 @@ Add a `fancy` entry to your sites package.json or alternatively create a fancy.j
       // store build here
       "path": "./dist",
 
+      // extension built files will have.  by default, their name will match their
+      // route as closely as possible
+      "extension": "",
+
       // by default, site runs out of root:  e.g www.example.com/about
       // change this if you'd like the site to run in a sub 
       // directory: e.g. destination: "/some-subdirectory/" ww.example.com/some-subdirectory/about
@@ -62,9 +69,11 @@ Add a `fancy` entry to your sites package.json or alternatively create a fancy.j
         // changing this to anything other than assets.path will probably result in images 
         // no longer working unless you know what you're doing and have a good reason
         "destination": ".",
-
-
       }
+    },
+
+    "deploy": {
+      "target": ""
     },
 
     // set default cli args
