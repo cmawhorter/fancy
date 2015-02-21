@@ -17,6 +17,15 @@ module.exports = {
     catch (e) {
       console.warn(e.message);
     }
+    json = json || {};
+    if (!json || !('fancy' in json)) {
+      try {
+        json = { fancy: JSON.parse(fs.readFileSync('./fancy.json')) };
+      }
+      catch (e) {
+        console.warn(e.message);
+      }
+    }
     return ((json || {}).fancy) || {};
   },
 
