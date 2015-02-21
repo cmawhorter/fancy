@@ -26,6 +26,26 @@ Add a `fancy` entry to your sites package.json or alternatively create a fancy.j
 
       // whitelist of types of files that will be served/built in asset directories
       "assets": "png,gif,jpg",
+      
+      // restrictions to place on certain content.  useful if combining multiple
+      // data sources into single site
+      // path is relative to content data directory (which is ./content/data by default)
+      "mount": {
+        // example: forces properties of all data in ./content/data/blog/ to match
+        "blog": {
+          // both key and value can be regex
+          // this example forces all pages in blog to have a route that starts with /blog/
+          "route": "^/blog/.*", 
+
+          // either the author or title must be at least 10 chars long, if they exist
+          "(author|title)": "^(.{10,}|.{0})$",
+
+          // negation match. body cannot contain any links to outside pages
+          // note: this is only an example and should NOT be used as a 
+          // security mechanism!
+          "body": "!<a[^>]+?href=\"http:[^\"]+?\""
+        },
+      }
     },
 
     // import env variables and make available to theme (whitelist)
