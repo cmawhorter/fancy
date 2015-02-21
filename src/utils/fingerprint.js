@@ -3,11 +3,6 @@ var fs = require('fs')
 
 // http://stackoverflow.com/a/18658613/670023
 function fingerFile(f, algo, callback) {
-  if (typeof algo === 'function') {
-    callback = algo;
-    algo = 'md5';
-  }
-
   var fd = fs.createReadStream(f)
     , hash = crypto.createHash(algo || 'md5');
 
@@ -22,7 +17,7 @@ function fingerFile(f, algo, callback) {
     callback(null, hash.read());
   });
 
-  fd.pipe(hash);
+  return fd.pipe(hash);
 }
 
 function fingerString(str, algo) {

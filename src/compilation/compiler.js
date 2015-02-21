@@ -1,5 +1,6 @@
 var fs = require('fs')
-  , path = require('path');
+  , path = require('path')
+  , crypto = require('crypto');
 
 var async = require('async')
   , axon = require('axon')
@@ -38,13 +39,21 @@ module.exports = {
       var q = async.queue(function(task, callback) {
         var hashName = fingerprint.sync(task.url)
           , destination = path.join(options.target, hashName);
-        dictionary[hashName] = task.url;
+        var result = dictionary[hashName] = {
+            url: task.url
+          , status: -1
+          , fingerprint: null
+        };
         tell('\t-> Processing "%s" and writing to %s', task.url, destination);
         request.get(endpoint + task.url)
+          .on('response', function(res) {
+            result.fingerprint = res.headers['etag'];
+            result.status = res.statusCode;
+          })
           .pipe(fs.createWriteStream(destination))
-          .on('error', E.event(callback))
-          .on('finish', callback);
-      }, 2);
+            .on('error', E.event(callback))
+            .on('finish', callback);
+      }, 24);
 
       // TODO: get yield urls and append to end of queue
       // TODO: get other extraneous features like redirects and other stuff

@@ -9,24 +9,23 @@ var argv = require('yargs').usage('Usage: $0 -x [num] -y [num]', {
   t: {
       alias: 'target'
     , default: './.fancy/compiled'
-  },
-
-  w: {
-      alias: 'workers'
-    , default: 0
   }
 }).argv;
 
 require('../src/server/www.js').start({
     port: argv.port
-  , workers: argv.workers
+  , workers: 4
   , content: 'content'
   , theme: null
+  , 'static': true
 }, function(err) {
   if (err) throw err;
-  require('../src/compilation/compiler.js').start(argv, function(err) {
-    if (err) throw err;
-    process.exit(0);
-  });
+  // FIXME: wait for www workers to all start.  this waits arbitrary amount, should be evt.
+  setTimeout(function() {
+    require('../src/compilation/compiler.js').start(argv, function(err) {
+      if (err) throw err;
+      process.exit(0);
+    });
+  }, 1000);
 });
 
