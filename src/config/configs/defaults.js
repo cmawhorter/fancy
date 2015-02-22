@@ -1,5 +1,5 @@
 module.exports = {
-  // enforce best practices
+  // enforce best practices. if violation is detected process exits immediately
   "strict": true,
 
   "data": {
@@ -40,11 +40,21 @@ module.exports = {
   },
 
   "compile": {
+    // entry point into the website for compilation.
+    // majority of sites won't need to set or modify this
+    "entry": "/",
+
     // resolving url to content
     //   - explicit: only the route property is used (required if strict = true)
     //   - generate: a route is generated based on filepath
     //   - auto: explicit if possible, fall back to generate
     "resolution": "auto",
+
+    // redirect routes with js/meta refresh + canonical
+    "redirects": {
+      // // uses regex replace to allow to take advantage of backrefs: e.g.  key = key.replace(key, value)
+      // "/some/page": "/some-page"
+    },
   },
 
   "build": {
@@ -76,7 +86,7 @@ module.exports = {
   },
 
   "deploy": {
-    "target": ""
+    "destination": ""
   },
 
   // set default cli args
@@ -86,7 +96,8 @@ module.exports = {
       "workers": 0,
       "content": "content",
       "theme": null,
-      "livereloadport": "auto"
+      "livereloadport": "auto",
+      "remotecontrol": true
     }
   }
 };

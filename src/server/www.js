@@ -102,6 +102,22 @@ module.exports = {
         helpers.renderError(req, res, err);
       });
 
+      if (config.cli.serve.remotecontrol) {
+        app.get('/__fancy__/:command', function(req, res) {
+          switch (req.params.command.toLowerCase()) {
+            case 'shutdown':
+              log.warn('Received remote shutdown command.  Exiting...');
+              res.end('Goodbye');
+              setImmediate(process.exit);
+            break;
+
+            default:
+              res.end('Command not understood');
+            break;
+          }
+        });
+      }
+
       var router = express.Router();
       router.get('*', function(req, res, next) {
         tell('Handled', process.pid, new Date().getTime(), req.url);

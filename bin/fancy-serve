@@ -38,6 +38,11 @@ var argv = require('yargs').usage('Usage: $0 -x [num] -y [num]', {
       alias: 'static' // no watching
     , default: config.cli.serve.static || null
   },
+
+  r: {
+      alias: 'remotecontrol'
+    , default: 'remotecontrol' in config.cli.serve ? config.cli.serve.remotecontrol : true
+  },
 }).argv;
 
 function validPort(port) {
