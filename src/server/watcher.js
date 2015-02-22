@@ -4,6 +4,7 @@ var _ = require('lodash')
   , axon = require('axon')
   , request = require('request')
   , chokidar = require('chokidar')
+  , glob = require('glob')
   , tinylr = require('tiny-lr');
 
 var Properties = require('../data/properties.js')
@@ -18,8 +19,15 @@ module.exports = {
   start: function(options, callback) {
     callback = callback || function(){};
     options = options || {};
-    var providers = [ path.join(process.cwd(), './data/providers/products/index.js') ]; // TODO: auto load providers
     options.livereloadport = options.livereloadport || 35729;
+
+    var providers = glob.sync('data/providers/*/index.js');
+    chokidar.watch('data/providers/**/*.@(js|json)', {
+      ignored: '**/node_modules/**/*'
+    }).on('change', function(filepath) {
+      tell('Warning: Provider file changed!  Server may need to be reloaded to see the changes.');
+      log.warn('Changed file: %s', filepath);
+    });
 
     tinylr().listen(options.livereloadport, function() {
       log.info('Live Reload listening on :%s', options.livereloadport);

@@ -43,44 +43,9 @@ function Site(dataPath, providers, onChanged) {
     // }
   });
 
-  (providers || []).forEach(function(providerPath) {
-    var provider = new Provider('some name based on provider path')
-    provider
-      .on('item:created', function(properties) {
-        // console.log('provider created -> %s', properties.relativePath);
-        if (!_this.provided[properties.relativePath]) {
-          _this.provided[properties.relativePath] = properties;
-        }
-        else {
-          console.warn('Provider path collision: %s exists', properties.relativePath);
-        }
-        _this.onChanged(properties.getProperty('route')[0]);
-      })
-      .on('item:changed', function(properties) {
-        // console.log('provider changed -> %s', properties.relativePath);
-        _this.onChanged(properties.getProperty('route')[0]);
-      })
-      .on('item:removed', function(properties) {
-        // console.log('provider removed -> %s', properties.relativePath);
-        if (_this.provided[properties.relativePath]) {
-          delete _this.provided[properties.relativePath];
-        }
-        else {
-          console.warn('Provider path %s does not exist', properties.relativePath);
-        }
-      });
-    require(providerPath)({
-      create: function(uid, data) {
-        provider.create(uid, data);
-      },
-      update: function(uid, data) {
-        provider.update(uid, data);
-      },
-      remove: function(uid) {
-        provider.remove(uid, data);
-      }
-    });
-  });
+  for (var i=0; i < providers.length; i++) {
+    this.loadProvider(providers[i]);
+  }
 
   mkdirp.sync(dbDest);
 }
@@ -124,6 +89,46 @@ Site.prototype.start = function(callback) {
 
 Site.prototype.count = function() {
   return Object.keys(this.voyeur.all()).length + Object.keys(this.provided).length;
+};
+
+Site.prototype.loadProvider = function(providerPath) {
+  var _this = this;
+  var provider = new Provider(providerPath);
+  provider
+    .on('item:created', function(properties) {
+      // console.log('provider created -> %s', properties.relativePath);
+      if (!_this.provided[properties.relativePath]) {
+        _this.provided[properties.relativePath] = properties;
+      }
+      else {
+        console.warn('Provider path collision: %s exists', properties.relativePath);
+      }
+      _this.onChanged(properties.getProperty('route')[0]);
+    })
+    .on('item:changed', function(properties) {
+      // console.log('provider changed -> %s', properties.relativePath);
+      _this.onChanged(properties.getProperty('route')[0]);
+    })
+    .on('item:removed', function(properties) {
+      // console.log('provider removed -> %s', properties.relativePath);
+      if (_this.provided[properties.relativePath]) {
+        delete _this.provided[properties.relativePath];
+      }
+      else {
+        console.warn('Provider path %s does not exist', properties.relativePath);
+      }
+    });
+  require(path.join(process.cwd(), providerPath))({
+    create: function(uid, data) {
+      provider.create(uid, data);
+    },
+    update: function(uid, data) {
+      provider.update(uid, data);
+    },
+    remove: function(uid) {
+      provider.remove(uid);
+    }
+  });
 };
 
 Site.prototype.forEach = function(fn) {
