@@ -27,7 +27,6 @@ portfinder.getPort(function(err, port) {
   site = watcher.start({
       target: './data/' + (config.cli.serve.content || 'content')
     , port: port
-    , silent: true
   }, function(err) {
     if (err) throw err;
 

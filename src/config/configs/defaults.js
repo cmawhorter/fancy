@@ -98,6 +98,8 @@ module.exports = {
       "theme": null,
       "livereloadport": "auto",
       "remotecontrol": true
+    },
+    "compile": {
     }
   }
 };

@@ -1,31 +1,31 @@
 #!/usr/bin/env node
 
-var argv = require('yargs').usage('Usage: $0 -x [num] -y [num]', {
-  p: {
-      alias: 'port'
-    , default: 28000
-  },
+var config = require('../src/config/config.js');
+var os = require('os');
+var portfinder = require('portfinder');
 
-  t: {
-      alias: 'target'
-    , default: './.fancy/compiled'
-  }
+var argv = require('yargs').usage('Usage: $0 -x [num] -y [num]', {
+  w: {
+      alias: 'workers'
+    , default: config.cli.compile.workers || Math.ceil(Math.min(1, os.cpus()) / 2)
+  },
 }).argv;
 
-require('../src/server/www.js').start({
-    port: argv.port
-  , workers: 4
-  , content: 'content'
-  , theme: null
-  , 'static': true
-}, function(err) {
+portfinder.getPort(function(err, port) {
   if (err) throw err;
-  // FIXME: wait for www workers to all start.  this waits arbitrary amount, should be evt.
-  setTimeout(function() {
-    require('../src/compilation/compiler.js').start(argv, function(err) {
-      if (err) throw err;
-      process.exit(0);
-    });
-  }, 1000);
-});
 
+  var wwwOptions = Object.create(config.cli.serve);
+  wwwOptions.port = port;
+  wwwOptions.workers = argv.workers;
+  wwwOptions.static = true;
+  require('../src/server/www.js').start(wwwOptions, function(err) {
+    if (err) throw err;
+    // FIXME: wait for www workers to all start.  this waits arbitrary amount, should be evt.
+    setTimeout(function() {
+      require('../src/compilation/compiler.js').start({ target: './.fancy/compiled', port: port }, function(err) {
+        if (err) throw err;
+        process.exit(0);
+      });
+    }, 1000);
+  });
+});
