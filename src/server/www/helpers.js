@@ -9,26 +9,6 @@ var file = require('../../utils/file.js');
 var dbClient;
 
 module.exports = {
-  loadPackage: function() {
-    var json;
-    try {
-      json = JSON.parse(fs.readFileSync('./package.json'));
-    }
-    catch (e) {
-      console.warn(e.message);
-    }
-    json = json || {};
-    if (!json || !('fancy' in json)) {
-      try {
-        json = { fancy: JSON.parse(fs.readFileSync('./fancy.json')) };
-      }
-      catch (e) {
-        console.warn(e.message);
-      }
-    }
-    return ((json || {}).fancy) || {};
-  },
-
   loadEnv: function(configEnv) {
     var passEnvVars = configEnv || { stage: ['NODE_ENV', 'production'] };
     var obj = {};

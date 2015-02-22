@@ -1,3 +1,5 @@
+var config = require('../config/config.js');
+
 var path = require('path')
   , fs = require('fs')
   , cluster = require('cluster');
@@ -30,7 +32,6 @@ module.exports = {
     var sock = axon.socket('req');
     sock.connect(dbPort);
 
-    var config = helpers.loadPackage();
     for (var k in options) {
       var configKey = 'serve:' + k;
       if (!(configKey in config)) {

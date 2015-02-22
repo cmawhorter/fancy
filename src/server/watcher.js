@@ -18,11 +18,11 @@ module.exports = {
   start: function(options, callback) {
     callback = callback || function(){};
     options = options || {};
-    var providers = [ path.join(process.cwd(), './data/providers/products/index.js') ];
+    var providers = [ path.join(process.cwd(), './data/providers/products/index.js') ]; // TODO: auto load providers
     options.livereloadport = options.livereloadport || 35729;
 
     tinylr().listen(options.livereloadport, function() {
-      console.log('Live Reload listening on :%s', options.livereloadport);
+      log.info('Live Reload listening on :%s', options.livereloadport);
     });
 
     var watcher = chokidar.watch(options.themePath + '/**/*.@(ejs|js|css)', {

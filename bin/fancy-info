@@ -1,0 +1,56 @@
+#!/usr/bin/env node
+
+var config = require('../src/config/config.js');
+
+var path = require('path');
+
+var moment = require('moment')
+  , portfinder = require('portfinder')
+  , Table = require('cli-table');
+
+var argv = require('yargs')
+  .options({
+    'verbose': {
+      alias: 'v',
+      description: 'Multiple allowed',
+      count: 'verbose'
+    }
+  })
+  .argv;
+
+var watcher = require('../src/server/watcher.js');
+var pkg = require(path.join(process.cwd(), 'package.json'));
+
+portfinder.getPort(function(err, port) {
+  if (err) throw err;
+  var site;
+  site = watcher.start({
+      target: './data/' + (config.cli.serve.content || 'content')
+    , port: port
+    , silent: true
+  }, function(err) {
+    if (err) throw err;
+
+    console.log('\nOverview');
+    var table = new Table();
+    table.push({ 'Name': pkg.name + ' (' + (pkg.version || 'unversioned') + ')' });
+    table.push({ 'Description': pkg.description });
+    table.push({ 'Data files': site.count() + ' found' });
+    table.push({ 'Configuration': config.__source });
+    table.push({ 'Timestamp': moment().format('MMMM Do YYYY, h:mm:ss A ZZ') })
+    console.log(table.toString() + '\n');
+
+    if (argv.verbose > 1) {
+      console.log('Configuration');
+      table = new Table();
+      for (var k in config) {
+        var row = {};
+        row[k] = JSON.stringify(config[k], null, 2);
+        table.push(row);
+      }
+      console.log(table.toString() + '\n');
+    }
+
+    process.exit();
+  });
+});

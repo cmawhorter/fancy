@@ -1,4 +1,5 @@
-var path = require('path')
+var fs = require('fs')
+  , path = require('path')
   , spawn = require('child_process').spawn;
 
 var _ = require('lodash')
@@ -13,6 +14,7 @@ var usage = [
   , ''
   , 'List of commands:'
   , commandUsage('create', 'Lorem ipsum dolor sit amet, consectetur adipisicing elit')
+  , commandUsage('info', 'Lorem ipsum dolor sit amet, consectetur adipisicing elit')
   , commandUsage('serve', 'Start web server and serve the specified site')
   , commandUsage('compile', 'Numquam debitis fugiat quisquam consequuntur beatae enim maxime')
   , commandUsage('package', 'Distinctio deleniti esse soluta minima repellendus')
@@ -29,11 +31,11 @@ var argv = yargs.usage(usage)
       count: 'verbose'
     }
   })
-  .demand(1)
   .argv;
 
 var cmds = {
-    serve: path.join(__dirname, '../../bin/fancy-serve')
+    info: path.join(__dirname, '../../bin/fancy-info')
+  , serve: path.join(__dirname, '../../bin/fancy-serve')
   , compile: path.join(__dirname, '../../bin/fancy-compile')
 };
 
@@ -50,23 +52,29 @@ switch (argv._[0]) {
     cmd = 'compile';
   break;
 
+  case 'info':
+  case 'detail':
+  case 'details':
+    cmd = 'info';
+  break;
+
   default:
-    console.error("%s: '%s' is not a valid command. See '%s --help'.", argv.$0, argv._[0], argv.$0);
-    process.exit(1);
+    if (fs.existsSync('./.fancy')) {
+      cmd = 'info';
+    }
+    else {
+      console.error("%s: '%s' is not a valid command. See '%s --help'.", argv.$0, argv._[0], argv.$0);
+      process.exit(1);
+    }
   break;
 }
 
 var serve = spawn(cmds[cmd], process.argv.slice(2));
 
-if (argv.v > 0) {
-  serve.stdout.on('data', function (data) {
-    console.log('stdout: ' + data);
-  });
-
-  serve.stderr.on('data', function (data) {
-    console.log('stderr: ' + data);
-  });
-}
+// if (argv.verbose > 0 || cmd == 'info') {
+  serve.stdout.pipe(process.stdout);
+  serve.stderr.pipe(process.stderr);
+// }
 
 serve.on('close', function(code) {
   process.exit(code);

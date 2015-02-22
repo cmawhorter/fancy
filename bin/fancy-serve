@@ -1,10 +1,12 @@
 #!/usr/bin/env node
 
+var config = require('../src/config/config.js');
+
 var portfinder = require('portfinder');
 
 var MAX_PORT = 65535
   , MIN_PORT = 1
-  , BASE_PORT = 8000;
+  , BASE_PORT = config.cli.serve.port || 8000;
 
 var argv = require('yargs').usage('Usage: $0 -x [num] -y [num]', {
   p: {
@@ -14,27 +16,27 @@ var argv = require('yargs').usage('Usage: $0 -x [num] -y [num]', {
 
   w: {
       alias: 'workers'
-    , default: 0
+    , default: config.cli.serve.workers || 0
   },
 
   c: {
       alias: 'content'
-    , default: 'content'
+    , default: config.cli.serve.content || 'content'
   },
 
   t: {
       alias: 'theme'
-    , default: null
+    , default: config.cli.serve.theme || null
   },
 
   l: {
       alias: 'livereloadport'
-    , default: 'auto'
-  }
+    , default: config.cli.serve.livereloadport || 'auto'
+  },
 
   s: {
       alias: 'static' // no watching
-    , default: null
+    , default: config.cli.serve.static || null
   },
 }).argv;
 

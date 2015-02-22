@@ -21,7 +21,7 @@ function Site(dataPath, providers, onChanged) {
   this.voyeur = new Voyeur({
     saveDestination: path.join(dbDest, 'db.json'),
     defaultProvider: function(item, callback) {
-      console.log('defaultProvider', item);
+      log.debug('defaultProvider', item);
       parsers.process(item.path, null, function(err, properties) {
         if (err) {
           callback(err);
@@ -33,13 +33,14 @@ function Site(dataPath, providers, onChanged) {
         callback(null);
       });
     },
-    logger: {
-        info: console.info
-      , warn: console.warn
-      , error: console.error
-      , debug: console.log
-      , log: console.log
-    }
+    logger: null
+    // logger: {
+    //     info: log.info
+    //   , warn: log.warn
+    //   , error: log.error
+    //   , debug: log.debug
+    //   , log: log.log
+    // }
   });
 
   (providers || []).forEach(function(providerPath) {
@@ -100,10 +101,10 @@ Site.prototype.start = function(callback) {
   ].forEach(function(evt) {
     _this.voyeur.on(evt, function(item) {
       if (item) {
-        console.log('Event (%s): %s', evt, item.path, item.toJSON());
+        log.info('Event (%s): %s', evt, item.path, item.toJSON());
       }
       else {
-        console.log('Event (%s)', evt);
+        log.info('Event (%s)', evt);
       }
     });
   });
@@ -119,6 +120,10 @@ Site.prototype.start = function(callback) {
   this.voyeur.start(targetPath, watchOptions, callback);
 
   return this;
+};
+
+Site.prototype.count = function() {
+  return Object.keys(this.voyeur.all()).length + Object.keys(this.provided).length;
 };
 
 Site.prototype.forEach = function(fn) {
@@ -147,12 +152,12 @@ Site.prototype.aggregate = function(propertyName) {
   this.forEach(function(relativePath, properties) {
     var props = properties.getProperty(propertyName);
     if (props.length) {
-      console.log('\t-> props', props);
+      log.debug('\t-> props', props);
       for (var j=0; j < props.length; j++) {
         var prop = props[j];
         if (result.indexOf(prop) < 0) {
           result.push(prop);
-          console.log('\t\t-> discovered prop %s', prop);
+          log.debug('\t\t-> discovered prop %s', prop);
         }
       }
     }
@@ -163,10 +168,10 @@ Site.prototype.aggregate = function(propertyName) {
 Site.prototype.findByAny = function(propertyName) {
   var possibilities = this.aggregate(propertyName)
     , pages = {};
-  console.log('findByAny %s', propertyName);
+  log.debug('findByAny %s', propertyName);
   for (var i=0; i < possibilities.length; i++) {
     var possibility = possibilities[i];
-    console.log('\t-> possibility %s', possibility);
+    log.debug('\t-> possibility %s', possibility);
     pages[possibility] = this.findByProperty(propertyName, possibility);
   }
   return pages;
@@ -207,7 +212,7 @@ Site.filterPagesByRoute = function(pages, strict) {
     return page && page.hasProperty('preferred');
   });
   if (pages.length > 1 && !preferredPages.length && strict) {
-    console.log('Multiple matching pages:', pages);
+    log.debug('Multiple matching pages:', pages);
     throw new Error('Strict Mode: Multiple pages match url, with none marked preferred');
   }
   if (!preferredPages.length) preferredPages = pages;
