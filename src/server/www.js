@@ -40,12 +40,6 @@ module.exports = {
     var sock = axon.socket('req');
     sock.connect(dbPort);
 
-    for (var k in options) {
-      var configKey = 'serve:' + k;
-      if (!(configKey in config)) {
-        config[configKey] = options[k];
-      }
-    }
     var createContext = context({
         extensions: null
       , theme: null

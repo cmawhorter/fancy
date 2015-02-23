@@ -49,9 +49,14 @@ module.exports = {
       }
     });
 
+    function lrNotify(urlPath) {
+      log.debug({ url: urlPath }, 'triggering reload');
+      request('http://localhost:' + options.livereloadport + '/changed?files=' + urlPath);
+    }
+
     function changed(properties) {
       var urlPath = properties.getProperty('route')[0];
-      request('http://localhost:' + options.livereloadport + '/changed?files=' + urlPath);
+      lrNotify(urlPath);
 
       for (var mount in config.data.mount) {
         var restr = mount;

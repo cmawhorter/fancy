@@ -262,7 +262,7 @@ module.exports = function ContextFactoryGenerator(fancyGlobals) {
       , request: request
       , config: config
       , env: env
-      , liveReloadPort: liveReloadPort
+      , livereloadport: liveReloadPort
     });
     context.init();
     return context;
