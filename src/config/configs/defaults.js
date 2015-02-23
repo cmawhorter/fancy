@@ -29,25 +29,22 @@ module.exports = {
     // path is relative to content data directory (which is ./content/data by default)
     "mount": {
       // example: forces properties of all data in ./content/data/blog/ to match
-      // "blog": {
-      //   // both key and value can be regex
-      //   // this example forces all pages in blog to have a route that starts with /blog/
-      //   "route": "^/blog/.*",
+      "blog": {
+        // both key and value can be regex
+        // this example forces all pages in blog to have a route that starts with /blog/
+        "route": "^/blog/.*",
 
-      //   // either the author or title must be at least 10 chars long, if they exist
-      //   "(author|title)": "^(.{10,}|.{0})$",
-
-      //   // negation match. body cannot contain any links to outside pages
-      //   // note: this is only an example and should NOT be used as a
-      //   // security mechanism!
-      //   "body": "!<a[^>]+?href=\"http:[^\"]+?\""
-      // },
+        // negation match. body cannot contain any links to outside pages
+        // note: this is only an example and should NOT be used as a
+        // security mechanism!
+        "body": "!<a[^>]+?href=\"http:[^\"]+?\""
+      },
     },
 
     // redirect routes with js/meta refresh + canonical
     "redirects": {
       // // uses regex replace to allow to take advantage of backrefs: e.g.  key = key.replace(key, value)
-      // "/some/page": "/some-page"
+      // "/(\\w+)/page": "/?src=some-page"
     },
 
     // url resolving strategy

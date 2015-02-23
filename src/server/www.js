@@ -7,7 +7,6 @@ var path = require('path')
 var express = require('express')
   , axon = require('axon')
   , ejs = require('ejs')
-  , urlPattern = require('url-pattern')
   , glob = require('glob')
   , _ = require('lodash');
 
@@ -68,27 +67,30 @@ module.exports = {
     if (!options.workers || cluster.isMaster) {
       tell('Master starting watcher');
       var site = watcher.start({
-          target: './data/' + options.content
+          target: path.join(process.cwd(), './data/' + options.content)
         , port: dbPort
         , livereloadport: options.livereloadport
         , themePath: themePath
       }, E.bubbles(callback, function() {
-        if (config.strict) {
-          var locale = null; // TODO: iterate over all locales, verifying each
-          var urls = site.urls(false, locale, config.data.routes != 'explicit')
-            , uniqUrls = _.uniq(urls);
-          if (urls.indexOf(null) > -1) {
-            log.fatal({ err: new Error('Unreachable content') });
-            process.exit(1);
+        // FIXME: wrapping this in a delay for now since there isn't a clear-cut ready event being emitted
+        setTimeout(function() {
+          if (config.strict) {
+            var locale = null; // TODO: iterate over all locales, verifying each
+            var urls = site.urls(false, locale, config.data.routes != 'explicit')
+              , uniqUrls = _.uniq(urls);
+            if (urls.indexOf(null) > -1) {
+              log.fatal({ err: new Error('Unreachable content') });
+              process.exit(1);
+            }
+            else if (!config.data.collisions && uniqUrls.length !== urls.length) {
+              var dupes = urls.filter(function(element, index) {
+                return index === urls.lastIndexOf(element) && urls.indexOf(element) !== index;
+              });
+              log.debug({ list: dupes }, 'dupe routes');
+              return callback(new Error('Page collisions'));
+            }
           }
-          else if (!config.data.collisions && uniqUrls.length !== urls.length) {
-            var dupes = urls.filter(function(element, index) {
-              return index === urls.lastIndexOf(element) && urls.indexOf(element) !== index;
-            });
-            log.debug({ list: dupes }, 'dupe routes');
-            return callback(new Error('Page collisions'));
-          }
-        }
+        }, 500);
       }));
 
       var assetCollisions = helpers.findAssetCollisions([themeAssets, dataAssets].concat(contentAssets), config.data.assets);
@@ -146,7 +148,7 @@ module.exports = {
         app.get('/__fancy__/:command', function(req, res) {
           switch (req.params.command.toLowerCase()) {
             case 'shutdown':
-              log.warn('Received remote shutdown command.  Exiting...');
+              log.info({ req: req }, 'received shutdown');
               res.end('Goodbye');
               setImmediate(process.exit);
             break;
@@ -160,21 +162,21 @@ module.exports = {
 
       var router = express.Router();
       router.get('*', function(req, res, next) {
-        tell('Handled', process.pid, new Date().getTime(), req.url);
-        // res.status(200).contentType('text/plain').send('hello from ' + process.pid + '.');
+        // tell('Handled', process.pid, new Date().getTime(), req.url);
+        log.trace({ req: req });
 
-        // TODO: implement route redirects
-
-        // var urlPattern = require('url-pattern');
-        // urlPattern.newPattern('/(\\w+)/page').match('/some/page');
-
-        // for (var route in config.data.redirects) {
-        //   var re = new RegExp(route);
-        //   if (re.test(req.url)) {
-        //     res.redirect(301, req.url.replace(re, config.data.redirects[route]));
-        //     return;
-        //   }
-        // }
+        for (var route in config.data.redirects) {
+          var re = new RegExp(route);
+          log.trace({ url: req.url, re: re.toString() }, 'testing url for redirects');
+          if (route === req.url || re.test(req.url)) {
+            var val = config.data.redirects[route];
+            var redirectUrl = req.url.replace(re, val);
+            log.trace({ url: req.url, re: re.toString(), replace: val, redirect: redirectUrl }, 'redirect matched');
+            log.info({ url: req.url, redirect: redirectUrl }, 'config redirect');
+            res.redirect(301, redirectUrl);
+            return;
+          }
+        }
 
         sock.send('find', { url: req.url, locale: null }, function(data) {
           if (!data || data.error) {

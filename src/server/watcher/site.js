@@ -29,7 +29,7 @@ function Site(dataPath, providers, onChanged) {
           return;
         }
         item.data('properties', properties);
-        _this._changed(properties);
+        _this._changed(properties, 'disk -> autoload');
         callback(null);
       });
     },
@@ -45,27 +45,21 @@ function Site(dataPath, providers, onChanged) {
 
 Site.prototype._changed = function(properties, label) {
   this.log.trace({ properties: properties }, label || 'file reloaded');
-  this.onChanged(properties.getProperty('route')[0]);
+  this.onChanged(properties);
 };
 
 Site.prototype.start = function(filetypes, callback) {
   var _this = this;
 
   [
-    'item:imported',
+    // 'item:imported', // used below
     'item:created',
     'item:current',
     'item:expired',
     'item:removed',
-
-    // 'watcher:add',
-    // 'watcher:change',
-    // 'watcher:delete',
   ].forEach(function(evt) {
     _this.voyeur.on(evt, function(item) {
-      var evtName = 'disk -> ' + evt;
-      _this.log.debug(evtName);
-      _this.log.trace({ diskItem: item }, evtName);
+      _this.log.trace({ diskItem: item }, 'disk -> ' + evt);
     });
   });
 
@@ -92,24 +86,19 @@ Site.prototype.loadProvider = function(providerPath) {
   var provider = new Provider(providerPath);
   provider
     .on('item:created', function(properties) {
-      var evt = 'provider -> item:created';
-      _this.log.debug(evt);
       if (!_this.provided[properties.relativePath]) {
         _this.provided[properties.relativePath] = properties;
       }
       else {
         console.warn('Provider path collision: %s exists', properties.relativePath);
       }
-      _this._changed(properties, evt);
+      _this._changed(properties, 'provider -> item:created');
     })
     .on('item:changed', function(properties) {
-      var evt = 'provider -> item:changed';
-      _this.log.debug(evt);
-      _this._changed(properties, evt);
+      _this._changed(properties, 'provider -> item:changed');
     })
     .on('item:removed', function(properties) {
-      var evt = 'provider -> item:removed';
-      _this.log.debug({ properties: properties }, evt);
+      _this.log.trace({ properties: properties }, 'provider -> item:removed');
       if (_this.provided[properties.relativePath]) {
         delete _this.provided[properties.relativePath];
       }
