@@ -6,7 +6,8 @@ var regex = require('./regex.js')
 
 module.exports = {
   abs: function(relative) {
-    return path.join(process.cwd(), relative);
+    var cwd = process.cwd();
+    return 0 === relative.indexOf(cwd) ? relative : path.join(cwd, relative);
   },
 
   extension: function(f) {

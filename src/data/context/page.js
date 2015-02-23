@@ -56,7 +56,7 @@ Page.prototype.url = function(vals) {
   vals = vals || {};
   var templateUrl = this.text('urlTemplate');
   if (!templateUrl.length) {
-    return (this.route || '/' + this.id).toString();
+    return this.route ? this.route.toString() : null;
   }
 
   var templateValues = Object.create(vals);

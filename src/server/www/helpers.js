@@ -1,16 +1,20 @@
 var fs = require('fs')
+  , path = require('path')
   , url = require('url')
   , cluster = require('cluster');
 
-var express = require('express');
+var express = require('express')
+  , glob = require('glob');
 
-var file = require('../../utils/file.js');
+var file = require('../../utils/file.js')
+  , tell = require('../../utils/tell.js')
+  , log = require('../../utils/log.js');
 
 var dbClient;
 
 module.exports = {
   loadEnv: function(configEnv) {
-    var passEnvVars = configEnv || { stage: ['NODE_ENV', 'production'] };
+    var passEnvVars = configEnv;
     var obj = {};
     for (var k in passEnvVars) {
       var envVal = passEnvVars[k];
@@ -39,10 +43,6 @@ module.exports = {
       .send('User-agent: *\nDisallow: /');
   },
 
-  addStaticRoute: function addStaticRoute(app, relative) {
-    app.use(express.static(file.abs(relative)));
-  },
-
   renderError: function renderError(req, res, err) {
     res.status(err.status || 500);
     res.contentType('text/plain').send('Error ' + err.status + ': ' + err.message);
@@ -50,6 +50,24 @@ module.exports = {
 
   route404: function route404(req, res) {
     res.status(404).contentType('text/plain').send('Error 404: File not found');
+  },
+
+  findAssetCollisions: function(assetPaths, extensions) {
+    var uniqueRelativeAssets = []
+      , collisions = [];
+    for (var i=0; i < assetPaths.length; i++) {
+      var search = path.join(assetPaths[i], '/**/*.@(' + extensions.join('|') + ')');
+      glob.sync(search).forEach(function(element) {
+        var rel = element.split(assetPaths[i])[1];
+        if (uniqueRelativeAssets.indexOf(rel) > -1) {
+          collisions.push(element);
+        }
+        else {
+          uniqueRelativeAssets.push(rel);
+        }
+      });
+    }
+    return collisions;
   }
 };
 

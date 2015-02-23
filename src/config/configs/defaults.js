@@ -2,6 +2,16 @@ module.exports = {
   // enforce best practices. if violation is detected process exits immediately
   "strict": true,
 
+  // hidden strict mode settings.  used  to assert config conforms to strict mode on load
+  "__strict": {
+    "data:formats": [ "yml", "md", "html", "json" ],
+    "data:assets": [ "png", "gif", "jpg" ],
+    "data:collisions": false,
+    "data:routes": [ "explicit" ],
+    "compile:yield": false,
+    "compile:verify": true,
+  },
+
   "data": {
     // supported extensions for content data
     // note: removing html will also remove support for content directories
@@ -9,6 +19,10 @@ module.exports = {
 
     // whitelist of types of files that will be served/built in asset directories
     "assets": "png,gif,jpg",
+
+    // allow page routes and asset paths to collide. strict mode forces this to be false
+    // e.g. some-page.html/public/a.jpg and theme has theme/public/a.jpg errors
+    "collisions": false,
 
     // restrictions to place on certain content.  useful if combining multiple
     // data sources into single site
@@ -28,15 +42,40 @@ module.exports = {
       //   // security mechanism!
       //   "body": "!<a[^>]+?href=\"http:[^\"]+?\""
       // },
-    }
+    },
+
+    // redirect routes with js/meta refresh + canonical
+    "redirects": {
+      // // uses regex replace to allow to take advantage of backrefs: e.g.  key = key.replace(key, value)
+      // "/some/page": "/some-page"
+    },
+
+    // url resolving strategy
+    //  - exact: route must match exactly
+    //  - search: test all routes using url pattern matching
+    //  - auto: exact || search, then filter.
+    // note: if multiple urls match and collisions are off, a collision error will be thrown
+    //    otherwise, the arbitrary first matching result is returned
+    "resolution": "auto",
+
+    // determining content routes
+    //   - explicit: only the route property is used (required if strict = true)
+    //   - auto: explicit if possible, fall back to generate
+    "routes": "explicit"
   },
 
-  // import env variables and make available to theme (whitelist)
-  "env": {
-    // this example means: import the value of process.env.NODE_ENV to env.stage
-    // and if it doesn't exist, default to "production"
-    // in the theme you can now do <% if (env.stage == 'production') %>
-    "stage": [ "NODE_ENV", "production" ]
+  "theme": {
+    // allow themes to yield (create) new pages dynamically
+    // e.g. a theme pagination extension creates new pages based on paged content
+    "yield": true,
+
+    // import env variables and make available to theme (whitelist)
+    "env": {
+      // this example means: import the value of process.env.NODE_ENV to env.stage
+      // and if it doesn't exist, default to "production"
+      // in the theme you can now do <% if (env.stage == 'production') %>
+      "stage": [ "NODE_ENV", "production" ]
+    },
   },
 
   "compile": {
@@ -44,17 +83,8 @@ module.exports = {
     // majority of sites won't need to set or modify this
     "entry": "/",
 
-    // resolving url to content
-    //   - explicit: only the route property is used (required if strict = true)
-    //   - generate: a route is generated based on filepath
-    //   - auto: explicit if possible, fall back to generate
-    "resolution": "auto",
-
-    // redirect routes with js/meta refresh + canonical
-    "redirects": {
-      // // uses regex replace to allow to take advantage of backrefs: e.g.  key = key.replace(key, value)
-      // "/some/page": "/some-page"
-    },
+    // verify that all links and assets ultimately resolve to a 200 (possibly through a redirect)
+    "verify": true
   },
 
   "build": {

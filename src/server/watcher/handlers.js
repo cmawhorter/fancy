@@ -1,4 +1,4 @@
-var Page = require('../../data/context/page.js');
+var config = require('../../config/config.js');
 
 function toHash(result, locale) {
   return result.map(function(element) {
@@ -9,15 +9,23 @@ function toHash(result, locale) {
 module.exports = function(site) {
   return {
     find: function(data, reply) {
-      var properties = site.getPageForUrl(data.url);
-      if (properties) {
+      var pages = site.getPageForUrl(data.url, config.data.resolution.toLowerCase().trim());
+      if (pages.length === 0) {
+        reply({ error: 404, message: 'Not Found' });
+      }
+      else if (pages.length === 1 || config.data.collisions) {
         reply({
-            properties: properties.getAsHash(data.locale)
-          , filepath: properties.relativePath
+            properties: pages[0].getAsHash(data.locale)
+          , filepath: pages[0].relativePath
         });
       }
       else {
-        reply({ error: 404, message: 'Not Found' });
+        reply({
+          error: 300,
+          message: 'Multiple Pages Found:\n\n' + pages.map(function(element) {
+            return element.relativePath;
+          }).join('\n')
+        });
       }
     },
 
@@ -35,14 +43,13 @@ module.exports = function(site) {
     },
 
     urls: function(data, reply) {
-      var urls = [];
-      site.forEach(function(relativePath, properties) {
-        var pageUrl = new Page(properties.getAsHash(data.locale)).url();
-        if (urls.indexOf(pageUrl) < 0) {
-          urls.push(pageUrl);
-        }
-      });
-      reply({ urls: urls });
+      var urls = site.urls(true, data.locale, config.data.routes != 'explicit');
+      if (config.strict && urls.indexOf(null) > -1) {
+        reply({ error: 500, message: 'Unreachable content exists and strict mode is enabled' });
+      }
+      else {
+        reply({ urls: urls });
+      }
     }
   }
 };

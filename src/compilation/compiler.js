@@ -1,3 +1,5 @@
+var config = require('../config/config.js');
+
 var fs = require('fs')
   , path = require('path')
   , crypto = require('crypto');
@@ -14,7 +16,7 @@ var E = require('../utils/E.js')
 
 module.exports = {
   start: function(options, callback) {
-    callback = callback || function(){};
+    callback = callback || function(err){ if (err) throw err; };
     options = options || {};
     var dbPort = options.port + 1;
     var sock = axon.socket('req');
@@ -33,7 +35,7 @@ module.exports = {
 
     tell('Retrieving urls...');
 
-    sock.send('urls', { locale: null }, function(data) {
+    sock.send('urls', { locale: null, generate: config.compile.resolution != 'explicit' }, function(data) {
       tell('Retrieved %s urls', data.urls.length);
 
       var q = async.queue(function(task, callback) {
@@ -65,10 +67,12 @@ module.exports = {
         callback();
       };
 
+      if (config.compile.entry) {
+        q.push({ url: config.compile.entry });
+      }
+
       data.urls.forEach(function(pendingUrl) {
-        q.push({
-          url: pendingUrl
-        });
+        q.push({ url: pendingUrl });
       });
     });
   }

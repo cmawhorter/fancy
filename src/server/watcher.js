@@ -1,3 +1,5 @@
+var config = require('../config/config.js');
+
 var path = require('path');
 
 var _ = require('lodash')
@@ -13,11 +15,12 @@ var Properties = require('../data/properties.js')
 var E = require('../utils/E.js')
   , tell = require('../utils/tell.js')
   , log = require('../utils/log.js')
+  , file = require('../utils/file.js')
   , messageHandlers = require('./watcher/handlers.js');
 
 module.exports = {
   start: function(options, callback) {
-    callback = callback || function(){};
+    callback = callback || function(err){ if (err) throw err; };
     options = options || {};
     options.livereloadport = options.livereloadport || 35729;
 
@@ -42,7 +45,7 @@ module.exports = {
         lrNotify(filepath.split('/public/')[1]);
       }
       else if (/\.ejs$/i.test(filepath)) {
-        lrNotify('*')
+        lrNotify('*');
       }
     });
 
@@ -51,7 +54,7 @@ module.exports = {
     }
 
     // FIXME: remove throttle?
-    var site = new Site(options.target, providers, _.throttle(lrNotify, 100)).start(callback);
+    var site = new Site(options.target, providers, _.throttle(lrNotify, 100)).start(config.data.formats, callback);
     var handlers = messageHandlers(site);
 
     var sock = axon.socket('rep');

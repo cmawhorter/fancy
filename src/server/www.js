@@ -7,7 +7,9 @@ var path = require('path')
 var express = require('express')
   , axon = require('axon')
   , ejs = require('ejs')
-  , glob = require('glob');
+  , urlPattern = require('url-pattern')
+  , glob = require('glob')
+  , _ = require('lodash');
 
 var watcher = require('./watcher.js')
   , context = require('../data/context.js');
@@ -20,12 +22,19 @@ var E = require('../utils/E.js')
 
 module.exports = {
   start: function(options, callback) {
-    callback = callback || function(){};
+    callback = callback || function(err){ if (err) throw err; };
     options = options || {};
     options.livereloadport = options.livereloadport || 35729;
     var dbPort = options.port + 1;
     var themePath = './' + (options.theme ? 'themes/' + options.theme : 'theme');
     var viewPath = file.abs(themePath + '/views');
+    var staticAssetOptions = {
+      extensions: config.data.assets
+    };
+
+    var themeAssets = file.abs(path.join(themePath, 'public'));
+    var dataAssets = file.abs('./data/assets');
+    var contentAssets = glob.sync(file.abs('./data/' + options.content + '/**/*.html/public'));
 
     tell('Starting server...');
 
@@ -43,22 +52,55 @@ module.exports = {
       , theme: null
       , viewPath: viewPath
       , config: config
-      , env: helpers.loadEnv(config.env)
+      , env: helpers.loadEnv(config.theme.env)
       , yieldHandler: function(yieldUrl) {
           // TODO: db.request
-          console.log('URL discovered %s', yieldUrl);
+          if (config.theme.yield) {
+            console.log('URL discovered %s', yieldUrl);
+          }
+          else {
+            log.trace({ url: yieldUrl }, 'yield disabled');
+          }
         }
       , liveReloadPort: options.livereloadport
     });
 
     if (!options.workers || cluster.isMaster) {
       tell('Master starting watcher');
-      watcher.start({
+      var site = watcher.start({
           target: './data/' + options.content
         , port: dbPort
         , livereloadport: options.livereloadport
         , themePath: themePath
-      }, callback);
+      }, E.bubbles(callback, function() {
+        if (config.strict) {
+          var locale = null; // TODO: iterate over all locales, verifying each
+          var urls = site.urls(false, locale, config.data.routes != 'explicit')
+            , uniqUrls = _.uniq(urls);
+          if (urls.indexOf(null) > -1) {
+            log.fatal({ err: new Error('Unreachable content') });
+            process.exit(1);
+          }
+          else if (!config.data.collisions && uniqUrls.length !== urls.length) {
+            var dupes = urls.filter(function(element, index) {
+              return index === urls.lastIndexOf(element) && urls.indexOf(element) !== index;
+            });
+            log.debug({ list: dupes }, 'dupe routes');
+            return callback(new Error('Page collisions'));
+          }
+        }
+      }));
+
+      var assetCollisions = helpers.findAssetCollisions([themeAssets, dataAssets].concat(contentAssets), config.data.assets);
+      if (assetCollisions.length) {
+        log.info({ list: assetCollisions }, 'asset collisions')
+        if (config.data.collisions) {
+          tell('Warning: There were %s assets with colliding filenames.  This could lead to incorrect images being displayed or worse.', assetCollisions.length);
+        }
+        else {
+          return callback(new Error('Asset collision'));
+        }
+      }
     }
 
     if (options.workers && cluster.isMaster) {
@@ -90,12 +132,10 @@ module.exports = {
       app.set('view engine', 'ejs');
       app.disable('view cache');
 
-      helpers.addStaticRoute(app, path.join(themePath, 'public'));
-      helpers.addStaticRoute(app, './data/assets');
-
-      var matches = glob.sync(file.abs('./data/' + options.content + '/**/*.html/public'));
-      for (var i=0; i < matches.length; i++) {
-        helpers.addStaticRoute(app, matches[i]);
+      app.use(express.static(themeAssets, staticAssetOptions));
+      app.use(express.static(dataAssets, staticAssetOptions));
+      for (var i=0; i < contentAssets.length; i++) {
+        app.use(express.static(contentAssets[i], staticAssetOptions));
       }
 
       app.use(function(err, req, res, next) {
@@ -122,6 +162,19 @@ module.exports = {
       router.get('*', function(req, res, next) {
         tell('Handled', process.pid, new Date().getTime(), req.url);
         // res.status(200).contentType('text/plain').send('hello from ' + process.pid + '.');
+
+        // TODO: implement route redirects
+
+        // var urlPattern = require('url-pattern');
+        // urlPattern.newPattern('/(\\w+)/page').match('/some/page');
+
+        // for (var route in config.data.redirects) {
+        //   var re = new RegExp(route);
+        //   if (re.test(req.url)) {
+        //     res.redirect(301, req.url.replace(re, config.data.redirects[route]));
+        //     return;
+        //   }
+        // }
 
         sock.send('find', { url: req.url, locale: null }, function(data) {
           if (!data || data.error) {
