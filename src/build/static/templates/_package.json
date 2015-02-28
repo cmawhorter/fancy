@@ -1,0 +1,11 @@
+{
+  "private": true,
+  "name": "",
+  "version": "",
+  "description": "",
+  "scripts": {
+    "start": "./node_modules/.bin/http-server -d false",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": ""
+}

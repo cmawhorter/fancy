@@ -106,16 +106,13 @@ module.exports = {
     // build options for assets
     "assets": {
       // store assets here. relative to build.path: e.g. "../dist" would be the same as putting "."
-      "path": ".",
-
-      // changing this to anything other than assets.path will probably result in images
-      // no longer working unless you know what you're doing and have a good reason
       "destination": ".",
     }
   },
 
+  // placeholder for future deploy implementation
   "deploy": {
-    "destination": ""
+    // "destination": ""
   },
 
   // set default cli args
