@@ -53,9 +53,6 @@ if (config.compile.strict) {
 
   // themes cannot create new urls
   assert.strictEqual(config.__strict['compile:yield'], config.theme.yield);
-
-  // all links/assets must resolve
-  assert.strictEqual(config.__strict['compile:verify'], config.compile.verify);
 }
 
 freeze(config);

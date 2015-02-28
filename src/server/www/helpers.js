@@ -4,7 +4,8 @@ var fs = require('fs')
   , cluster = require('cluster');
 
 var express = require('express')
-  , glob = require('glob');
+  , glob = require('glob')
+  , _ = require('lodash');
 
 var file = require('../../utils/file.js')
   , tell = require('../../utils/tell.js')
@@ -52,22 +53,34 @@ module.exports = {
     res.status(404).contentType('text/plain').send('Error 404: File not found');
   },
 
-  findAssetCollisions: function(assetPaths, extensions) {
-    var uniqueRelativeAssets = []
-      , collisions = [];
+  gatherAssets: function(assetPaths, extensions) {
+    var allAssets = []
+      , uniqueRelativeAssets = [];
     for (var i=0; i < assetPaths.length; i++) {
       var search = path.join(assetPaths[i], '/**/*.@(' + extensions.join('|') + ')');
       glob.sync(search).forEach(function(element) {
-        var rel = element.split(assetPaths[i])[1];
+        var rel = element.split(assetPaths[i])[1]
+          , item = { abs: element, rel: rel, collision: null };
         if (uniqueRelativeAssets.indexOf(rel) > -1) {
-          collisions.push(element);
+          item.collision = true;
         }
         else {
+          item.collision = false;
           uniqueRelativeAssets.push(rel);
         }
+        allAssets.push(item);
       });
     }
-    return collisions;
+    return allAssets;
+  },
+
+  findAssetCollisions: function(assetPaths, extensions) {
+    var allAssets = module.exports.gatherAssets(assetPaths, extensions);
+    return allAssets.filter(function(element) {
+      return element.collision === true;
+    }).map(function(element) {
+      return element.rel;
+    });
   }
 };
 

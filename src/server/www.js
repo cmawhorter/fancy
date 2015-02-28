@@ -21,10 +21,11 @@ var E = require('../utils/E.js')
 
 module.exports = {
   start: function(options, callback) {
-    callback = callback || function(err){ if (err) throw err; };
+    var logger = log.child({ component: 'www' });
+    callback = E.timeout(callback || function(err){ if (err) throw err; });
     options = options || {};
     options.livereloadport = options.livereloadport || 35729;
-    var dbPort = options.port + 1;
+    var dbPort = options.port + 100;
     var themePath = './' + (options.theme ? 'themes/' + options.theme : 'theme');
     var viewPath = file.abs(themePath + '/views');
     var staticAssetOptions = {
@@ -35,10 +36,33 @@ module.exports = {
     var dataAssets = file.abs('./data/assets');
     var contentAssets = glob.sync(file.abs('./data/' + options.content + '/**/*.html/public'));
 
-    tell('Starting server...');
+    tell('Starting server on localhost:%s...', options.port);
 
+    logger.debug({ port: dbPort }, 'connecting db');
     var sock = axon.socket('req');
     sock.connect(dbPort);
+
+    [
+      'close',
+      'error',
+      'ignored error',
+      'socket error',
+      'reconnect',
+      'connect',
+      'disconnect',
+      'bind',
+      'drop',
+      'flush',
+    ].forEach(function(evtName) {
+      sock.on(evtName, _.throttle(function() {
+        if (arguments[0] instanceof Error) {
+          logger.warn({ err: arguments[0] }, 'db error');
+        }
+        else {
+          logger.trace({ evt: evtName }, 'db event');
+        }
+      }, 1000));
+    });
 
     var createContext = context({
         extensions: null
@@ -52,7 +76,7 @@ module.exports = {
             console.log('URL discovered %s', yieldUrl);
           }
           else {
-            log.trace({ url: yieldUrl }, 'yield disabled');
+            logger.trace({ url: yieldUrl }, 'yield disabled');
           }
         }
       , liveReloadPort: options.livereloadport
@@ -65,31 +89,34 @@ module.exports = {
         , port: dbPort
         , livereloadport: options.livereloadport
         , themePath: themePath
+        , static: options.static
       }, E.bubbles(callback, function() {
         // FIXME: wrapping this in a delay for now since there isn't a clear-cut ready event being emitted
         setTimeout(function() {
+          logger.info({ site: site }, 'watcher started');
           if (config.strict) {
             var locale = null; // TODO: iterate over all locales, verifying each
             var urls = site.urls(false, locale, config.data.routes != 'explicit')
               , uniqUrls = _.uniq(urls);
             if (urls.indexOf(null) > -1) {
-              log.fatal({ err: new Error('Unreachable content') });
+              logger.fatal({ err: new Error('Unreachable content') });
               process.exit(1);
             }
             else if (!config.data.collisions && uniqUrls.length !== urls.length) {
               var dupes = urls.filter(function(element, index) {
                 return index === urls.lastIndexOf(element) && urls.indexOf(element) !== index;
               });
-              log.debug({ list: dupes }, 'dupe routes');
+              logger.debug({ list: dupes }, 'dupe routes');
               return callback(new Error('Page collisions'));
             }
           }
+          callback(null);
         }, 500);
       }));
 
       var assetCollisions = helpers.findAssetCollisions([themeAssets, dataAssets].concat(contentAssets), config.data.assets);
       if (assetCollisions.length) {
-        log.info({ list: assetCollisions }, 'asset collisions')
+        logger.info({ list: assetCollisions }, 'asset collisions')
         if (config.data.collisions) {
           tell('Warning: There were %s assets with colliding filenames.  This could lead to incorrect images being displayed or worse.', assetCollisions.length);
         }
@@ -97,6 +124,9 @@ module.exports = {
           return callback(new Error('Asset collision'));
         }
       }
+    }
+    else {
+      setImmediate(callback);
     }
 
     if (options.workers && cluster.isMaster) {
@@ -142,7 +172,7 @@ module.exports = {
         app.get('/__fancy__/:command', function(req, res) {
           switch (req.params.command.toLowerCase()) {
             case 'shutdown':
-              log.info({ req: req }, 'received shutdown');
+              logger.info({ req: req }, 'received shutdown');
               res.end('Goodbye');
               setImmediate(process.exit);
             break;
@@ -157,16 +187,17 @@ module.exports = {
       var router = express.Router();
       router.get('*', function(req, res, next) {
         // tell('Handled', process.pid, new Date().getTime(), req.url);
-        log.trace({ req: req });
+        // logger.trace({ req: req }); // tmi
+        logger.debug({ url: req.url }, 'received request'); // tmi
 
         for (var route in config.data.redirects) {
           var re = new RegExp(route);
-          log.trace({ url: req.url, re: re.toString() }, 'testing url for redirects');
+          logger.trace({ url: req.url, re: re.toString() }, 'testing url for redirects');
           if (route === req.url || re.test(req.url)) {
             var val = config.data.redirects[route];
             var redirectUrl = req.url.replace(re, val);
-            log.trace({ url: req.url, re: re.toString(), replace: val, redirect: redirectUrl }, 'redirect matched');
-            log.info({ url: req.url, redirect: redirectUrl }, 'config redirect');
+            logger.trace({ url: req.url, re: re.toString(), replace: val, redirect: redirectUrl }, 'redirect matched');
+            logger.info({ url: req.url, redirect: redirectUrl }, 'config redirect');
             res.redirect(301, redirectUrl);
             return;
           }

@@ -20,21 +20,32 @@ var E = require('../utils/E.js')
 
 module.exports = {
   start: function(options, callback) {
-    callback = callback || function(err){ if (err) throw err; };
+    var logger = log.child({ component: 'watcher' });
+    var state = { db: false, site: false };
+    callback = E.timeout(callback || function(err){ if (err) throw err; });
     options = options || {};
     options.livereloadport = options.livereloadport || 35729;
+
+    var done = function(err) {
+      if (state.db && state.site) {
+        done = function(){};
+        callback(err);
+      }
+    }
 
     var providers = glob.sync('data/providers/*/index.js');
     chokidar.watch('data/providers/**/*.@(js|json)', {
       ignored: '**/node_modules/**/*'
     }).on('change', function(filepath) {
       tell('Warning: Provider file changed!  Server may need to be reloaded to see the changes.');
-      log.warn('Changed file: %s', filepath);
+      logger.warn('Changed file: %s', filepath);
     });
 
-    tinylr().listen(options.livereloadport, function() {
-      log.info('Live Reload listening on :%s', options.livereloadport);
-    });
+    if (!options.static) {
+      tinylr().listen(options.livereloadport, function() {
+        logger.info('Live Reload listening on :%s', options.livereloadport);
+      });
+    }
 
     var watcher = chokidar.watch(options.themePath + '/**/*.@(ejs|js|css)', {
       ignored: 'support/**/*'
@@ -50,8 +61,10 @@ module.exports = {
     });
 
     function lrNotify(urlPath) {
-      log.debug({ url: urlPath }, 'triggering reload');
-      request('http://localhost:' + options.livereloadport + '/changed?files=' + urlPath);
+      if (!options.static) {
+        logger.debug({ url: urlPath }, 'triggering reload');
+        request('http://localhost:' + options.livereloadport + '/changed?files=' + urlPath);
+      }
     }
 
     function changed(properties) {
@@ -65,9 +78,9 @@ module.exports = {
         }
         var re = new RegExp(restr);
         var mounted = properties.relativePath.substr(options.target.length + 1);
-        log.trace({ path: mounted, data: options.target, mount: mount, re: re.toString() }, 'testing mount point');
+        logger.trace({ path: mounted, data: options.target, mount: mount, re: re.toString() }, 'testing mount point');
         if (0 === mounted.indexOf(mount) || re.test(mounted)) {
-          log.debug({ path: mounted, mount: mount, properties: properties }, 'page matched');
+          logger.debug({ path: mounted, mount: mount, properties: properties }, 'page matched');
           var allMatch = true;
           for (var propertyName in config.data.mount[mount]) {
             var val = config.data.mount[mount][propertyName];
@@ -85,13 +98,13 @@ module.exports = {
                 propmatches = !propmatches;
               }
               if (prop === val || propmatches) {
-                log.trace({ path: mounted, mount: mount, property: prop }, 'match');
+                logger.trace({ path: mounted, mount: mount, property: prop }, 'match');
                 propmatch = true;
                 break;
               }
             }
             if (!propmatch) {
-              log.trace({ path: mounted, mount: mount, property: propertyName, expected: val }, 'property mismatch');
+              logger.trace({ path: mounted, mount: mount, property: propertyName, expected: val }, 'property mismatch');
               allMatch = false;
               break;
             }
@@ -104,11 +117,40 @@ module.exports = {
     }
 
     // FIXME: remove throttle?
-    var site = new Site(options.target, providers, changed).start(config.data.formats, callback);
-    var handlers = messageHandlers(site);
+    var site = new Site(options.target, providers, changed);
 
+
+    var handlers = messageHandlers(site);
+    logger.debug({ port: options.port }, 'starting db');
     var sock = axon.socket('rep');
     sock.bind(options.port);
+
+    [
+      'close',
+      'error',
+      'ignored error',
+      'socket error',
+      'reconnect',
+      'connect',
+      'disconnect',
+      'bind',
+      'drop',
+      'flush',
+    ].forEach(function(evtName) {
+      sock.on(evtName, _.throttle(function() {
+        if (arguments[0] instanceof Error) {
+          logger.warn({ err: arguments[0] }, 'db error');
+        }
+        else {
+          logger.trace({ evt: evtName }, 'db event');
+        }
+      }, 1000));
+    });
+
+    sock.on('connect', function() {
+      state.db = true;
+      done();
+    });
 
     sock.on('message', function(task, data, reply) {
       var handler = handlers[task];
@@ -119,6 +161,11 @@ module.exports = {
         reply({ error: 500, message: 'No handler for: ' + task });
       }
     });
+
+    site.start(config.data.formats, E.bubbles(done, function() {
+      state.site = true;
+      done();
+    }));
 
     return site;
   }

@@ -5,11 +5,10 @@ module.exports = {
   // hidden strict mode settings.  used  to assert config conforms to strict mode on load
   "__strict": {
     "data:formats": [ "yml", "md", "html", "json" ],
-    "data:assets": [ "png", "gif", "jpg" ],
+    "data:assets": [ "png", "gif", "jpg", "ico" ],
     "data:collisions": false,
     "data:routes": [ "explicit" ],
     "compile:yield": false,
-    "compile:verify": true,
   },
 
   "data": {
@@ -18,7 +17,7 @@ module.exports = {
     "formats": "json,js,yml,yaml,md,markdown,html,txt",
 
     // whitelist of types of files that will be served/built in asset directories
-    "assets": "png,gif,jpg",
+    "assets": "png,gif,jpg,ico",
 
     // allow page routes and asset paths to collide. strict mode forces this to be false
     // e.g. some-page.html/public/a.jpg and theme has theme/public/a.jpg errors
@@ -29,16 +28,16 @@ module.exports = {
     // path is relative to content data directory (which is ./content/data by default)
     "mount": {
       // example: forces properties of all data in ./content/data/blog/ to match
-      "blog": {
-        // both key and value can be regex
-        // this example forces all pages in blog to have a route that starts with /blog/
-        "route": "^/blog/.*",
+      // "blog": {
+      //   // both key and value can be regex
+      //   // this example forces all pages in blog to have a route that starts with /blog/
+      //   "route": "^/blog/.*",
 
-        // negation match. body cannot contain any links to outside pages
-        // note: this is only an example and should NOT be used as a
-        // security mechanism!
-        "body": "!<a[^>]+?href=\"http:[^\"]+?\""
-      },
+      //   // negation match. body cannot contain any links to outside pages
+      //   // note: this is only an example and should NOT be used as a
+      //   // security mechanism!
+      //   "body": "!<a[^>]+?href=\"http:[^\"]+?\""
+      // },
     },
 
     // redirect routes with js/meta refresh + canonical
@@ -80,8 +79,10 @@ module.exports = {
     // majority of sites won't need to set or modify this
     "entry": "/",
 
-    // verify that all links and assets ultimately resolve to a 200 (possibly through a redirect)
-    "verify": true
+    // list of routes you want to force the compiler to include.
+    // mainly useful when using redirects that aren't being picked up
+    "force": [
+    ]
   },
 
   "build": {
@@ -96,10 +97,6 @@ module.exports = {
     // change this if you'd like the site to run in a sub
     // directory: e.g. destination: "/some-subdirectory/" ww.example.com/some-subdirectory/about
     "destination": "/",
-
-    // minify rendered html.
-    // if you need minifying/concat of js and css, it should be built into your theme dev workflow
-    "minify": true,
 
     // build options for assets
     "assets": {

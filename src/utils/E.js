@@ -1,3 +1,5 @@
+// FIXME: callback.apply or not?  capture _this = this in wrapper?
+
 function slice(args) {
   return Array.prototype.slice.call(args, 1);
 }
@@ -5,6 +7,26 @@ function slice(args) {
 function noop() {}
 
 var callbacks = {
+  DEFAULT_TIMEOUT: 10000,
+  timeout: function wrapCallbackInTimeout(callback, wait) {
+    if (typeof callback !== 'function') {
+      throw new Error('E.timeout expects one argument: callback<Function>');
+    }
+    wait = void 0 === wait ? callbacks.DEFAULT_TIMEOUT : wait;
+    var timeoutErr = new Error('E.timeout had callback timeout')
+      , timeout = setTimeout(function() {
+          callback(timeoutErr);
+        }, wait);
+
+    return function() {
+      if (!timeout) {
+        return; // noop
+      }
+      clearTimeout(timeout);
+      return callback.apply(this, arguments);
+    }
+  },
+
   event: function errorEventBubblesCallback(callback) {
     if (typeof callback !== 'function') {
       throw new Error('E.event expects one arguments: callback<Function>');
@@ -12,14 +34,19 @@ var callbacks = {
     return callbacks.bubble(callback, noop);
   },
 
+  // sync: like bubble, but automatically calls the callback after immediateCallback returns
+  //    E.bubbles(callback, function() { do_something; callback() }) -> E.sync(callback, function() { do_something })
+  // maybe rename bubbles to sync and async?
+
   bubble: function errorBubblesCallback(callback, immediateCallback) {
     if (typeof callback !== 'function' || typeof immediateCallback !== 'function') {
       throw new Error('E.bubble expects two arguments: callback<Function>, immediateCallback<Function>');
     }
-    var called = false;
+    var callbackTwiceErr = new Error('E.bubble callback called twice')
+      , called = false;
     return function(err) {
       if (called) {
-        throw new Error('E.bubble callback called twice');
+        throw callbackTwiceErr;
       }
       called = true;
       if (err) {
@@ -39,10 +66,11 @@ var callbacks = {
     if (typeof callback !== 'function') {
       throw new Error('E.throw expects one arguments: callback<Function>');
     }
-    var called = false;
+    var callbackTwiceErr = new Error('E.throw callback called twice')
+      , called = false;
     return function(err) {
       if (called) {
-        throw new Error('E.throw callback called twice');
+        throw callbackTwiceErr;
       }
       called = true;
       if (err) {
@@ -60,10 +88,11 @@ var callbacks = {
     if (typeof callback !== 'function') {
       throw new Error('E.log expects one arguments: callback<Function>');
     }
-    var called = false;
+    var callbackTwiceErr = new Error('E.log callback called twice')
+      , called = false;
     return function(err) {
       if (called) {
-        throw new Error('E.log callback called twice');
+        throw callbackTwiceErr;
       }
       called = true;
       if (err) {
@@ -82,10 +111,11 @@ var callbacks = {
       logToConsole = callback;
       callback = void 0;
     }
-    var called = false;
+    var callbackTwiceErr = new Error('E.exit callback called twice')
+      , called = false;
     return function(err) {
       if (called) {
-        throw new Error('E.exit callback called twice');
+        throw callbackTwiceErr;
       }
       called = true;
       if (err) {

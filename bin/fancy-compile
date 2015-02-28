@@ -21,8 +21,14 @@ portfinder.getPort(function(err, port) {
   require('../src/server/www.js').start(wwwOptions, function(err) {
     if (err) throw err;
     // FIXME: wait for www workers to all start.  this waits arbitrary amount, should be evt.
+    console.log('www returned');
     setTimeout(function() {
-      require('../src/compilation/compiler.js').start({ target: './.fancy/compiled', port: port }, function(err) {
+      require('../src/compilation/compiler.js').start({
+        target: './.fancy/compiled',
+        port: port,
+        content: config.cli.serve.content || 'content',
+        theme: config.cli.serve.theme || null
+      }, function(err) {
         if (err) throw err;
         process.exit(0);
       });
