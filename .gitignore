@@ -30,6 +30,3 @@ node_modules
 # Users Environment Variables
 .lock-wscript
 
-build
-src/cli/test
-src/fancy/test
