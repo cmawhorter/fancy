@@ -205,6 +205,7 @@ module.exports = {
 
         sock.send('find', { url: req.url, locale: null }, function(data) {
           if (!data || data.error) {
+            // TODO: return 404
             console.log('not found in db');
             return helpers.renderError(req, res, new Error(data.error.message || 'DB Error'));
           }

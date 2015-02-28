@@ -73,6 +73,66 @@ module.exports = {
       // in the theme you can now do <% if (env.stage == 'production') %>
       "stage": [ "NODE_ENV", "production" ]
     },
+
+    // aliases and additions are very similar.  here's two ways to achieve the same result
+    //
+    // "aliases": { // here we're using aliases to add the resource name "blogpost" to all resource=ideas content
+    //   "resource": {
+    //     "ideas": "blogpost"
+    //   }
+    // }
+    //
+    // "additions": { // here we're doing the same thing, but we aren't limited to one property
+    //   "resource": {
+    //     "ideas": {
+    //       "resource": "blogpost",
+    //       "author": "An author, if you want"
+    //     }
+    //   }
+    // }
+
+    // alias matching properties to a new value e.g. resource.myresourcename = "blogpost" to support a blog
+    // this exists so that data and theme can be independent of one another
+    "aliases": {
+      // "route": {
+      //   "/": "/another-home"
+      // },
+      // "resource": {
+      //   "ideas": "blogpost",
+      //   "todo": "blogpost",
+      //   "rant": "blogpost",
+      //   "crazyrant": "blogpost",
+      // }
+    },
+
+    // additions are very similar to aliases, but much more powerful and runs AFTER aliases.
+    "additions": {
+      // "route": {
+      //   "/": {
+      //     "route": "/another-home",
+      //     "title": "another title"
+      //   }
+      // },
+      // "resource": {
+      //   "blogpost": { // our aliased resource from above
+
+      //   },
+      //   "ideas": {
+      //     "category": "Idea"
+      //   },
+      //   "todo": {
+      //     "category": "To-do"
+      //   },
+      //   "rant": {
+      //     "category": "Rant"
+      //   },
+      //   "crazyrant": {
+      //     "category": "Crazy Rant",
+      //     // could now include <%= page.disclaimer %> in our theme for our crazy rants
+      //     "disclaimer": "This is a crazy rant. You've been warned."
+      //   },
+      // }
+    }
   },
 
   "compile": {

@@ -18,6 +18,8 @@ function Site(dataPath, providers, onChanged) {
   var dbDest = '.fancy';
   this.dataPath = path.normalize(dataPath);
   this.onChanged = onChanged || function(){};
+  this.aliases = {};
+  this.additions = {};
   this.provided = {};
   this.log = log.child({ site: this });
   this.voyeur = new Voyeur({
@@ -45,6 +47,31 @@ function Site(dataPath, providers, onChanged) {
 
 Site.prototype._changed = function(properties, label) {
   this.log.trace({ properties: properties }, label || 'file reloaded');
+
+  // inject aliases
+  for (var aliasProperty in this.aliases) {
+    for (var aliasValue in this.aliases[aliasProperty]) {
+      if (properties.hasMatchingProperty(aliasProperty, aliasValue)) {
+        var alias = this.aliases[aliasProperty][aliasValue];
+        this.log.trace({ property: aliasProperty, match: aliasValue, alias: alias }, 'adding property alias');
+        properties.append(aliasProperty, alias);
+      }
+    }
+  }
+
+  // inject additions
+  for (var additionProperty in this.additions) {
+    for (var additionValue in this.additions[additionProperty]) {
+      if (properties.hasMatchingProperty(additionProperty, additionValue)) {
+        var add = this.additions[additionProperty][additionValue];
+        this.log.trace({ property: additionProperty, match: additionValue, add: add }, 'adding properties');
+        for (var k in add) {
+          properties.append(k, add[k]);
+        }
+      }
+    }
+  }
+
   this.onChanged(properties);
 };
 

@@ -61,7 +61,7 @@ if (!validPort(argv.port)) {
 }
 
 if (!validPort(argv.livereloadport)) {
-  portfinder.basePort = argv.port + 100;
+  portfinder.basePort = argv.port + 1000;
   portfinder.getPort(function(err, port) {
     if (err) throw err;
     argv.livereloadport = port;

@@ -118,7 +118,8 @@ module.exports = {
 
     // FIXME: remove throttle?
     var site = new Site(options.target, providers, changed);
-
+    site.aliases = config.theme.aliases || {};
+    site.additions = config.theme.additions || {};
 
     var handlers = messageHandlers(site);
     logger.debug({ port: options.port }, 'starting db');
