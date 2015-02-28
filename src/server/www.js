@@ -6,8 +6,8 @@ var path = require('path')
 
 var express = require('express')
   , axon = require('axon')
-  , ejs = require('ejs')
   , glob = require('glob')
+  , async = require('async')
   , _ = require('lodash');
 
 var watcher = require('./watcher.js')
@@ -17,7 +17,8 @@ var E = require('../utils/E.js')
   , tell = require('../utils/tell.js')
   , log = require('../utils/log.js')
   , file = require('../utils/file.js')
-  , helpers = require('./www/helpers.js');
+  , helpers = require('./www/helpers.js')
+  , sendResponse = require('./www/response.js');
 
 module.exports = {
   start: function(options, callback) {
@@ -165,7 +166,7 @@ module.exports = {
       }
 
       app.use(function(err, req, res, next) {
-        helpers.renderError(req, res, err);
+        helpers.renderError(req, res, createContext, { code: 500, message: err.message, error: err });
       });
 
       if (config.cli.serve.remotecontrol) {
@@ -186,109 +187,40 @@ module.exports = {
 
       var router = express.Router();
       router.get('*', function(req, res, next) {
-        // tell('Handled', process.pid, new Date().getTime(), req.url);
-        // logger.trace({ req: req }); // tmi
-        logger.debug({ url: req.url }, 'received request'); // tmi
+        logger.debug({ url: req.url }, 'received request');
 
-        for (var route in config.data.redirects) {
-          var re = new RegExp(route);
-          logger.trace({ url: req.url, re: re.toString() }, 'testing url for redirects');
-          if (route === req.url || re.test(req.url)) {
-            var val = config.data.redirects[route];
-            var redirectUrl = req.url.replace(re, val);
-            logger.trace({ url: req.url, re: re.toString(), replace: val, redirect: redirectUrl }, 'redirect matched');
-            logger.debug({ url: req.url, redirect: redirectUrl }, 'config redirect');
-            res.redirect(301, redirectUrl);
-            return;
-          }
+        var locale = null;
+
+        if (helpers.configRedirects(req, res, config.data.redirects, logger)) {
+          return;
         }
 
-        sock.send('find', { url: req.url, locale: null }, function(data) {
+        sock.send('find', { url: req.url, locale: locale }, function(data) {
           if (!data || data.error) {
-            // TODO: return 404
-            console.log('not found in db');
-            return helpers.renderError(req, res, new Error(data.error.message || 'DB Error'));
-          }
-
-          if (data.properties['redirect']) {
-            logger.debug({ url: req.url, redirect: data.properties['redirect'][0] }, 'data redirect (perm)');
-            res.redirect(301, data.properties['redirect'][0]);
+            logger.trace({ url: req.url, locale: locale, data: data }, 'find error');
+            helpers.renderError(req, res, createContext, { code: data.error || 500, message: data.error.message || 'DB Error Find', error: null });
             return;
           }
-          else if (data.properties['temporary-redirect']) {
-            logger.debug({ url: req.url, redirect: data.properties['temporary-redirect'][0] }, 'data redirect (temp)');
-            res.redirect(302, data.properties['temporary-redirect'][0]);
+
+          if (helpers.dataRedirects(req, res, data.properties, logger)) {
             return;
           }
-          else if (data.properties['route-redirect']) {
-            logger.trace({ url: req.url, list: data.properties['route-redirect'] }, 'route redirects found');
-            for (var i=0; i < data.properties['route-redirect'].length; i++) {
-              var routeRedirect = data.properties['route-redirect'][i]
-                , re = new RegExp(routeRedirect);
-              if (routeRedirect === req.url || re.test(req.url)) {
-                logger.debug({ url: req.url, redirect: routeRedirect, redirect: data.properties['route'][0] }, 'route redirect');
-                res.redirect(301, data.properties['route'][0]);
-                return;
-              }
-            }
-            logger.trace({ url: req.url }, 'route redirects -> none matched');
-          }
 
-          var context = createContext(data.filepath, data.properties, helpers.buildRequest(req), data.resources);
-          context.usingResolver = function(using, taskCallback) {
-            var obj = { key: using.key };
-            if (typeof using.value === 'function') {
-              obj.fn = using.value.toString();
-            }
-            else {
-              obj.value = using.value;
-            }
-            sock.send('matching', obj, function(data) {
-              using.result.retrieved = data.pages;
-              taskCallback();
-            });
-          };
-
-          var contentType = context.page.text('contenttype', 'text/html')
-            , body = context.page.first('body');
-
-          if (contentType.indexOf(';') > -1) {
-            contentType = contentType.split(';')[0].trim().toLowerCase();
-          }
-
-          switch (contentType) {
-            case 'application/json':
-              res.json(body);
-              return;
-            case 'application/javascript':
-              var jsVar = context.page.text('scopetarget', 'window["' + req.url + '"]');
-              res.status(200).contentType('application/javascript').send(jsVar + ' = ' + JSON.stringify(body));
-              return;
-            case 'text/plain':
-              res.status(200).contentType('text/plain').send(body);
-              return;
-            default:
-            case 'text/html':
-              var layout = 'layouts/' + context.page.first('layout', 'primary')
-                , layoutPath = path.join(viewPath, layout + '.ejs')
-                , viewContents = fs.readFileSync(layoutPath).toString();
-              var html = ejs.render(viewContents, {
-                  locals: context
-                , filename: layoutPath
-              });
-              if (context.__uses) {
-                context.resolve(function(err) {
-                  if (err) {
-                    return helpers.renderError(req, res, new Error('Unable to retrieve all uses data'));
-                  }
-                  res.render(layout, context);
-                });
-              }
-              else {
-                res.status(200).contentType('text/html; charset=utf-8').send(html);
-              }
+          sock.send('resources', { locale: locale }, function(resourceData) {
+            if (!resourceData || resourceData.error) {
+              logger.trace({ url: req.url, locale: locale, data: data }, 'resources error');
+              helpers.renderError(req, res, createContext, { code: data.error || 500, message: data.error.message || 'DB Error Resources', error: null });
               return;
             }
+
+            var context = createContext(data.filepath, data.properties, helpers.buildRequest(req), resourceData.pages);
+            context.usingResolver = helpers.usingResolver(sock);
+
+            if (!sendResponse(req, res, viewPath, context, logger)) {
+              helpers.renderError(req, res, createContext, { code: 500, message: 'Response was not sent for some unknown reason', error: null });
+              return;
+            }
+          });
         });
       });
       app.use('/', router);
