@@ -221,15 +221,17 @@ module.exports = {
             return;
           }
           else if (data.properties['route-redirect']) {
+            logger.trace({ url: req.url, list: data.properties['route-redirect'] }, 'route redirects found');
             for (var i=0; i < data.properties['route-redirect'].length; i++) {
               var routeRedirect = data.properties['route-redirect'][i]
                 , re = new RegExp(routeRedirect);
-              if (re.test(req.url)) {
-                logger.debug({ url: req.url, redirect: routeRedirect }, 'route redirect');
+              if (routeRedirect === req.url || re.test(req.url)) {
+                logger.debug({ url: req.url, redirect: routeRedirect, redirect: data.properties['route'][0] }, 'route redirect');
                 res.redirect(301, data.properties['route'][0]);
+                return;
               }
             }
-            return;
+            logger.trace({ url: req.url }, 'route redirects -> none matched');
           }
 
           var context = createContext(data.filepath, data.properties, helpers.buildRequest(req), data.resources);
