@@ -19,6 +19,7 @@ var usage = [
   , commandUsage('info', 'Lorem ipsum dolor sit amet, consectetur adipisicing elit')
   , commandUsage('serve', 'Start web server and serve the specified site')
   , commandUsage('compile', 'Numquam debitis fugiat quisquam consequuntur beatae enim maxime')
+  , commandUsage('build', 'Distinctio deleniti esse soluta minima repellendus')
   , commandUsage('package', 'Distinctio deleniti esse soluta minima repellendus')
   , commandUsage('deploy', 'Nisi id ad mollitia provident, animi nam')
 ].join('\n');
@@ -39,6 +40,8 @@ var cmds = {
     info: path.join(__dirname, '../../bin/fancy-info')
   , serve: path.join(__dirname, '../../bin/fancy-serve')
   , compile: path.join(__dirname, '../../bin/fancy-compile')
+  , build: path.join(__dirname, '../../bin/fancy-build')
+  , package: path.join(__dirname, '../../bin/fancy-package')
 };
 
 var cmd;
@@ -52,6 +55,14 @@ switch (argv._[0]) {
 
   case 'compile':
     cmd = 'compile';
+  break;
+
+  case 'build':
+    cmd = 'build';
+  break;
+
+  case 'package':
+    cmd = 'package';
   break;
 
   case 'info':

@@ -115,7 +115,7 @@ module.exports = {
     var assetPaths = [themeAssets, dataAssets].concat(contentAssets);
 
     logger.info({ list: assetPaths }, 'gather assets');
-    var allAssets = wwwHelpers.gatherAssets(assetPaths, config.data.assets);
+    var allAssets = wwwHelpers.gatherAssets(assetPaths, config.data.assets, themeAssets);
     logger.trace({ list: allAssets.map(function(element) { return element.abs; }) }, 'assets found');
 
     // FIXME: only remove the expired files and not the whole directory.  see removeExpiredFiles TODO above
@@ -153,6 +153,7 @@ module.exports = {
           , location: null
         };
         tell('\t-> Processing "%s" and writing to %s', task.url, destination);
+        // TODO: if strict and non-200 status returned, error
         request.get(endpoint + task.url)
           .on('response', function(res) {
             result.fingerprint = res.headers['etag'];

@@ -53,11 +53,12 @@ module.exports = {
     res.status(404).contentType('text/plain').send('Error 404: File not found');
   },
 
-  gatherAssets: function(assetPaths, extensions) {
+  gatherAssets: function(assetPaths, extensions, unlimited) {
     var allAssets = []
       , uniqueRelativeAssets = [];
     for (var i=0; i < assetPaths.length; i++) {
-      var search = path.join(assetPaths[i], '/**/*.@(' + extensions.join('|') + ')');
+      var pattern = unlimited && assetPaths[i].indexOf(unlimited) > -1 ? '/**/*.*' : '/**/*.@(' + extensions.join('|') + ')';
+      var search = path.join(assetPaths[i], pattern);
       glob.sync(search).forEach(function(element) {
         var rel = element.split(assetPaths[i])[1]
           , item = { abs: element, rel: rel, collision: null };

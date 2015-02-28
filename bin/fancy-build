@@ -1,0 +1,36 @@
+#!/usr/bin/env node
+
+// var config = require('../src/config/config.js');
+
+var exec = require('child_process').exec
+  , path = require('path');
+
+var argv = require('yargs').usage('Usage: $0 -x [num] -y [num]', {
+  compile: {
+    description: 'Run compile before building'
+  },
+}).argv;
+
+var build = require('../src/build/build-static.js');
+
+function done(err, dist) {
+  if (err) throw err;
+  console.log('Done. Run: cd ./%s && npm install && npm start', path.relative(process.cwd(), dist));
+}
+
+if (argv.compile) {
+  exec(path.join(__dirname, 'fancy-compile'),
+    function (error, stdout, stderr) {
+      console.log('stdout: ' + stdout);
+      console.log('stderr: ' + stderr);
+      if (error !== null) {
+        console.log('exec error: ' + error);
+      }
+      else {
+        build.start(null, done);
+      }
+  });
+}
+else {
+  build.start(null, done);
+}

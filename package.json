@@ -48,6 +48,10 @@
   },
   "bin": {
     "fancy": "bin/fancy",
-    "fancy-serve": "bin/fancy-serve"
+    "fancy-build": "bin/fancy-build",
+    "fancy-compile": "bin/fancy-compile",
+    "fancy-info": "bin/fancy-info",
+    "fancy-serve": "bin/fancy-serve",
+    "fancy-package": "bin/fancy-package"
   }
 }

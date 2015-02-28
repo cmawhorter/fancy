@@ -21,6 +21,7 @@ module.exports = {
 
     // allow page routes and asset paths to collide. strict mode forces this to be false
     // e.g. some-page.html/public/a.jpg and theme has theme/public/a.jpg errors
+    // TODO: also need to make sure data routes don't collide with asset routes, e.g. /imgs/something -> route = /imgs/something
     "collisions": false,
 
     // restrictions to place on certain content.  useful if combining multiple
@@ -91,7 +92,11 @@ module.exports = {
 
     // extension built files will have.  by default, their name will match their
     // route as closely as possible
-    "extension": "",
+    "extension": "html",
+
+    // force all files to have the specified extension.  by default, onl files
+    // without an existing extension will get one
+    "forceextension": false,
 
     // by default, site runs out of root:  e.g www.example.com/about
     // change this if you'd like the site to run in a sub
