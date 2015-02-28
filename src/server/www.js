@@ -220,6 +220,17 @@ module.exports = {
             res.redirect(302, data.properties['temporary-redirect'][0]);
             return;
           }
+          else if (data.properties['route-redirect']) {
+            for (var i=0; i < data.properties['route-redirect'].length; i++) {
+              var routeRedirect = data.properties['route-redirect'][i]
+                , re = new RegExp(routeRedirect);
+              if (re.test(req.url)) {
+                logger.debug({ url: req.url, redirect: routeRedirect }, 'route redirect');
+                res.redirect(301, data.properties['route'][0]);
+              }
+            }
+            return;
+          }
 
           var context = createContext(data.filepath, data.properties, helpers.buildRequest(req), data.resources);
           context.usingResolver = function(using, taskCallback) {
