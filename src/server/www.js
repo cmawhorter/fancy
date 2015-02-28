@@ -116,7 +116,7 @@ module.exports = {
 
       var assetCollisions = helpers.findAssetCollisions([themeAssets, dataAssets].concat(contentAssets), config.data.assets);
       if (assetCollisions.length) {
-        logger.info({ list: assetCollisions }, 'asset collisions')
+        logger.debug({ list: assetCollisions }, 'asset collisions')
         if (config.data.collisions) {
           tell('Warning: There were %s assets with colliding filenames.  This could lead to incorrect images being displayed or worse.', assetCollisions.length);
         }
@@ -197,7 +197,7 @@ module.exports = {
             var val = config.data.redirects[route];
             var redirectUrl = req.url.replace(re, val);
             logger.trace({ url: req.url, re: re.toString(), replace: val, redirect: redirectUrl }, 'redirect matched');
-            logger.info({ url: req.url, redirect: redirectUrl }, 'config redirect');
+            logger.debug({ url: req.url, redirect: redirectUrl }, 'config redirect');
             res.redirect(301, redirectUrl);
             return;
           }
@@ -208,6 +208,17 @@ module.exports = {
             // TODO: return 404
             console.log('not found in db');
             return helpers.renderError(req, res, new Error(data.error.message || 'DB Error'));
+          }
+
+          if (data.properties['redirect']) {
+            logger.debug({ url: req.url, redirect: data.properties['redirect'][0] }, 'data redirect (perm)');
+            res.redirect(301, data.properties['redirect'][0]);
+            return;
+          }
+          else if (data.properties['temporary-redirect']) {
+            logger.debug({ url: req.url, redirect: data.properties['temporary-redirect'][0] }, 'data redirect (temp)');
+            res.redirect(302, data.properties['temporary-redirect'][0]);
+            return;
           }
 
           var context = createContext(data.filepath, data.properties, helpers.buildRequest(req), data.resources);

@@ -128,7 +128,7 @@ module.exports = {
       //   },
       //   "crazyrant": {
       //     "category": "Crazy Rant",
-      //     // could now include <%= page.disclaimer %> in our theme for our crazy rants
+      //     // could now include <%= page.disclaimer %> in your theme for our crazy rants
       //     "disclaimer": "This is a crazy rant. You've been warned."
       //   },
       // }
