@@ -3,9 +3,17 @@ var path = require('path')
 
 var ejs = require('ejs');
 
-var helpers = require('./helpers.js');
+var helpers = require('./helpers.js')
+  , processComponentHtml = require('./components.js');
 
-module.exports = function(req, res, viewPath, context, logger) {
+function sendHtml(res, html, components, logger) {
+  processComponentHtml(html, components, logger, function(err, html) {
+    if (err) throw err; // TODO: what should happen when a component throws?
+    res.status(200).contentType('text/html; charset=utf-8').send(html);
+  });
+}
+
+module.exports = function(req, res, viewPath, context, components, logger) {
   var contentType = context.page.text('contenttype', 'text/html')
     , body = context.page.first('body');
 
@@ -38,11 +46,16 @@ module.exports = function(req, res, viewPath, context, logger) {
           if (err) {
             throw new Error('Unable to retrieve all uses data');
           }
-          res.render(layout, context);
+          res.render(layout, context, function(err, html) {
+            if (err) {
+              throw new Error('Weird problem rendering layout');
+            }
+            sendHtml(res, html, components, logger);
+          });
         });
       }
       else {
-        res.status(200).contentType('text/html; charset=utf-8').send(html);
+        sendHtml(res, html, components, logger);
       }
       return true;
   }

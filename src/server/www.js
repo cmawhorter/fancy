@@ -36,6 +36,17 @@ module.exports = {
     var themeAssets = file.abs(path.join(themePath, 'public'));
     var dataAssets = file.abs('./data/assets');
     var contentAssets = glob.sync(file.abs('./data/' + options.content + '/**/*.html/public'));
+    var componentsPaths = glob.sync(file.abs('./components/{*.js,*/index.js}'));
+    var components = {};
+
+    logger.debug({ list: componentsPaths }, 'loading components');
+    componentsPaths.forEach(function(component) {
+      var baseName = path.basename(component, '.js')
+        , componentName;
+      componentName = baseName.toLowerCase() === 'index' ? path.basename(path.dirname(component)) : baseName;
+      logger.trace({ component: component, name: componentName }, 'loading');
+      components[config.component.tagprefix + componentName] = require(component);
+    });
 
     tell('Starting server on localhost:%s...', options.port);
 
@@ -216,7 +227,7 @@ module.exports = {
             var context = createContext(data.filepath, data.properties, helpers.buildRequest(req), resourceData.pages);
             context.usingResolver = helpers.usingResolver(sock);
 
-            if (!sendResponse(req, res, viewPath, context, logger)) {
+            if (!sendResponse(req, res, viewPath, context, components, logger)) {
               helpers.renderError(req, res, createContext, { code: 500, message: 'Response was not sent for some unknown reason', error: null });
               return;
             }

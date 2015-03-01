@@ -61,6 +61,15 @@ module.exports = {
     "routes": "explicit"
   },
 
+  // components allow fancy preprocessing via regular html tags
+  // processing occurs after theme renders, so the tags can exist in either data or theme
+  "component": {
+    // by default, component filenames will be used as tag names and this prefix will be added
+    // e.g. components/my-component/index.js => <fancy-my-component>
+    // will only work on text/html
+    "tagprefix": "fancy-",
+  },
+
   "theme": {
     // allow themes to yield (create) new pages dynamically
     // e.g. a theme pagination extension creates new pages based on paged content
