@@ -73,7 +73,6 @@ Context.prototype.init = function() {
 
   // init theme with this context
   _this.theme = (_this.themeModule || EmptyModule)(_this);
-  console.log('_this.themeModule', _this.themeModule);
 
   // init extensions with this context
   Object.keys(_this.extensionModules).forEach(function(element) {
