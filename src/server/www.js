@@ -196,6 +196,10 @@ module.exports = {
         });
       }
 
+      function loadRelatedResources(resource, callback) {
+
+      }
+
       var router = express.Router();
       router.get('*', function(req, res, next) {
         logger.debug({ url: req.url }, 'received request');
@@ -217,21 +221,13 @@ module.exports = {
             return;
           }
 
-          sock.send('resources', { locale: locale }, function(resourceData) {
-            if (!resourceData || resourceData.error) {
-              logger.trace({ url: req.url, locale: locale, data: data }, 'resources error');
-              helpers.renderError(req, res, createContext, { code: data.error || 500, message: data.error.message || 'DB Error Resources', error: null });
-              return;
-            }
+          var context = createContext(data.filepath, data.properties, helpers.buildRequest(req), data.resources);
+          context.usingResolver = helpers.usingResolver(sock);
 
-            var context = createContext(data.filepath, data.properties, helpers.buildRequest(req), resourceData.pages);
-            context.usingResolver = helpers.usingResolver(sock);
-
-            if (!sendResponse(req, res, viewPath, context, components, logger)) {
-              helpers.renderError(req, res, createContext, { code: 500, message: 'Response was not sent for some unknown reason', error: null });
-              return;
-            }
-          });
+          if (!sendResponse(req, res, viewPath, context, components, logger)) {
+            helpers.renderError(req, res, createContext, { code: 500, message: 'Response was not sent for some unknown reason', error: null });
+            return;
+          }
         });
       });
       app.use('/', router);

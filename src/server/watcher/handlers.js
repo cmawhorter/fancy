@@ -14,9 +14,20 @@ module.exports = function(site) {
         reply({ error: 404, message: 'Not Found' });
       }
       else if (pages.length === 1 || config.data.collisions) {
+        var page = pages[0]
+          , properties = page.getAsHash(data.locale)
+          , resources = page.getProperty('resource')
+          , relatedResources = {};
+        if (resources.length) {
+          for (var i=0; i < resources.length; i++) {
+            var resource = resources[i];
+            relatedResources[resource] = site.findByProperty('resource', resource);
+          }
+        }
         reply({
-            properties: pages[0].getAsHash(data.locale)
-          , filepath: pages[0].relativePath
+            properties: properties
+          , resources: relatedResources
+          , filepath: page.relativePath
         });
       }
       else {
