@@ -54,4 +54,6 @@ module.exports = function(contents, properties, defaultLocale, relativePath) {
     if ($el.attr('http-equiv')) return;
     elementToProperty(properties, $el, documentLocale);
   });
+
+  return contents.toString('utf8');
 };

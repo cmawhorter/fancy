@@ -43,8 +43,8 @@ function fileParser(relativePath, properties, defaultLocale, callback) {
   var format = validateFormat(relativePath);
   if (format) {
     fs.readFile(relativePath, E.bubbles(callback, function(contents) {
-      availableParsers[format](contents, properties, defaultLocale, relativePath); // sync
-      setImmediate(callback);
+      var output = availableParsers[format].call(module.exports, contents, properties, defaultLocale, relativePath); // sync
+      callback(null, output);
     }));
   }
   else {
@@ -55,7 +55,7 @@ function fileParser(relativePath, properties, defaultLocale, callback) {
 function directoryParser(relativePath, properties, defaultLocale, callback) {
   var ext = file.extension(relativePath);
   if (ext === 'html') {
-    availableParsers.directory(relativePath, properties, defaultLocale, callback); // async
+    availableParsers.directory.call(module.exports, relativePath, properties, defaultLocale, callback); // async
   }
   else {
     return callback(new Error('Invalid parser format for content directory "' + format + '"'));

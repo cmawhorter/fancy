@@ -25,15 +25,23 @@ function Site(dataPath, providers, onChanged) {
   this.voyeur = new Voyeur({
     saveDestination: path.join(dbDest, 'db.json'),
     defaultProvider: function(item, callback) {
-      parsers.process(item.path, null, function(err, properties) {
-        if (err) {
-          callback(err);
-          return;
-        }
-        item.data('properties', properties);
-        _this._changed(properties, 'disk -> autoload');
-        callback(null);
-      });
+      var containingDirectory = path.dirname(item.path);
+      if (/\.html$/.test(containingDirectory)) { // content directory
+        item.data('contentdirectory', containingDirectory);
+        // FIXME: this will process the entire directory once for each property file
+        parsers.process(containingDirectory, null, E.bubbles(callback, function(properties) {
+          _this._setPropertiesForContentDirectory(containingDirectory, properties);
+          _this._changed(properties, 'disk -> autoload');
+          callback(null);
+        }));
+      }
+      else {
+        parsers.process(item.path, null, E.bubbles(callback, function(properties) {
+          item.data('properties', properties);
+          _this._changed(properties, 'disk -> autoload');
+          callback(null);
+        }));
+      }
     },
     logger: null
   });
@@ -44,6 +52,14 @@ function Site(dataPath, providers, onChanged) {
 
   mkdirp.sync(dbDest);
 }
+
+Site.prototype._setPropertiesForContentDirectory = function(contentDirectory, properties) {
+  this.forEachInDb(function(relativePath, item) {
+    if (item.data('contentdirectory') === contentDirectory) {
+      item.data('properties', properties);
+    }
+  }, true);
+};
 
 Site.prototype._changed = function(properties, label) {
   this.log.trace({ properties: properties }, label || 'file reloaded');
@@ -76,7 +92,8 @@ Site.prototype._changed = function(properties, label) {
 };
 
 Site.prototype.start = function(filetypes, callback) {
-  var _this = this;
+  var _this = this
+    , reloadedContentDirectories = [];
 
   [
     // 'item:imported', // used below
@@ -91,10 +108,21 @@ Site.prototype.start = function(filetypes, callback) {
   });
 
   this.voyeur.on('item:imported', function(item) {
+    var contentDirectory = item.data('contentdirectory');
     // re-initialize saved data
-    var rel = path.relative(process.cwd(), item.path);
-    item.data('properties', Properties.create(rel, item.data('properties').data));
-    _this._changed(item.data('properties'));
+    if (contentDirectory) {
+      if (reloadedContentDirectories.indexOf(contentDirectory) < 0) {
+        var rel = path.relative(process.cwd(), contentDirectory);
+        item.data('properties', Properties.create(rel, item.data('properties').data));
+        _this._changed(item.data('properties'));
+        reloadedContentDirectories.push(contentDirectory);
+      }
+    }
+    else {
+      var rel = path.relative(process.cwd(), item.path);
+      item.data('properties', Properties.create(rel, item.data('properties').data));
+      _this._changed(item.data('properties'));
+    }
   });
 
   var targetPath = path.join(this.dataPath, '/**/*.@(' + filetypes.join('|') + ')');
@@ -154,10 +182,17 @@ Site.prototype.forEach = function(fn) {
   this.forEachInProviders(fn);
 };
 
-Site.prototype.forEachInDb = function(fn) {
+Site.prototype.forEachInDb = function(fn, allContentDirectoryItems) {
   var db = this.voyeur.all();
+  var contentDirectories = [];
   for (var relativePath in db) {
-    fn(relativePath, db[relativePath]);
+    var item = db[relativePath]
+      , properties = item.data('properties');
+    // only return first content directory item unless specifically asked
+    if (allContentDirectoryItems || (item.data('contentdirectory') && contentDirectories.indexOf(item.data('contentdirectory')) < 0)) {
+      fn(relativePath, item);
+      contentDirectories.push(item.data('contentdirectory'));
+    }
   }
 };
 

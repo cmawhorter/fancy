@@ -7,5 +7,5 @@ module.exports = function(contents, properties, defaultLocale, relativePath) {
     , Locale: defaultLocale
   };
   vm.runInNewContext(contents, sandbox, relativePath);
-  return sandbox;
+  return sandbox.Properties.data;
 };

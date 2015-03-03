@@ -4,26 +4,26 @@ var fs = require('fs')
 var _ = require('lodash')
   , async = require('async');
 
-var parsers = require('../parsers.js')
-  , Properties = require('../../data/properties.js');
+var Properties = require('../../data/properties.js');
 
 var E = require('../../utils/E.js')
   , filters = require('../../utils/filters.js')
+  , i18n = require('../../utils/i18n.js')
   , file = require('../../utils/file.js');
 
 var PROPERTIES_FILENAME = '_properties'
   , PROPERTIES_FILEFORMATS = [ 'html', 'yml', 'json', 'js' ];
 
-function processFile(dirFile) {
+function processFile(parsers, dirFile, properties, defaultLocale, callback) {
   var filename = file.name(dirFile)
-    , format = parsers.validateFormat(filename)
-    , properties = new Properties(dirFile)
-    , filename = file.name(dirFile)
-    , defaultLocale = i18n.localeStringToParts(filename).locale || null;
+    , format = parsers.validateFormat(dirFile)
+    , defaultLocale = i18n.localeStringToParts(filename).locale || defaultLocale;
+
+  console.log('filename: %s, format: %s, defaultLocale: %s', filename, format, defaultLocale)
 
   if (filename === PROPERTIES_FILENAME) {
     if (PROPERTIES_FILEFORMATS.indexOf(format) > -1) {
-      return propertiesFileProcessor(dirFile, properties, null);
+      parsers.processFile(dirFile, properties, defaultLocale, callback);
     }
     else {
       throw new Error('Properties file "' + dirFile + '" is not in the correct format: ' + PROPERTIES_FILEFORMATS.join(', '));
@@ -33,24 +33,11 @@ function processFile(dirFile) {
     // underscore can be used to promote a file as important without affecting the
     // generated property name or the reserved '_properties'
     var trimmed = filename[0] === '_' ? filename.substr(1) : filename;
-    return regularFileProcessor(trimmed, dirFile, properties, null);
-  }
-}
-
-function propertiesFileProcessor(dirFile) {
-  return function(taskCallback) {
-    // relativePath, properties, defaultLocale, callback
-    parsers.processFile(dirFile, E.bubbles(taskCallback, function(properties) {
-      taskCallback(null, properties || []);
-    }));
-  };
-}
-
-function regularFileProcessor(filename, dirFile, properties, defaultLocale) {
-  return function(taskCallback) {
-    // relativePath, properties, defaultLocale, callback
-    parsers.processFile(dirFile, E.bubbles(taskCallback, function(propertyData) {
-      taskCallback(null, [filename, (propertyData || '').toString()]);
+    // we don't want the formatted data, just the raw parsed data
+    var fakeProperties = new Properties(dirFile);
+    parsers.processFile(dirFile, fakeProperties, defaultLocale, E.bubbles(callback, function(output) {
+      properties.append(trimmed, output, defaultLocale);
+      callback(null);
     }));
   }
 }
@@ -61,12 +48,17 @@ function underscoreFirst(a, b) {
 
 // Directory is a special exception and doesn't match the signature of other formats
 module.exports = function(relativePath, properties, defaultLocale, callback) {
+  var parsers = this;
   fs.readdir(relativePath, E.bubbles(callback, function(files) {
     files.sort(underscoreFirst);
-    var parseFiles = files
-      .filter(filters.dotfiles)
-      .map(_.partial(path.join, relativePath))
-      .map(processFile);
-    async.parallelLimit(parseFiles, 6, callback);
+    var parseFiles = files.filter(filters.dotfiles)
+      , tasks = [];
+    parseFiles.forEach(function(element) {
+      tasks.push(async.apply(processFile, parsers, path.join(relativePath, element), properties, defaultLocale));
+    });
+    async.parallelLimit(tasks, 6, function() {
+      console.log('relativePath', relativePath, arguments, properties);
+      callback(null, properties);
+    });
   }));
 };
