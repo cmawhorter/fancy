@@ -27,13 +27,13 @@ module.exports = {
     options = options || {};
     options.livereloadport = options.livereloadport || 35729;
     var dbPort = options.port + 100;
-    var themePath = './' + (options.theme ? 'themes/' + options.theme : 'theme');
-    var viewPath = file.abs(themePath + '/views');
+    var themePath = file.abs('./' + (options.theme ? 'themes/' + options.theme : 'theme'));
+    var viewPath = path.join(themePath, 'views');
     var staticAssetOptions = {
       extensions: config.data.assets
     };
 
-    var themeAssets = file.abs(path.join(themePath, 'public'));
+    var themeAssets = path.join(themePath, 'public');
     var dataAssets = file.abs('./data/assets');
     var contentAssets = glob.sync(file.abs('./data/' + options.content + '/**/*.html/public'));
     var componentsPaths = glob.sync(file.abs('./components/{*.js,*/index.js}'));
@@ -80,6 +80,7 @@ module.exports = {
         extensions: null
       , theme: null
       , viewPath: viewPath
+      , themePath: themePath
       , config: config
       , env: helpers.loadEnv(config.theme.env)
       , yieldHandler: function(yieldUrl) {
@@ -194,10 +195,6 @@ module.exports = {
             break;
           }
         });
-      }
-
-      function loadRelatedResources(resource, callback) {
-
       }
 
       var router = express.Router();

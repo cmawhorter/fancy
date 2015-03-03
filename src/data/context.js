@@ -16,7 +16,7 @@ var RESERVED_KEYS = [ 'cache', 'filename', 'scope', 'debug', 'compileDebug', 'cl
 
 function EmptyModule() { return {}; }
 
-function Context(viewPath, theme, extensions, yieldHandler, locals) {
+function Context(viewPath, themeModule, extensions, yieldHandler, locals) {
   var _this = this;
   this.__uses = [];
   this.__usesResolved = false;
@@ -42,7 +42,7 @@ function Context(viewPath, theme, extensions, yieldHandler, locals) {
     this.resources = new Collection(locals.resources);
   }
 
-  this.themeModule = locals.theme;
+  this.themeModule = themeModule;
   this.theme = null;
 
   this.extensionModules = extensions;
@@ -73,6 +73,7 @@ Context.prototype.init = function() {
 
   // init theme with this context
   _this.theme = (_this.themeModule || EmptyModule)(_this);
+  console.log('_this.themeModule', _this.themeModule);
 
   // init extensions with this context
   Object.keys(_this.extensionModules).forEach(function(element) {
@@ -90,7 +91,7 @@ Context.prototype.clone = function(locals) {
   locals.request = locals.request || this.request;
   locals.config = locals.config || this.config;
   locals.env = locals.env || this.env;
-  var context = new Context(this.viewPath, this.theme, this.extensions, this.yieldHandler, locals);
+  var context = new Context(this.viewPath, this.themeModule, this.extensions, this.yieldHandler, locals);
   context.current = this.current;
   context.parentContext = this;
   this.childContexts.push(context);
@@ -232,15 +233,15 @@ module.exports = function ContextFactoryGenerator(fancyGlobals) {
     , config = fancyGlobals.config
     , env = fancyGlobals.env
     , liveReloadPort = fancyGlobals.liveReloadPort || 35729
-    , theme = null
+    , themeModule = null
     , extensions = [];
 
-  if (fancyGlobals.theme) {
-    var themeSupportPath = require.resolve(fancyGlobals.theme);
+  if (fancyGlobals.themePath) {
+    var themeSupportPath = require.resolve(fancyGlobals.themePath);
     if (require.cache[themeSupportPath]) {
       delete require.cache[themeSupportPath];
     }
-    theme = require(themeSupportPath);
+    themeModule = require(themeSupportPath);
   }
 
   if (fancyGlobals.extensions && Array.isArray(fancyGlobals.extensions) && fancyGlobals.extensions.length) {
@@ -256,7 +257,7 @@ module.exports = function ContextFactoryGenerator(fancyGlobals) {
 
   return function ContextFactory(filepath, page, request, resources) {
     page.__filepath = filepath;
-    var context = new Context(viewPath, theme, extensions, yieldHandler, {
+    var context = new Context(viewPath, themeModule, extensions, yieldHandler, {
         page: page
       , resources: resources
       , request: request
