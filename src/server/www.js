@@ -171,7 +171,7 @@ module.exports = {
       app.set('view engine', 'ejs');
       app.disable('view cache');
 
-      app.use(express.static(themeAssets, staticAssetOptions));
+      app.use(express.static(themeAssets)); // theme can serve anything
       app.use(express.static(dataAssets, staticAssetOptions));
       for (var i=0; i < contentAssets.length; i++) {
         app.use(express.static(contentAssets[i], staticAssetOptions));
