@@ -177,28 +177,28 @@ FancyPage.prototype._reloadFile = function(callback) {
   //     }
 
     var cacheKey = 'fancy:content:' + fingerprint;
-    cache.io(cacheKey, function(err, data) {
-      if (err) {
-        return callback.call(_this, err);
-      }
-      if (void 0 === data) { // not cached
-        console.log('cache.io MISS: %s', _this.contentPath);
+    // cache.io(cacheKey, function(err, data) {
+    //   if (err) {
+    //     return callback.call(_this, err);
+    //   }
+    //   if (void 0 === data) { // not cached
+    //     console.log('cache.io MISS: %s', _this.contentPath);
         _this._parseFile(function(err, properties) {
           if (err) {
             return callback.call(_this, err);
           }
-          cache.io(cacheKey, properties, function(err, data) {
-            if (err) {
-              return callback.call(_this, err);
-            }
+          // cache.io(cacheKey, properties, function(err, data) {
+          //   if (err) {
+          //     return callback.call(_this, err);
+          //   }
             _this.setProperties(properties, callback.bind(_this));
-          });
+          // });
         });
-      }
-      else {
-        _this.setProperties(data, callback.bind(_this));
-      }
-    });
+    //   }
+    //   else {
+    //     _this.setProperties(data, callback.bind(_this));
+    //   }
+    // });
 
   //   });
   });
@@ -244,7 +244,7 @@ FancyPage.prototype._parseFile = function(callback) {
         if (err) {
           return callback(err);
         }
-        properties.body = bodyProps.body;
+        properties.push([ 'body', bodyProps.body ]);
         callback(null, properties);
       });
     }

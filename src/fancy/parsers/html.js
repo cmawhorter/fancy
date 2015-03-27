@@ -9,7 +9,9 @@ module.exports = function(contents, callback) {
       };
 
   addProp('title', $('title').text());
-  addProp('body', $('body').html());
+  if ($('body').length) {
+    addProp('body', $('body').html());
+  }
 
   var contentType = 'text/html; charset=utf-8';
   $('meta[http-equiv][content]').each(function() {
