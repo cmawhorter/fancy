@@ -207,9 +207,17 @@ Context.prototype.yield = function(yieldUrl) {
 Context.prototype.print = function() {
   var html = '';
   for (var i=0; i < arguments.length; i++) {
-    html += '<pre>' + he.encode(JSON.stringify(arguments[i], null, 2)) + '</pre>';
+    html += this[arguments[i] instanceof Error ? 'printError' : 'printValue'](arguments[i]);
   }
   return html;
+};
+
+Context.prototype.printError = function(err) {
+  return '<pre>' + he.encode('' + err.stack) + '</pre>';
+};
+
+Context.prototype.printValue = function(val) {
+  return '<pre>' + he.encode('' + JSON.stringify(val, null, 2)) + '</pre>';
 };
 
 Context.prototype.toJSON = function() {
