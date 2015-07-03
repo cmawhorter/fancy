@@ -127,7 +127,6 @@ Site.prototype.start = function(filetypes, callback) {
   });
 
   var targetPath = path.join(this.dataPath, '/**/*.{' + filetypes.join(',') + '}');
-  console.log('voyeur targetPath', targetPath);
   var watchOptions = { ignored: '**/*.html/*/**' };
   this.voyeur.start(targetPath, watchOptions, function(err) {
     if (err) return callback(err);

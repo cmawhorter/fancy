@@ -105,6 +105,8 @@ module.exports = {
     var urls = options.site.urls(true, null, config.data.routes != 'explicit');
     tell('Retrieved %s urls', urls.length);
 
+    // TODO: conditional recompile. load index.json and compare compiled value against last revision
+
     var alreadyCrawled = [];
     var q = async.queue(function(task, queueCallback) {
       if (alreadyCrawled.indexOf(task.url) > -1) {
@@ -126,6 +128,7 @@ module.exports = {
         .on('response', function(res) {
           result.fingerprint = res.headers['etag'];
           result.location = res.headers['location'];
+          result.compiled = res.headers['fancy-compiled']; // used with conditional recompile
           result.status = res.statusCode;
         })
         .pipe(fs.createWriteStream(destination))

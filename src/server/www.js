@@ -49,7 +49,6 @@ module.exports = {
       components[config.component.tagprefix + componentName] = require(component);
     });
 
-
     logger.debug({ port: dbPort }, 'connecting db');
     // rep = sock.connect/on message; req = sock.bind/send
     var sock = axon.socket('req');
@@ -192,6 +191,9 @@ module.exports = {
       if (helpers.configRedirects(req, res, config.data.redirects, logger)) {
         return;
       }
+
+      // Set current timestamp to used by compilation or whererever else
+      res.set('Fancy-Compiled', new Date().getTime());
 
       sock.send('find', { url: req.url, locale: locale }, function(data) {
         if (!data || data.error) {
