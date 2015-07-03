@@ -21,7 +21,7 @@ module.exports = {
 
     // allow page routes and asset paths to collide. strict mode forces this to be false
     // e.g. some-page.html/public/a.jpg and theme has theme/public/a.jpg errors
-    // TODO: also need to make sure data routes don't collide with asset routes, e.g. /imgs/something -> route = /imgs/something
+    // FIXME: does not currently detect route/asset collisions i.e. data/assets/imgs/something -> route = /imgs/something
     "collisions": false,
 
     // restrictions to place on certain content.  useful if combining multiple
@@ -72,7 +72,7 @@ module.exports = {
 
   "theme": {
     // allow themes to yield (create) new pages dynamically
-    // e.g. a theme pagination extension creates new pages based on paged content
+    // e.g. a theme's pagination extension could create new pages based on paged content if you don't want to do it clientside
     "yield": true,
 
     // import env variables and make available to theme (whitelist)
@@ -83,7 +83,9 @@ module.exports = {
       "stage": [ "NODE_ENV", "production" ]
     },
 
-    // aliases and additions are very similar.  here's two ways to achieve the same result
+    // aliases and additions are very similar.  they run on the site data before render
+    // to add/replace page properties prior to theme render
+    // here's two ways to achieve the same result:
     //
     // "aliases": { // here we're using aliases to add the resource name "blogpost" to all resource=ideas content
     //   "resource": {
@@ -150,7 +152,7 @@ module.exports = {
     "entry": "/",
 
     // list of routes you want to force the compiler to include.
-    // mainly useful when using redirects that aren't being picked up
+    // mainly useful when using redirects that aren't being automatically detected
     "force": [
     ]
   },
@@ -163,8 +165,9 @@ module.exports = {
     // route as closely as possible
     "extension": "html",
 
-    // force all files to have the specified extension.  by default, onl files
-    // without an existing extension will get one
+    // force all files to have the specified extension.  by default, only files
+    // without an existing extension will get one i.e. /index.fake would not be renamed
+    // to index.fake.html by default
     "forceextension": false,
 
     // by default, site runs out of root:  e.g www.example.com/about
@@ -188,7 +191,6 @@ module.exports = {
   "cli": {
     "serve": {
       "port": 8000,
-      "workers": 0,
       "content": "content",
       "theme": null,
       "livereloadport": "auto",
