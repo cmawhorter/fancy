@@ -166,17 +166,24 @@ Site.prototype.loadProvider = function(providerPath) {
         console.warn('Provider path %s does not exist', properties.relativePath);
       }
     });
-  require(path.join(process.cwd(), providerPath))({
-    create: function(uid, data) {
-      provider.create(uid, data);
-    },
-    update: function(uid, data) {
-      provider.update(uid, data);
-    },
-    remove: function(uid) {
-      provider.remove(uid);
-    }
-  });
+  var providerModulePath = path.join(process.cwd(), providerPath);
+  var providerModule = require(providerModulePath);
+  if (typeof providerModule === 'function') {
+    providerModule({
+      create: function(uid, data) {
+        provider.create(uid, data);
+      },
+      update: function(uid, data) {
+        provider.update(uid, data);
+      },
+      remove: function(uid) {
+        provider.remove(uid);
+      }
+    });
+  }
+  else {
+    this.log.warn({ path: providerModulePath, cwd: process.cwd(), relative: providerPath, module: providerModule }, 'provider invalid');
+  }
 };
 
 Site.prototype.forEach = function(fn) {
