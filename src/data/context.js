@@ -27,6 +27,7 @@ function Context(viewPath, themeModule, extensions, yieldHandler, locals) {
   locals.request = locals.request || {};
   locals.config = locals.config || {};
   locals.env = locals.env || {};
+  locals.globals = locals.globals || {};
 
   this.viewPath = viewPath;
 
@@ -36,7 +37,7 @@ function Context(viewPath, themeModule, extensions, yieldHandler, locals) {
   this.current = this.page = locals.page instanceof Page ? locals.page : new Page(locals.page);
   this.request = locals.request;
   this.env = locals.env;
-  // this.site = {}; // removed
+  this.globals = locals.globals;
 
   if (locals.resources && Array.isArray(locals.resources)) {
     this.resources = new Collection(locals.resources);
@@ -90,6 +91,7 @@ Context.prototype.clone = function(locals) {
   locals.request = locals.request || this.request;
   locals.config = locals.config || this.config;
   locals.env = locals.env || this.env;
+  locals.globals = locals.globals || this.globals;
   var context = new Context(this.viewPath, this.themeModule, this.extensions, this.yieldHandler, locals);
   context.current = this.current;
   context.parentContext = this;
@@ -239,6 +241,7 @@ module.exports = function ContextFactoryGenerator(fancyGlobals) {
     , yieldHandler = fancyGlobals.yieldHandler
     , config = fancyGlobals.config
     , env = fancyGlobals.env
+    , globals = fancyGlobals.globals
     , liveReloadPort = fancyGlobals.liveReloadPort || 35729
     , themeModule = null
     , extensions = [];
@@ -270,6 +273,7 @@ module.exports = function ContextFactoryGenerator(fancyGlobals) {
       , request: request
       , config: config
       , env: env
+      , globals: globals
       , livereloadport: liveReloadPort
     });
     context.init();

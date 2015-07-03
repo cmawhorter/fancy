@@ -83,6 +83,7 @@ module.exports = {
       , themePath: themePath
       , config: config
       , env: helpers.loadEnv(config.theme.env)
+      , globals: helpers.loadGlobals(options.globals)
       , yieldHandler: function(yieldUrl) {
           // TODO: db.request
           if (config.theme.yield) {

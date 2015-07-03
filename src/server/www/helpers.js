@@ -26,6 +26,19 @@ var helpers = module.exports = {
     return obj;
   },
 
+  loadGlobals: function(globals) {
+    var obj = null;
+    if (globals) {
+      if (typeof globals === 'string' && globals.trim()[0] === '{') {
+        obj = JSON.parse(globals);
+      }
+      else if (fs.existsSync(globals)) {
+        obj = require(globals);
+      }
+    }
+    return obj || {};
+  },
+
   buildRequest: function(req) {
     var parsedUrl = url.parse(req.url, true);
     return {

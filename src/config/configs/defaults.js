@@ -192,6 +192,8 @@ module.exports = {
     "serve": {
       "port": 8000,
       "content": "content",
+      // a path or JSON string of globals that should be available to every page. static and not watched
+      "globals": null,
       "theme": null,
       "livereloadport": "auto",
       "remotecontrol": true

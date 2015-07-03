@@ -14,14 +14,14 @@ var argv = require('yargs').usage('Usage: $0 -x [num] -y [num]', {
     , default: BASE_PORT
   },
 
-  w: {
-      alias: 'workers'
-    , default: config.cli.serve.workers || 0
-  },
-
   c: {
       alias: 'content'
     , default: config.cli.serve.content || 'content'
+  },
+
+  g: {
+      alias: 'globals'
+    , default: config.cli.serve.globals || null
   },
 
   t: {
@@ -35,7 +35,7 @@ var argv = require('yargs').usage('Usage: $0 -x [num] -y [num]', {
   },
 
   s: {
-      alias: 'static' // no watching
+      alias: 'static' // no watching or livereload
     , default: config.cli.serve.static || null
   },
 
