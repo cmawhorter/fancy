@@ -34,7 +34,7 @@ module.exports = {
     }
 
     var providers = glob.sync('data/providers/*/index.js');
-    chokidar.watch('data/providers/**/*.@(js|json)', {
+    chokidar.watch('data/providers/**/*.{js,json}', {
       ignored: '**/node_modules/**/*'
     }).on('change', function(filepath) {
       tell('Warning: Provider file changed!  Server may need to be reloaded to see the changes.');
@@ -47,7 +47,7 @@ module.exports = {
       });
     }
 
-    var watcher = chokidar.watch(options.themePath + '/**/*.@(ejs|js|css)', {
+    var watcher = chokidar.watch(options.themePath + '/**/*.{ejs,js,css}', {
       ignored: 'support/**/*'
     });
 
@@ -123,8 +123,9 @@ module.exports = {
 
     var handlers = messageHandlers(site);
     logger.debug({ port: options.port }, 'starting db');
+    // rep = sock.connect/on message; req = sock.bind/send
     var sock = axon.socket('rep');
-    sock.bind(options.port);
+    sock.connect(options.port);
 
     [
       'close',

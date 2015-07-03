@@ -1,7 +1,7 @@
 var path = require('path');
 
 var mkdirp = require('mkdirp')
-  , Voyeur = require('voyeur');
+  , Voyeur = require('voyair');
 
 var Properties = require('../../data/properties.js')
   , Provider = require('../../data/provider.js')
@@ -25,6 +25,7 @@ function Site(dataPath, providers, onChanged) {
   this.voyeur = new Voyeur({
     saveDestination: path.join(dbDest, 'db.json'),
     defaultProvider: function(item, callback) {
+      console.log('\ndefaultProvider\n\n', item);
       var containingDirectory = path.dirname(item.path);
       if (/\.html$/.test(containingDirectory)) { // content directory
         item.data('contentdirectory', containingDirectory);
@@ -43,7 +44,7 @@ function Site(dataPath, providers, onChanged) {
         }));
       }
     },
-    logger: null
+    logger: this.log
   });
 
   for (var i=0; i < providers.length; i++) {
@@ -96,7 +97,7 @@ Site.prototype.start = function(filetypes, callback) {
     , reloadedContentDirectories = [];
 
   [
-    // 'item:imported', // used below
+    'item:imported', // used below
     'item:created',
     'item:current',
     'item:expired',
@@ -125,9 +126,14 @@ Site.prototype.start = function(filetypes, callback) {
     }
   });
 
-  var targetPath = path.join(this.dataPath, '/**/*.@(' + filetypes.join('|') + ')');
+  var targetPath = path.join(this.dataPath, '/**/*.{' + filetypes.join(',') + '}');
+  console.log('voyeur targetPath', targetPath);
   var watchOptions = { ignored: '**/*.html/*/**' };
-  this.voyeur.start(targetPath, watchOptions, callback);
+  this.voyeur.start(targetPath, watchOptions, function(err) {
+    if (err) return callback(err);
+    _this.voyeur.saveSync(); // trigger initial save after load
+    callback();
+  });
 
   return this;
 };
@@ -187,11 +193,16 @@ Site.prototype.forEachInDb = function(fn, allContentDirectoryItems) {
   var contentDirectories = [];
   for (var relativePath in db) {
     var item = db[relativePath]
-      , properties = item.data('properties');
+      , properties = item.data('properties')
+      , isContentDirectory = item.data('contentdirectory');
     // only return first content directory item unless specifically asked
-    if (allContentDirectoryItems || (item.data('contentdirectory') && contentDirectories.indexOf(item.data('contentdirectory')) < 0)) {
+    // but still return all the regular pages
+    if (!isContentDirectory) {
       fn(relativePath, item);
+    }
+    else if (isContentDirectory && (allContentDirectoryItems || contentDirectories.indexOf(item.data('contentdirectory')) < 0)) {
       contentDirectories.push(item.data('contentdirectory'));
+      fn(relativePath, item);
     }
   }
 };
@@ -243,6 +254,15 @@ Site.prototype.urls = function(dedupe, locale, generate) {
     }
   });
   return urls;
+};
+
+Site.prototype.snapshot = function() {
+  var _this = this;
+  var items = {};
+  this.forEach(function(relativePath, properties) {
+    items[relativePath] = properties;
+  });
+  return items;
 };
 
 Site.prototype.findByAny = function(propertyName) {
@@ -298,7 +318,7 @@ Site.prototype.generateUrl = function(properties, locale) {
   if (p.indexOf(this.dataPath) > -1) {
     p = p.split(this.dataPath)[1];
   }
-  url = p.split('.html' + path.sep + 'page.html')[0].replace(/\.[\w\d]+$/, '').trim().toLowerCase();
+  url = p.split('.html' + path.sep + '_properties.html')[0].replace(/\.[\w\d]+$/, '').trim().toLowerCase();
   if (url[0] !== path.sep) {
     url = path.sep + url;
   }
