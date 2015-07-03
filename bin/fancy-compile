@@ -5,10 +5,11 @@ var os = require('os');
 var portfinder = require('portfinder');
 
 var argv = require('yargs').usage('Usage: $0 -x [num] -y [num]', {
-  w: {
-      alias: 'workers'
-    , default: config.cli.compile.workers || Math.ceil(Math.min(1, os.cpus()) / 2)
-  },
+  // workers were removed
+  // w: {
+  //     alias: 'workers'
+  //   , default: config.cli.compile.workers || Math.ceil(Math.min(1, os.cpus()) / 2)
+  // },
 }).argv;
 
 portfinder.getPort(function(err, port) {
@@ -16,22 +17,19 @@ portfinder.getPort(function(err, port) {
 
   var wwwOptions = Object.create(config.cli.serve);
   wwwOptions.port = port;
-  wwwOptions.workers = argv.workers;
+  // wwwOptions.workers = argv.workers;
   wwwOptions.static = true;
-  require('../src/server/www.js').start(wwwOptions, function(err) {
+  require('../src/server/www.js').start(wwwOptions, function(err, deps) {
     if (err) throw err;
-    // FIXME: wait for www workers to all start.  this waits arbitrary amount, should be evt.
-    console.log('www returned');
-    setTimeout(function() {
-      require('../src/compilation/compiler.js').start({
-        target: './.fancy/compiled',
-        port: port,
-        content: config.cli.serve.content || 'content',
-        theme: config.cli.serve.theme || null
-      }, function(err) {
-        if (err) throw err;
-        process.exit(0);
-      });
-    }, 1000);
+    require('../src/compilation/compiler.js').start({
+      target: './.fancy/compiled',
+      port: port,
+      content: config.cli.serve.content || 'content',
+      theme: config.cli.serve.theme || null,
+      site: deps.site,
+    }, function(err) {
+      if (err) throw err;
+      process.exit(0);
+    });
   });
 });

@@ -53,6 +53,7 @@ function validPort(port) {
 function loadServer() {
   require('../src/server/www.js').start(argv, function(err) {
     if (err) throw err;
+    console.log('Server listening on http://127.0.0.1:%s/', argv.port);
   });
 }
 

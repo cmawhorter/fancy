@@ -1,8 +1,7 @@
 var config = require('../config/config.js');
 
 var path = require('path')
-  , fs = require('fs')
-  , cluster = require('cluster');
+  , fs = require('fs');
 
 var express = require('express')
   , axon = require('axon')
@@ -14,7 +13,6 @@ var watcher = require('./watcher.js')
   , context = require('../data/context.js');
 
 var E = require('../utils/E.js')
-  , tell = require('../utils/tell.js')
   , log = require('../utils/log.js')
   , file = require('../utils/file.js')
   , helpers = require('./www/helpers.js')
@@ -23,6 +21,7 @@ var E = require('../utils/E.js')
 module.exports = {
   start: function(options, callback) {
     var logger = log.child({ component: 'www' });
+    var exportsObjects = { site: null, app: null };
     callback = E.timeout(callback || function(err){ if (err) throw err; });
     options = options || {};
     options.livereloadport = options.livereloadport || 35729;
@@ -32,6 +31,8 @@ module.exports = {
     var staticAssetOptions = {
       extensions: config.data.assets
     };
+
+    logger.debug({ options: options }, 'server; starting');
 
     var themeAssets = path.join(themePath, 'public');
     var dataAssets = file.abs('./data/assets');
@@ -48,11 +49,11 @@ module.exports = {
       components[config.component.tagprefix + componentName] = require(component);
     });
 
-    tell('Starting server on localhost:%s...', options.port);
 
     logger.debug({ port: dbPort }, 'connecting db');
+    // rep = sock.connect/on message; req = sock.bind/send
     var sock = axon.socket('req');
-    sock.connect(dbPort);
+    sock.bind(dbPort);
 
     [
       'close',
@@ -95,140 +96,127 @@ module.exports = {
       , liveReloadPort: options.livereloadport
     });
 
-    if (!options.workers || cluster.isMaster) {
-      tell('Master starting watcher');
-      var site = watcher.start({
-          target: path.join(process.cwd(), './data/' + options.content)
-        , port: dbPort
-        , livereloadport: options.livereloadport
-        , themePath: themePath
-        , static: options.static
-      }, E.bubbles(callback, function() {
-        // FIXME: wrapping this in a delay for now since there isn't a clear-cut ready event being emitted
-        setTimeout(function() {
-          logger.info({ site: site }, 'watcher started');
-          if (config.strict) {
-            var locale = null; // TODO: iterate over all locales, verifying each
-            var urls = site.urls(false, locale, config.data.routes != 'explicit')
-              , uniqUrls = _.uniq(urls);
-            if (urls.indexOf(null) > -1) {
-              logger.fatal({ err: new Error('Unreachable content') });
-              process.exit(1);
-            }
-            else if (!config.data.collisions && uniqUrls.length !== urls.length) {
-              var dupes = urls.filter(function(element, index) {
-                return index === urls.lastIndexOf(element) && urls.indexOf(element) !== index;
-              });
-              logger.debug({ list: dupes }, 'dupe routes');
-              return callback(new Error('Page collisions'));
-            }
+    var site = watcher.start({
+        target: path.join(process.cwd(), './data/' + options.content)
+      , port: dbPort
+      , livereloadport: options.livereloadport
+      , themePath: themePath
+      , static: options.static
+    }, E.bubbles(callback, function() {
+      // FIXME: wrapping this in a delay for now since there isn't a clear-cut ready event being emitted
+      setTimeout(function() {
+        logger.info({ site: site }, 'watcher started');
+        if (config.strict) {
+          var locale = null; // TODO: iterate over all locales, verifying each
+          var urls = site.urls(false, locale, config.data.routes != 'explicit')
+            , uniqUrls = _.uniq(urls);
+          if (urls.indexOf(null) > -1) {
+            logger.fatal({ err: new Error('Unreachable content') });
+            process.exit(1);
           }
-          callback(null);
-        }, 500);
-      }));
-
-      var assetCollisions = helpers.findAssetCollisions([themeAssets, dataAssets].concat(contentAssets), config.data.assets);
-      if (assetCollisions.length) {
-        logger.debug({ list: assetCollisions }, 'asset collisions')
-        if (config.data.collisions) {
-          tell('Warning: There were %s assets with colliding filenames.  This could lead to incorrect images being displayed or worse.', assetCollisions.length);
-        }
-        else {
-          return callback(new Error('Asset collision'));
-        }
-      }
-    }
-    else {
-      setImmediate(callback);
-    }
-
-    if (options.workers && cluster.isMaster) {
-      for (var i = 0; i < options.workers; i++) {
-        helpers.fork();
-      }
-
-      cluster.on('online', function(worker) {
-        console.log('[%s] worker online', worker.process.pid);
-      });
-
-      cluster.on('exit', function(worker, code, signal) {
-        console.log('[%s] worker ded', worker.process.pid);
-        helpers.fork();
-      });
-    }
-    else {
-      tell('\t-> Worker started', process.pid);
-
-      var app = express();
-      app.set('port', options.port || defaultOptions.port);
-
-      app.set('env', 'development');
-      app.enable('case sensitive routing');
-      app.enable('strict routing');
-
-      // view engine setup
-      app.set('views', viewPath);
-      app.set('view engine', 'ejs');
-      app.disable('view cache');
-
-      app.use(express.static(themeAssets)); // theme can serve anything
-      app.use(express.static(dataAssets, staticAssetOptions));
-      for (var i=0; i < contentAssets.length; i++) {
-        app.use(express.static(contentAssets[i], staticAssetOptions));
-      }
-
-      app.use(function(err, req, res, next) {
-        helpers.renderError(req, res, createContext, { code: 500, message: err.message, error: err });
-      });
-
-      if (config.cli.serve.remotecontrol) {
-        app.get('/__fancy__/:command', function(req, res) {
-          switch (req.params.command.toLowerCase()) {
-            case 'shutdown':
-              logger.info({ req: req }, 'received shutdown');
-              res.end('Goodbye');
-              setImmediate(process.exit);
-            break;
-
-            default:
-              res.end('Command not understood');
-            break;
+          else if (!config.data.collisions && uniqUrls.length !== urls.length) {
+            var dupes = urls.filter(function(element, index) {
+              return index === urls.lastIndexOf(element) && urls.indexOf(element) !== index;
+            });
+            logger.debug({ list: dupes }, 'dupe routes');
+            return callback(new Error('Page collisions'));
           }
-        });
+        }
+        callback(null, exportsObjects);
+      }, 500);
+    }));
+
+    var assetCollisions = helpers.findAssetCollisions([themeAssets, dataAssets].concat(contentAssets), config.data.assets);
+    if (assetCollisions.length) {
+      logger.debug({ list: assetCollisions }, 'asset collisions')
+      if (config.data.collisions) {
+        logger.warn('Warning: There were ' + assetCollisions.length + ' assets with colliding filenames.  This could lead to incorrect images being displayed or worse');
+      }
+      else {
+        return callback(new Error('Asset collision'));
+      }
+    }
+
+    var app = express();
+    app.set('port', options.port || defaultOptions.port);
+
+    app.set('env', 'development');
+    app.enable('case sensitive routing');
+    app.enable('strict routing');
+
+    // view engine setup
+    app.set('views', viewPath);
+    app.set('view engine', 'ejs');
+    app.disable('view cache');
+
+    app.use(express.static(themeAssets)); // theme can serve anything
+    app.use(express.static(dataAssets, staticAssetOptions));
+    for (var i=0; i < contentAssets.length; i++) {
+      app.use(express.static(contentAssets[i], staticAssetOptions));
+    }
+
+    app.use(function(err, req, res, next) {
+      helpers.renderError(req, res, createContext, { code: 500, message: err.message, error: err });
+    });
+
+    if (config.cli.serve.remotecontrol) {
+      app.get('/__fancy__/:command', function(req, res) {
+        switch (req.params.command.toLowerCase()) {
+          case 'shutdown':
+            logger.warn({ req: req }, 'received shutdown');
+            res.end('Goodbye');
+            setImmediate(process.exit);
+          break;
+
+          case 'urls':
+            res.contentType('application/json').end(JSON.stringify(site.urls(false, null, config.data.routes != 'explicit'), null, 2));
+          break;
+
+          case 'snapshot':
+            res.contentType('application/json').end(JSON.stringify(site.snapshot(), null, 2));
+          break;
+
+          default:
+            res.end('Command not understood');
+          break;
+        }
+      });
+    }
+
+    var router = express.Router();
+    router.get('*', function(req, res, next) {
+      logger.debug({ url: req.url }, 'received request');
+
+      var locale = null;
+
+      if (helpers.configRedirects(req, res, config.data.redirects, logger)) {
+        return;
       }
 
-      var router = express.Router();
-      router.get('*', function(req, res, next) {
-        logger.debug({ url: req.url }, 'received request');
-
-        var locale = null;
-
-        if (helpers.configRedirects(req, res, config.data.redirects, logger)) {
+      sock.send('find', { url: req.url, locale: locale }, function(data) {
+        if (!data || data.error) {
+          logger.trace({ url: req.url, locale: locale, data: data }, 'find error');
+          helpers.renderError(req, res, createContext, { code: data.error || 500, message: data.error.message || 'DB Error Find', error: null });
           return;
         }
 
-        sock.send('find', { url: req.url, locale: locale }, function(data) {
-          if (!data || data.error) {
-            logger.trace({ url: req.url, locale: locale, data: data }, 'find error');
-            helpers.renderError(req, res, createContext, { code: data.error || 500, message: data.error.message || 'DB Error Find', error: null });
-            return;
-          }
+        if (helpers.dataRedirects(req, res, data.properties, logger)) {
+          return;
+        }
 
-          if (helpers.dataRedirects(req, res, data.properties, logger)) {
-            return;
-          }
+        var context = createContext(data.filepath, data.properties, helpers.buildRequest(req), data.resources);
+        context.usingResolver = helpers.usingResolver(sock);
 
-          var context = createContext(data.filepath, data.properties, helpers.buildRequest(req), data.resources);
-          context.usingResolver = helpers.usingResolver(sock);
-
-          if (!sendResponse(req, res, viewPath, context, components, logger)) {
-            helpers.renderError(req, res, createContext, { code: 500, message: 'Response was not sent for some unknown reason', error: null });
-            return;
-          }
-        });
+        if (!sendResponse(req, res, viewPath, context, components, logger)) {
+          helpers.renderError(req, res, createContext, { code: 500, message: 'Response was not sent for some unknown reason', error: null });
+          return;
+        }
       });
-      app.use('/', router);
-      app.listen(options.port, E.exits(true));
-    }
+    });
+    app.use('/', router);
+    app.listen(options.port, E.exits(true));
+
+    exportsObjects.site = site;
+    exportsObjects.app = app;
   }
 };

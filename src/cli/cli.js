@@ -12,7 +12,7 @@ function commandUsage(name, description) {
 }
 
 var usage = [
-    'usage: $0 [<options>] <command> [<args>]'
+    'usage: $0 <command> [<options>] [<args>]'
   , ''
   , 'List of commands:'
   , commandUsage('create', 'Lorem ipsum dolor sit amet, consectetur adipisicing elit')
@@ -72,13 +72,13 @@ switch (argv._[0]) {
   break;
 
   default:
-    if (fs.existsSync('./.fancy')) {
-      cmd = 'info';
+    if (argv._[0]) {
+      console.error("%s: '%s' is not a valid command. See '%s --help'.", argv.$0, argv._[0], argv.$0);
     }
     else {
-      console.error("%s: '%s' is not a valid command. See '%s --help'.", argv.$0, argv._[0], argv.$0);
-      process.exit(1);
+      console.error("%s: command required. See '%s --help'.", argv.$0, argv.$0);
     }
+    process.exit(1);
   break;
 }
 

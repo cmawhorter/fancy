@@ -27,6 +27,7 @@ portfinder.getPort(function(err, port) {
   site = watcher.start({
       target: './data/' + (config.cli.serve.content || 'content')
     , port: port
+    , static: true // prevents livereload from running
   }, function(err) {
     if (err) throw err;
 
@@ -39,9 +40,10 @@ portfinder.getPort(function(err, port) {
     table.push({ 'Timestamp': moment().format('MMMM Do YYYY, h:mm:ss A ZZ') })
     console.log(table.toString() + '\n');
 
-    if (argv.verbose > 1) {
+    if (argv.verbose > 0) {
       console.log('Configuration');
       table = new Table();
+      table.push({ 'Section': 'Value' });
       for (var k in config) {
         var row = {};
         row[k] = JSON.stringify(config[k], null, 2);

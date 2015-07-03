@@ -1,7 +1,6 @@
 var fs = require('fs')
   , path = require('path')
-  , url = require('url')
-  , cluster = require('cluster');
+  , url = require('url');
 
 var express = require('express')
   , glob = require('glob')
@@ -35,10 +34,6 @@ var helpers = module.exports = {
       , query: parsedUrl.query
       , locale: req.locale || 'en-US' // TODO: extract locale from request
     };
-  },
-
-  fork: function() {
-    return cluster.fork();
   },
 
   configRedirects: function(req, res, redirects, logger) {
@@ -115,7 +110,7 @@ var helpers = module.exports = {
     var allAssets = []
       , uniqueRelativeAssets = [];
     for (var i=0; i < assetPaths.length; i++) {
-      var pattern = unlimited && assetPaths[i].indexOf(unlimited) > -1 ? '/**/*.*' : '/**/*.@(' + extensions.join('|') + ')';
+      var pattern = unlimited && assetPaths[i].indexOf(unlimited) > -1 ? '/**/*.*' : '/**/*.{' + extensions.join(',') + '}';
       var search = path.join(assetPaths[i], pattern);
       glob.sync(search).forEach(function(element) {
         var rel = element.split(assetPaths[i])[1]

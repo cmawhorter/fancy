@@ -5,7 +5,6 @@ var fs = require('fs')
   , crypto = require('crypto');
 
 var async = require('async')
-  , axon = require('axon')
   , mkdirp = require('mkdirp')
   , rimraf = require('rimraf')
   , glob = require('glob')
@@ -68,35 +67,6 @@ module.exports = {
       // TODO: remove expired assets.  for now they're just recreated every compile (slow)
     }
 
-
-
-    logger.debug({ port: dbPort }, 'connecting db');
-
-    var sock = axon.socket('req');
-    sock.connect(dbPort);
-
-    [
-      'close',
-      'error',
-      'ignored error',
-      'socket error',
-      'reconnect',
-      'connect',
-      'disconnect',
-      'bind',
-      'drop',
-      'flush',
-    ].forEach(function(evtName) {
-      sock.on(evtName, _.throttle(function() {
-        if (arguments[0] instanceof Error) {
-          logger.warn({ err: arguments[0] }, 'db error');
-        }
-        else {
-          logger.trace({ evt: evtName }, 'db event');
-        }
-      }, 1000));
-    });
-
     tell('Starting compiler...');
 
     mkdirp.sync(destinationAssetsPath);
@@ -133,65 +103,63 @@ module.exports = {
     }));
 
     tell('Retrieving urls...');
+    var urls = options.site.urls(true, null, config.data.routes != 'explicit');
+    tell('Retrieved %s urls', urls.length);
 
-    sock.send('urls', { locale: null }, function(data) {
-      tell('Retrieved %s urls', data.urls.length);
-
-      var alreadyCrawled = [];
-      var q = async.queue(function(task, queueCallback) {
-        if (alreadyCrawled.indexOf(task.url) > -1) {
-          logger.trace({ url: task.url }, 'skipping, already crawled');
-          return queueCallback(null);
-        }
-        alreadyCrawled.push(task.url);
-        var hashName = fingerprint.sync(task.url)
-          , destination = path.join(options.target, hashName);
-        var result = dictionary[hashName] = {
-            url: task.url
-          , status: -1
-          , fingerprint: null
-          , location: null
-        };
-        tell('\t-> Processing "%s" and writing to %s', task.url, destination);
-        // TODO: if strict and non-200 status returned, error
-        request.get(endpoint + task.url)
-          .on('response', function(res) {
-            result.fingerprint = res.headers['etag'];
-            result.location = res.headers['location'];
-            result.status = res.statusCode;
-          })
-          .pipe(fs.createWriteStream(destination))
-            .on('error', E.event(queueCallback))
-            .on('finish', queueCallback);
-      }, 24);
-
-      // TODO: get yield urls and append to end of queue
-      // TODO: get other extraneous features like redirects, aliased routes and other stuff
-
-      q.drain = function() {
-        tell('Writing index...');
-        fs.writeFileSync(path.join(options.target, 'index.json'), JSON.stringify(dictionary, null, 2));
-        removeExpiredFiles(options.target, dictionary);
-        tell('Done!');
-        callback();
+    var alreadyCrawled = [];
+    var q = async.queue(function(task, queueCallback) {
+      if (alreadyCrawled.indexOf(task.url) > -1) {
+        logger.trace({ url: task.url }, 'skipping, already crawled');
+        return queueCallback(null);
+      }
+      alreadyCrawled.push(task.url);
+      var hashName = fingerprint.sync(task.url)
+        , destination = path.join(options.target, hashName);
+      var result = dictionary[hashName] = {
+          url: task.url
+        , status: -1
+        , fingerprint: null
+        , location: null
       };
+      tell('\t-> Processing "%s" and writing to %s', task.url, destination);
+      // TODO: if strict and non-200 status returned, error
+      request.get(endpoint + task.url)
+        .on('response', function(res) {
+          result.fingerprint = res.headers['etag'];
+          result.location = res.headers['location'];
+          result.status = res.statusCode;
+        })
+        .pipe(fs.createWriteStream(destination))
+          .on('error', E.event(queueCallback))
+          .on('finish', queueCallback);
+    }, 24);
 
-      if (config.compile.entry) {
-        logger.trace({ url: config.compile.entry }, 'url queue -> entry');
-        q.push({ url: config.compile.entry });
-      }
+    // TODO: get yield urls and append to end of queue
+    // TODO: get other extraneous features like redirects, aliased routes and other stuff
 
-      if (Array.isArray(config.compile.force) && config.compile.force.length) {
-        config.compile.force.forEach(function(pendingUrl, index) {
-          logger.trace({ url: pendingUrl, index: index }, 'url queue -> force');
-          q.push({ url: pendingUrl });
-        });
-      }
+    q.drain = function() {
+      tell('Writing index...');
+      fs.writeFileSync(path.join(options.target, 'index.json'), JSON.stringify(dictionary, null, 2));
+      removeExpiredFiles(options.target, dictionary);
+      tell('Done!');
+      callback();
+    };
 
-      data.urls.forEach(function(pendingUrl, index) {
-        logger.trace({ url: pendingUrl, index: index }, 'url queue -> data');
+    if (config.compile.entry) {
+      logger.trace({ url: config.compile.entry }, 'url queue -> entry');
+      q.push({ url: config.compile.entry });
+    }
+
+    if (Array.isArray(config.compile.force) && config.compile.force.length) {
+      config.compile.force.forEach(function(pendingUrl, index) {
+        logger.trace({ url: pendingUrl, index: index }, 'url queue -> force');
         q.push({ url: pendingUrl });
       });
+    }
+
+    urls.forEach(function(pendingUrl, index) {
+      logger.trace({ url: pendingUrl, index: index }, 'url queue -> data');
+      q.push({ url: pendingUrl });
     });
   }
 };
