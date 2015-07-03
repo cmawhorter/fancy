@@ -102,7 +102,6 @@ module.exports = {
       }
     }));
 
-    tell('Retrieving urls...');
     var urls = options.site.urls(true, null, config.data.routes != 'explicit');
     tell('Retrieved %s urls', urls.length);
 
