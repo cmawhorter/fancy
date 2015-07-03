@@ -100,7 +100,6 @@ Add a `fancy` entry to your sites package.json or alternatively create a fancy.j
     "cli": {
       "serve": {
         "port": 8000,
-        "workers": 0,
         "content": "content",
         "theme": null,
         "livereloadport": "auto"
