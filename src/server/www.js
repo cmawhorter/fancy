@@ -155,7 +155,7 @@ module.exports = {
     }
 
     app.use(function(err, req, res, next) {
-      helpers.renderError(req, res, createContext, { code: 500, message: err.message, error: err });
+      helpers.renderError(req, res, createContext, { code: 500, message: err.message, originalError: err, context: null });
     });
 
     if (config.cli.serve.remotecontrol) {
@@ -198,7 +198,7 @@ module.exports = {
       sock.send('find', { url: req.url, locale: locale }, function(data) {
         if (!data || data.error) {
           logger.trace({ url: req.url, locale: locale, data: data }, 'find error');
-          helpers.renderError(req, res, createContext, { code: data.error || 500, message: data.error.message || 'DB Error Find', error: null });
+          helpers.renderError(req, res, createContext, { code: data.error || 500, message: data.error.message || 'DB Error Find', originalError: null, context: null });
           return;
         }
 
@@ -209,10 +209,12 @@ module.exports = {
         var context = createContext(data.filepath, data.properties, helpers.buildRequest(req), data.resources);
         context.usingResolver = helpers.usingResolver(sock);
 
-        if (!sendResponse(req, res, viewPath, context, components, logger)) {
-          helpers.renderError(req, res, createContext, { code: 500, message: 'Response was not sent for some unknown reason', error: null });
-          return;
-        }
+        sendResponse(req, res, viewPath, context, components, logger, function(err) {
+          if (err) {
+            logger.error({ url: req.url, err: err, viewPath: viewPath }, 'unable to render');
+            helpers.renderError(req, res, createContext, { code: 500, message: 'Response was not sent because rendering failed', originalError: err, context: context });
+          }
+        });
       });
     });
     app.use('/', router);
