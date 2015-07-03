@@ -211,7 +211,7 @@ module.exports = {
 
         sendResponse(req, res, viewPath, context, components, logger, function(err) {
           if (err) {
-            logger.error({ url: req.url, err: err, viewPath: viewPath }, 'unable to render');
+            logger.warn({ url: req.url, err: err, viewPath: viewPath }, 'error rendering');
             helpers.renderError(req, res, createContext, { code: 500, message: 'Response was not sent because rendering failed', originalError: err, context: context });
           }
         });
