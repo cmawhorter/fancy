@@ -9,6 +9,10 @@ var argv = require('yargs').usage('Usage: $0 -x [num] -y [num]', {
       default: null
     , description: 'Run compile before building'
   },
+  target: {
+      default: null
+    , description: 'Supporting web server software.  Currently only "node" is supported.'
+  },
   o: {
       alias: 'output'
     , default: './dist'

@@ -89,9 +89,18 @@ module.exports = {
         log.trace({ target: destination, build: buildDestination }, 'creating build directory');
         mkdirp.sync(destination);
 
-        var pkgPath = path.join(buildDestination, 'package.json');
-        log.debug({ target: pkgPath }, 'creating package.json');
-        fs.writeFileSync(pkgPath, JSON.stringify(template, null, 2));
+        if (options.target) {
+          switch (options.target) {
+            case 'node':
+              var pkgPath = path.join(buildDestination, 'package.json');
+              log.debug({ target: pkgPath }, 'creating package.json');
+              fs.writeFileSync(pkgPath, JSON.stringify(template, null, 2));
+            break;
+            default:
+              log.warn({ target: options.target }, 'invalid target');
+            break;
+          }
+        }
 
         var tasks = [];
 
