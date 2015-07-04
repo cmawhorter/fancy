@@ -9,6 +9,11 @@ var argv = require('yargs').usage('Usage: $0 -x [num] -y [num]', {
       default: null
     , description: 'Run compile before building'
   },
+  o: {
+      alias: 'output'
+    , default: './dist'
+    , description: 'Directory to store files'
+  },
 }).argv;
 
 var build = require('../src/build/build-static.js');
@@ -21,9 +26,9 @@ function done(err, dist) {
 
 if (argv.compile) {
   require('./fancy-compile')(function() {
-    build.start(null, done);
+    build.start(argv, done);
   });
 }
 else {
-  build.start(null, done);
+  build.start(argv, done);
 }

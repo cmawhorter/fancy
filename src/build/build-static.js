@@ -17,20 +17,22 @@ var cwd = process.cwd()
   , pkg = require(path.join(cwd, 'package.json'))
   , template = require('./static/templates/_package.json');
 
-var source = path.join(cwd, './.fancy/compiled')
-  , buildDestination = path.join(cwd, '.fancy/build')
-  , destination = path.join(buildDestination, config.build.destination)
-  , dist = path.join(cwd, config.build.path)
-  , sourceAssets = path.join(source, 'assets')
-  , destinationAssets = path.join(destination, config.build.assets.destination)
-  , indexPath = path.join(source, 'index.json')
-  , ext = config.build.extension.length ? config.build.extension : 'html'
-  , index;
-
 module.exports = {
   start: function(options, callback) {
     options = options || {};
+    options.output = options.output || config.build.path;
     callback = E.timeout(callback || function(err){ if (err) throw err; });
+
+    var source = path.join(cwd, './.fancy/compiled')
+      , buildDestination = path.join(cwd, '.fancy/build')
+      , destination = path.join(buildDestination, config.build.destination)
+      , dist = path.join(cwd, options.output)
+      , sourceAssets = path.join(source, 'assets')
+      , destinationAssets = path.join(destination, config.build.assets.destination)
+      , indexPath = path.join(source, 'index.json')
+      , ext = config.build.extension.length ? config.build.extension : 'html'
+      , index;
+
 
     // TODO: if config.build.destination isn't "/", then all hrefs have to be rewritten
 
