@@ -246,6 +246,10 @@ Site.prototype.urls = function(dedupe, locale, generate) {
   var _this = this;
   var urls = [];
   this.forEach(function(relativePath, properties) {
+    if (!properties) {
+      console.log('urls', relativePath, properties);
+      return;
+    }
     if (!properties.hasProperty('route') && generate) {
       var generatedUrl = Site.generateUrl(properties, locale);
       if (generatedUrl) {

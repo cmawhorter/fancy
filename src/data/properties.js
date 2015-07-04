@@ -3,7 +3,7 @@ var _ = require('lodash')
 
 var i18n = require('../utils/i18n.js');
 
-function Properties(relativePath, locale) {
+function Properties(relativePath) {
   this.relativePath = relativePath;
   this.data = {};
   this.data[i18n.GLOBAL] = [];
@@ -47,10 +47,10 @@ Properties.prototype.clone = function() {
 };
 
 Properties.prototype.get = function(locale) {
-  var data = this.data[i18n.GLOBAL].slice()
+  var data = (this.data[i18n.GLOBAL] || []).slice()
     , localeData;
   if (locale) {
-    localeData = this.data[locale].slice();
+    localeData = (this.data[locale] || []).slice();
     for (var k in localeData) {
       data[k] = localeData[k];
     }
@@ -79,7 +79,7 @@ Properties.prototype.getProperty = function(name, locale) {
 
 Properties.prototype.getPropertyForLocale = function(name, locale) {
   var result = [];
-  for (var i=0; i < this.data[locale].length; i++) {
+  for (var i=0; i < (this.data[locale] || []).length; i++) {
     var data = this.data[locale][i]
       , dataName = data[0].trim().toLowerCase()
       , dataValue = data[1];
@@ -103,7 +103,7 @@ Properties.prototype.hasProperty = function(name, locale) {
 };
 
 Properties.prototype.hasPropertyForLocale = function(name, locale) {
-  for (var i=0; i < this.data[locale].length; i++) {
+  for (var i=0; i < (this.data[locale] || []).length; i++) {
     var dataName = this.data[locale][i][0].trim().toLowerCase();
     if (name === dataName) {
       return true;

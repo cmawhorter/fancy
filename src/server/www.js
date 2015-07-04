@@ -4,7 +4,6 @@ var path = require('path')
   , fs = require('fs');
 
 var express = require('express')
-  , locale = require('locale')
   , axon = require('axon')
   , glob = require('glob')
   , async = require('async')
@@ -106,24 +105,27 @@ module.exports = {
       , themePath: themePath
       , static: options.static
     }, E.bubbles(callback, function() {
-      logger.info({ site: site }, 'watcher started');
-      if (config.strict) {
-        var activeLocale = null; // TODO: iterate over all locales, verifying each
-        var urls = site.urls(false, activeLocale, config.data.routes != 'explicit')
-          , uniqUrls = _.uniq(urls);
-        if (urls.indexOf(null) > -1) {
-          logger.fatal({ err: new Error('Unreachable content') });
-          process.exit(1);
+      // FIXME: this is called prior to data being ready.  need true ready event
+      setTimeout(function() {
+        logger.info({ site: site }, 'watcher started');
+        if (config.strict) {
+          var locale = null; // TODO: iterate over all locales, verifying each
+          var urls = site.urls(false, locale, config.data.routes != 'explicit')
+            , uniqUrls = _.uniq(urls);
+          if (urls.indexOf(null) > -1) {
+            logger.fatal({ err: new Error('Unreachable content') });
+            process.exit(1);
+          }
+          else if (!config.data.collisions && uniqUrls.length !== urls.length) {
+            var dupes = urls.filter(function(element, index) {
+              return index === urls.lastIndexOf(element) && urls.indexOf(element) !== index;
+            });
+            logger.debug({ list: dupes }, 'dupe routes');
+            return callback(new Error('Page collisions'));
+          }
         }
-        else if (!config.data.collisions && uniqUrls.length !== urls.length) {
-          var dupes = urls.filter(function(element, index) {
-            return index === urls.lastIndexOf(element) && urls.indexOf(element) !== index;
-          });
-          logger.debug({ list: dupes }, 'dupe routes');
-          return callback(new Error('Page collisions'));
-        }
-      }
-      callback(null, exportsObjects);
+        callback(null, exportsObjects);
+      }, 500);
     }));
 
     var assetCollisions = helpers.findAssetCollisions([themeAssets, dataAssets].concat(contentAssets), config.data.assets);
@@ -187,14 +189,17 @@ module.exports = {
     router.get('*', function(req, res, next) {
       logger.debug({ url: req.url }, 'received request');
 
-      // TODO: implement locale support. need to peek at which locales are supported by the page and return the best version merged with global
-      // var locales = new locale.Locales(req.headers['accept-language']);
+      var locale = (((req.headers['accept-language'] || '').split(',')[0] || '').split(';')[0] || '').trim();
+      if (!locale.length) {
+        locale = process.env.LANG || null;
+      }
 
       if (helpers.configRedirects(req, res, config.data.redirects, logger)) {
         return;
       }
 
-      // Set current timestamp to used by compilation or whererever else
+      // Set headers for compilation or whatever
+      res.set('Fancy-Locale', locale);
       res.set('Fancy-Compiled', new Date().getTime());
 
       sock.send('find', { url: req.url, locale: locale }, function(data) {
