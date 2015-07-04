@@ -189,17 +189,13 @@ module.exports = {
 
   // set default cli args
   "cli": {
-    "serve": {
-      "port": 8000,
-      "content": "content",
-      "assets": "assets",
-      // a path or JSON string of globals that should be available to every page. static and not watched
-      "globals": null,
-      "theme": null,
-      "livereloadport": "auto",
-      "remotecontrol": true
-    },
-    "compile": {
-    }
+    "port": 8000,
+    "content": "content",
+    "assets": "assets",
+    // a path or JSON string of globals that should be available to every page. static and not watched
+    "globals": null,
+    "theme": null,
+    "livereloadport": "auto",
+    "remotecontrol": true,
   }
 };

@@ -24,6 +24,8 @@ module.exports = {
     var logger = log.child({ component: 'compiler' });
     callback = E.timeout(callback || function(err){ if (err) throw err; });
     options = options || {};
+    options.content = options.content || 'content';
+    options.assets = options.assets || 'assets';
     var destinationAssetsPath = file.abs(path.join(options.target, 'assets'));
     var dbPort = options.port + 100;
 
@@ -78,9 +80,9 @@ module.exports = {
 
     tell('Endpoint: %s', endpoint);
 
-    var themePath = './' + (options.theme ? 'themes/' + options.theme : 'theme');
+    var themePath = file.abs('./' + (options.theme ? 'themes/' + options.theme : 'theme'));
     var themeAssets = file.abs(path.join(themePath, 'public'));
-    var dataAssets = file.abs('./data/assets');
+    var dataAssets = file.abs('./data/' + options.assets);
     var contentAssets = glob.sync(file.abs('./data/' + options.content + '/**/*.html/public'));
     var assetPaths = [themeAssets, dataAssets].concat(contentAssets);
 

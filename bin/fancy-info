@@ -16,7 +16,47 @@ var argv = require('yargs')
       count: 'verbose'
     }
   })
-  .argv;
+  .usage('Usage: $0 -x [num] -y [num]', {
+    p: {
+        alias: 'port'
+      , default: BASE_PORT
+    },
+
+    a: {
+        alias: 'assets'
+      , default: config.cli.assets
+    },
+
+    c: {
+        alias: 'content'
+      , default: config.cli.content
+    },
+
+    g: {
+        alias: 'globals'
+      , default: config.cli.globals
+    },
+
+    t: {
+        alias: 'theme'
+      , default: config.cli.theme
+    },
+
+    l: {
+        alias: 'livereloadport'
+      , default: config.cli.livereloadport
+    },
+
+    s: {
+        alias: 'static' // no watching or livereload
+      , default: config.cli.static
+    },
+
+    r: {
+        alias: 'remotecontrol'
+      , default: config.cli.remotecontrol
+    },
+  }).argv;
 
 var watcher = require('../src/server/watcher.js');
 var pkg = require(path.join(process.cwd(), 'package.json'));
@@ -25,7 +65,7 @@ portfinder.getPort(function(err, port) {
   if (err) throw err;
   var site;
   site = watcher.start({
-      target: './data/' + (config.cli.serve.content || 'content')
+      target: './data/' + config.cli.content
     , port: port
     , static: true // prevents livereload from running
   }, function(err) {

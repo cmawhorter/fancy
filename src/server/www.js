@@ -25,6 +25,8 @@ module.exports = {
     callback = E.timeout(callback || function(err){ if (err) throw err; });
     options = options || {};
     options.livereloadport = options.livereloadport || 35729;
+    options.content = options.content || 'content';
+    options.assets = options.assets || 'assets';
     var dbPort = options.port + 100;
     var themePath = file.abs('./' + (options.theme ? 'themes/' + options.theme : 'theme'));
     var viewPath = path.join(themePath, 'views');
@@ -159,7 +161,7 @@ module.exports = {
       helpers.renderError(req, res, createContext, { code: 500, message: err.message, originalError: err, context: null });
     });
 
-    if (config.cli.serve.remotecontrol) {
+    if (options.remotecontrol) {
       app.get('/__fancy__/:command', function(req, res) {
         switch (req.params.command.toLowerCase()) {
           case 'shutdown':

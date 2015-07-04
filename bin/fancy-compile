@@ -5,31 +5,58 @@ var os = require('os');
 var portfinder = require('portfinder');
 
 var argv = require('yargs').usage('Usage: $0 -x [num] -y [num]', {
-  // workers were removed
-  // w: {
-  //     alias: 'workers'
-  //   , default: config.cli.compile.workers || Math.ceil(Math.min(1, os.cpus()) / 2)
-  // },
+  a: {
+      alias: 'assets'
+    , default: config.cli.assets
+  },
+
+  c: {
+      alias: 'content'
+    , default: config.cli.content
+  },
+
+  g: {
+      alias: 'globals'
+    , default: config.cli.globals
+  },
+
+  t: {
+      alias: 'theme'
+    , default: config.cli.theme
+  },
 }).argv;
+
+var onComplete = null;
+module.exports = function(fn) {
+  onComplete = fn;
+};
+
+if (process.env.NODE_ENV !== 'production') {
+  console.warn('*** Warning: Compilation is not being done in production mode.  Set NODE_ENV=production to fix. ***');
+}
 
 portfinder.getPort(function(err, port) {
   if (err) throw err;
-
-  var wwwOptions = Object.create(config.cli.serve);
+  var wwwOptions = argv;
   wwwOptions.port = port;
-  // wwwOptions.workers = argv.workers;
   wwwOptions.static = true;
   require('../src/server/www.js').start(wwwOptions, function(err, deps) {
     if (err) throw err;
     require('../src/compilation/compiler.js').start({
       target: './.fancy/compiled',
       port: port,
-      content: config.cli.serve.content || 'content',
-      theme: config.cli.serve.theme || null,
+      content: wwwOptions.content,
+      assets: wwwOptions.assets,
+      theme: wwwOptions.theme,
       site: deps.site,
     }, function(err) {
       if (err) throw err;
-      process.exit(0);
+      if (onComplete) {
+        onComplete();
+      }
+      else {
+        process.exit(0);
+      }
     });
   });
 });

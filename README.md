@@ -98,12 +98,14 @@ Add a `fancy` entry to your sites package.json or alternatively create a fancy.j
 
     // set default cli args
     "cli": {
-      "serve": {
-        "port": 8000,
-        "content": "content",
-        "theme": null,
-        "livereloadport": "auto"
-      }
+      "port": 8000,
+      "content": "content",
+      "assets": "assets",
+      // a path or JSON string of globals that should be available to every page. static and not watched
+      "globals": null,
+      "theme": null,
+      "livereloadport": "auto",
+      "remotecontrol": true,
     }
   }
 }
