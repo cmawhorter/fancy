@@ -32,6 +32,7 @@
     "highlight.js": "^8.4.0",
     "inquirer": "^0.8.0",
     "js-yaml": "^3.2.4",
+    "locale": "0.0.20",
     "lodash": "^3.0.1",
     "marked": "^0.3.2",
     "mkdirp": "^0.5.0",

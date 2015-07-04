@@ -26,6 +26,8 @@ var argv = require('yargs').usage('Usage: $0 -x [num] -y [num]', {
   },
 }).argv;
 
+// TODO: support locale
+
 var onComplete = null;
 module.exports = function(fn) {
   onComplete = fn;

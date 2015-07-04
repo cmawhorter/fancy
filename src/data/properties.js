@@ -3,11 +3,8 @@ var _ = require('lodash')
 
 var i18n = require('../utils/i18n.js');
 
-// TODO: remove selectedLocale and move to getters.  this serves as a repo for all data
-
 function Properties(relativePath, locale) {
   this.relativePath = relativePath;
-  this.selectedLocale = locale || i18n.GLOBAL;
   this.data = {};
   this.data[i18n.GLOBAL] = [];
 }
@@ -20,7 +17,7 @@ Properties.prototype.add = function(properties, locale) {
     }
   }
   else {
-    locale = locale || this.selectedLocale;
+    locale = locale || i18n.GLOBAL;
     i18n.validateCountryCode(locale);
     this.data[locale] = this.data[locale] || [];
     (properties || []).forEach(function(element) {
@@ -46,7 +43,6 @@ Properties.prototype.copy = function(fromLocale, toLocale) {
 
 Properties.prototype.clone = function() {
   var properties = Properties.create(Object.create(this.data));
-  properties.selectedLocale = this.selectedLocale;
   return properties;
 };
 

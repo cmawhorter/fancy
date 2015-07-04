@@ -80,7 +80,7 @@ Context.prototype.init = function() {
     _this.extensions[element] = (_this.extensions[element] || EmptyModule)(_this);
   });
 
-  // FIXME: enable? or maybe just conditionally deepFreeze properties?
+  // TODO: enable? or maybe just conditionally deepFreeze properties?
   // disabling now so that commitUsing can work
   // Object.freeze(_this);
 };
@@ -193,7 +193,7 @@ Context.prototype._commitUsing = function() {
   _this.__usesResolved = true;
   _this.__uses.forEach(function(using) {
     if (_this._validKey(using.contextKey)) {
-      // FIXME: decide on whether third parameter should be this.current, this.page or neither.  until then don't pass either to not create backwards compat problem
+      // TODO: decide on whether third parameter should be this.current, this.page or neither.  until then don't pass either to not create backwards compat problem
       _this[using.contextKey] = new Collection((using.result || {}).retrieved || []);
     }
     else {

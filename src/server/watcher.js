@@ -165,7 +165,7 @@ module.exports = {
     });
 
     // TODO: allow disable of reloading content during compilation
-    // site.static = options.static;
+    site.static = options.static;
     site.start(config.data.formats, E.bubbles(done, function() {
       state.site = true;
       done();

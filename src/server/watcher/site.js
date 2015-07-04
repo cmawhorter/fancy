@@ -21,6 +21,7 @@ function Site(dataPath, providers, onChanged) {
   this.aliases = {};
   this.additions = {};
   this.provided = {};
+  this.static = false;
   this.log = log.child({ site: this });
   this.voyeur = new Voyeur({
     saveDestination: path.join(dbDest, 'db.json'),
@@ -131,6 +132,9 @@ Site.prototype.start = function(filetypes, callback) {
   this.voyeur.start(targetPath, watchOptions, function(err) {
     if (err) return callback(err);
     _this.voyeur.saveSync(); // trigger initial save after load
+    if (_this.static) {
+      _this.voyeur.stopSync();
+    }
     callback();
   });
 

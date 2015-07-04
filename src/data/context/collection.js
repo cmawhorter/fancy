@@ -1,6 +1,7 @@
 var Page = require('./page.js');
 
 // FIXME: inherits array, but doesn't wrap -- which could lead to all sorts of problems bc of direct data access
+// TODO: sorting
 
 function Collection(pages, activePage) {
   var _this = this;

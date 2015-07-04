@@ -1,5 +1,3 @@
-// FIXME: commands dep on each other but args aren't consistent and generally confusing.  probably remove yargs and just replace with config for almost all
-
 var fs = require('fs')
   , path = require('path')
   , spawn = require('child_process').spawn;
