@@ -192,6 +192,7 @@ module.exports = {
     "serve": {
       "port": 8000,
       "content": "content",
+      "assets": "assets",
       // a path or JSON string of globals that should be available to every page. static and not watched
       "globals": null,
       "theme": null,
