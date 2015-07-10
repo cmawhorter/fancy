@@ -112,11 +112,12 @@ module.exports = {
           var locale = null; // TODO: iterate over all locales, verifying each
           var urls = site.urls(false, locale, config.data.routes != 'explicit')
             , uniqUrls = _.uniq(urls);
+          // FIXME: this needs to dig deeper with unreachable content
           if (urls.indexOf(null) > -1) {
-            logger.fatal({ err: new Error('Unreachable content') });
-            process.exit(1);
+            logger.error({ err: new Error('Null routes exist; possibly due to locale-specific routes') }, 'unreachable content');
+            // process.exit(1);
           }
-          else if (!config.data.collisions && uniqUrls.length !== urls.length) {
+          if (!config.data.collisions && uniqUrls.length !== urls.length) {
             var dupes = urls.filter(function(element, index) {
               return index === urls.lastIndexOf(element) && urls.indexOf(element) !== index;
             });
@@ -168,19 +169,25 @@ module.exports = {
             logger.warn({ req: req }, 'received shutdown');
             res.end('Goodbye');
             setImmediate(process.exit);
-          break;
+          return;
 
           case 'urls':
             res.contentType('application/json').end(JSON.stringify(site.urls(false, null, config.data.routes != 'explicit'), null, 2));
-          break;
+          return;
 
           case 'snapshot':
             res.contentType('application/json').end(JSON.stringify(site.snapshot(), null, 2));
-          break;
+          return;
+
+          case 'lookup':
+            sock.send('find', { url: req.query.url, locale: req.query.locale }, function(data) {
+              res.contentType('application/json').end(JSON.stringify(data, null, 2));
+            });
+          return;
 
           default:
             res.end('Command not understood');
-          break;
+          return;
         }
       });
     }

@@ -9,7 +9,7 @@ function Page(data) {
 
   // add generated id
   if (!('id' in data)) {
-    __uid_cache[data.__filepath] = __uid_cache[data.__filepath] || data.route[0].replace(/[^\w\d\-\_]/g, '');
+    __uid_cache[data.__filepath] = __uid_cache[data.__filepath] || ((data.route || [])[0] || '').replace(/[^\w\d\-\_]/g, '');
     if (!__uid_cache[data.__filepath]) {
       __uid_cache[data.__filepath] = 'autoid:' + (++__uid).toString();
     }
