@@ -82,10 +82,6 @@ module.exports = function(fancy, callback) {
       }));
     }
 
-    app.use(function(err, req, res, next) {
-      renderError(req, res, err);
-    });
-
     // TODO: implement staged content so that robots can be conditionally supplied via content directory
     app.use('/robots.txt', function(req, res) {
       res.status(200).contentType('text/plain').send([ 'User-agent: *', 'Disallow: /' ].join('\n'));
@@ -121,6 +117,11 @@ module.exports = function(fancy, callback) {
       });
     });
     app.use('/', router);
+
+    app.use(function(err, req, res, next) {
+      renderError(req, res, err);
+    });
+
     app.set('port', fancy.options.port);
     app.listen(fancy.options.port, function(err) {
       if (err) throw err;
