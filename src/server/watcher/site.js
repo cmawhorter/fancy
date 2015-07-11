@@ -26,7 +26,6 @@ function Site(dataPath, providers, onChanged) {
   this.voyeur = new Voyeur({
     saveDestination: path.join(dbDest, 'db.json'),
     defaultProvider: function(item, callback) {
-      console.log('\ndefaultProvider\n\n', item);
       var containingDirectory = path.dirname(item.path);
       if (/\.html$/.test(containingDirectory)) { // content directory
         item.data('contentdirectory', containingDirectory);
@@ -128,7 +127,7 @@ Site.prototype.start = function(filetypes, callback) {
   });
 
   var targetPath = path.join(this.dataPath, '/**/*.{' + filetypes.join(',') + '}');
-  var watchOptions = { ignored: '**/*.html/*/**' };
+  var watchOptions = { ignored: '**/*.html/*/**/*' };
   this.voyeur.start(targetPath, watchOptions, function(err) {
     if (err) return callback(err);
     _this.voyeur.saveSync(); // trigger initial save after load

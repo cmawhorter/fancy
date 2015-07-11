@@ -19,26 +19,34 @@ function processFile(parsers, dirFile, properties, defaultLocale, callback) {
     , format = parsers.validateFormat(dirFile)
     , defaultLocale = i18n.localeStringToParts(filename).locale || defaultLocale;
 
-  console.log('filename: %s, format: %s, defaultLocale: %s', filename, format, defaultLocale)
+  // console.log('filename: %s, format: %s, defaultLocale: %s', filename, format, defaultLocale)
 
   if (filename === PROPERTIES_FILENAME) {
     if (PROPERTIES_FILEFORMATS.indexOf(format) > -1) {
       parsers.processFile(dirFile, properties, defaultLocale, callback);
     }
     else {
-      throw new Error('Properties file "' + dirFile + '" is not in the correct format: ' + PROPERTIES_FILEFORMATS.join(', '));
+      callback(new Error('Properties file "' + dirFile + '" is not in the correct format: ' + PROPERTIES_FILEFORMATS.join(', ')));
     }
   }
   else {
-    // underscore can be used to promote a file as important without affecting the
-    // generated property name or the reserved '_properties'
-    var trimmed = filename[0] === '_' ? filename.substr(1) : filename;
-    // we don't want the formatted data, just the raw parsed data
-    var fakeProperties = new Properties(dirFile);
-    parsers.processFile(dirFile, fakeProperties, defaultLocale, E.bubbles(callback, function(output) {
-      properties.append(trimmed, output, defaultLocale);
-      callback(null);
-    }));
+    fs.stat(dirFile, function(err, stats) {
+      if (err) return callback(err);
+      if (!stats.isDirectory(dirFile)) {
+        // underscore can be used to promote a file as important without affecting the
+        // generated property name or the reserved '_properties'
+        var trimmed = filename[0] === '_' ? filename.substr(1) : filename;
+        // we don't want the formatted data, just the raw parsed data
+        var fakeProperties = new Properties(dirFile);
+        parsers.processFile(dirFile, fakeProperties, defaultLocale, E.bubbles(callback, function(output) {
+          properties.append(trimmed, output, defaultLocale);
+          callback(null);
+        }));
+      }
+      else { // ignore nested directories
+        callback(null);
+      }
+    });
   }
 }
 

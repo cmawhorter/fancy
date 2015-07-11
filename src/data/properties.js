@@ -90,8 +90,12 @@ Properties.prototype.getPropertyForLocale = function(name, locale) {
   return result;
 };
 
+// returns if has property name at all, for any locale prioritizing passed locale first
 Properties.prototype.hasProperty = function(name, locale) {
-  if (this.hasPropertyForLocale(name, i18n.GLOBAL)) {
+  if (locale && this.hasPropertyForLocale(name, locale)) {
+    return true;
+  }
+  else if (this.hasPropertyForLocale(name, i18n.GLOBAL)) {
     return true;
   }
   for (var dataLocale in this.data) {
