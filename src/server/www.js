@@ -157,10 +157,6 @@ module.exports = {
       app.use(express.static(contentAssets[i], staticAssetOptions));
     }
 
-    app.use(function(err, req, res, next) {
-      helpers.renderError(req, res, createContext, { code: 500, message: err.message, originalError: err, context: null });
-    });
-
     if (options.remotecontrol) {
       app.get('/__fancy__/:command', function(req, res) {
         switch (req.params.command.toLowerCase()) {
@@ -225,6 +221,12 @@ module.exports = {
       });
     });
     app.use('/', router);
+
+    // error route at end to handle next(err)
+    app.use(function(err, req, res, next) {
+      helpers.renderError(req, res, createContext, { code: 500, message: err.message, originalError: err, context: null });
+    });
+
     app.listen(options.port, E.exits(true));
 
     exportsObjects.site = site;
