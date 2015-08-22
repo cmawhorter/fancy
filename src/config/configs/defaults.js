@@ -197,5 +197,7 @@ module.exports = {
     "theme": null,
     "livereloadport": "auto",
     "remotecontrol": true,
+    // strip querystring from incoming urls
+    "stripquerystring": false,
   }
 };

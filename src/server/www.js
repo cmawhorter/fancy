@@ -192,6 +192,11 @@ module.exports = {
     router.get('*', function(req, res, next) {
       logger.debug({ url: req.url }, 'received request');
 
+      if (options.stripquerystring) {
+        req.url = req.url.split('?')[0];
+        logger.trace({ url: req.url }, 'querystring stripping enabled');
+      }
+
       var locale = (((req.headers['accept-language'] || '').split(',')[0] || '').split(';')[0] || '').trim();
       if (!locale.length) {
         locale = process.env.LANG || null;

@@ -48,6 +48,11 @@ var argv = require('yargs').usage('Usage: $0 -x [num] -y [num]', {
       alias: 'remotecontrol'
     , default: config.cli.remotecontrol
   },
+
+  q: {
+      alias: 'stripquerystring'
+    , default: config.cli.stripquerystring
+  }
 }).argv;
 
 function validPort(port) {
