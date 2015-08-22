@@ -43,8 +43,14 @@ function fileParser(relativePath, properties, defaultLocale, callback) {
   var format = validateFormat(relativePath);
   if (format) {
     fs.readFile(relativePath, E.bubbles(callback, function(contents) {
-      var output = availableParsers[format].call(module.exports, contents, properties, defaultLocale, relativePath); // sync
-      callback(null, output);
+      var output;
+      try {
+        output = availableParsers[format].call(module.exports, contents, properties, defaultLocale, relativePath); // sync
+        callback(null, output);
+      }
+      catch (err) {
+        callback(err);
+      }
     }));
   }
   else {
