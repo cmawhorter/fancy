@@ -82,6 +82,28 @@ module.exports = function(fancy, callback) {
       }));
     }
 
+    function renderPage(req, res, details, next) {
+      fancy.routeDiscovered(req.url);
+      var contentType = details.res.page.contentType || 'text/html';
+      if (contentType.indexOf(';') > -1) {
+        contentType = contentType.split(';')[0].trim();
+      }
+
+      if (contentType == 'application/json') {
+        res.json(details.res.page.body);
+        return;
+      }
+      else if (contentType == 'application/javascript') {
+        var jsVar = details.res.page.scopeTarget || 'window["' + req.url + '"]';
+        res.status(200).contentType('application/javascript').send(jsVar + ' = ' + JSON.stringify(details.res.page.body));
+        return;
+      }
+      else {
+        res.render('layouts/' + details.layout, details.res);
+        return;
+      }
+    }
+
     // TODO: implement staged content so that robots can be conditionally supplied via content directory
     app.use('/robots.txt', function(req, res) {
       res.status(200).contentType('text/plain').send([ 'User-agent: *', 'Disallow: /' ].join('\n'));
@@ -91,29 +113,23 @@ module.exports = function(fancy, callback) {
     router.get('*', function(req, res, next) {
       fancy.requestPage(req.url, function(err, details) {
         if (err) {
-          renderError(req, res, err);
+          if (req.url.indexOf('?') > -1) { // has querystring?
+            // drop it and try matching
+            fancy.requestPage(req.url.split('?')[0], function(err, details) {
+              if (err) {
+                renderError(req, res, err);
+                return;
+              }
+              renderPage(res, res, details, next);
+            });
+          }
+          else {
+            renderError(req, res, err);
+          }
           return;
         }
 
-        fancy.routeDiscovered(req.url);
-        var contentType = details.res.page.contentType || 'text/html';
-        if (contentType.indexOf(';') > -1) {
-          contentType = contentType.split(';')[0].trim();
-        }
-
-        if (contentType == 'application/json') {
-          res.json(details.res.page.body);
-          return;
-        }
-        else if (contentType == 'application/javascript') {
-          var jsVar = details.res.page.scopeTarget || 'window["' + req.url + '"]';
-          res.status(200).contentType('application/javascript').send(jsVar + ' = ' + JSON.stringify(details.res.page.body));
-          return;
-        }
-        else {
-          res.render('layouts/' + details.layout, details.res);
-          return;
-        }
+        renderPage(res, res, details, next);
       });
     });
     app.use('/', router);
