@@ -41,6 +41,7 @@ function Compile(options, done) {
     this.fancy.routeDiscovered = function(url) {
       var ret = _routeDiscovered.apply(this, arguments);
       if (ret) {
+        console.log('Enqueue file (discovered): ', relativePath);
         _this.enqueueUrl(url);
       }
       return ret;
@@ -66,8 +67,11 @@ Compile.prototype.start = function(callback) {
 
   _this.fancy.init(function(err) {
     if (err) return callback(err);
-    _this.onReady();
-    callback(null);
+    // delay start until really, truly init
+    setTimeout(function() {
+      _this.onReady();
+      callback(null);
+    }, 1000);
   });
 
   // async.parallel([
@@ -90,7 +94,13 @@ Compile.prototype.onReady = function() {
   for (var relativePath in _this.fancy.db.pages) {
     var page = _this.fancy.db.pages[relativePath];
     var utils = helpers({}, _this.fancy);
-    _this.enqueueUrl(utils.relative(null, page.toTemplateObject()));
+    if (false === page.getProperty('compile')) { // if compile set to false, don't include it in compilation
+      console.log('Skipping file (marked no compile): ', relativePath);
+    }
+    else {
+      console.log('Enqueue file: ', relativePath);
+      _this.enqueueUrl(utils.relative(null, page.toTemplateObject()));
+    }
   }
 
 
@@ -116,7 +126,10 @@ Compile.prototype.enqueueUrl = function(route) {
 };
 
 Compile.prototype.addResource = function(route, contents, callback) {
-  var hash = crypto.createHash('sha1').update(route).digest('hex');
+  if (!route) {
+    console.log('Invalid route passed: "%s"', route);
+  }
+  var hash = crypto.createHash('sha1').update(route || '').digest('hex');
   this.index[hash] = route;
   var writable = fs.createWriteStream(path.join(this.destination, hash));
   contents.pipe(writable);
