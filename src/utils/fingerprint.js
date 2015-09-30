@@ -27,7 +27,7 @@ function fingerFile(f, algo, callback) {
 
 function fingerString(str, algo) {
   var hash = crypto.createHash(algo || 'md5');
-  return hash.update(str).digest('hex');
+  return hash.update(str || '').digest('hex');
 }
 
 function fingerObject(obj, algo) {

@@ -1,8 +1,7 @@
 var fs = require('fs')
   , path = require('path')
   , url = require('url')
-  , crypto = require('crypto')
-  , cluster = require('cluster');
+  , crypto = require('crypto');
 
 var async = require('async')
   , mkdirp = require('mkdirp')
@@ -28,7 +27,6 @@ var workers = require('./workers.js');
 
 function Compile(options, done) {
   options.concurrency = Math.max(0, (options.concurrency || 0) - 1); // workaround to hackish way cluster is added
-  this.isMaster = !options.concurrency || cluster.isMaster;
   console.log('Fancy Options: ', options);
   this.fancy = new Fancy(options);
   this.done = done || function(){
@@ -99,7 +97,6 @@ Compile.prototype.start = function(callback) {
 Compile.prototype.onReady = function(callback) {
   var _this = this;
   var logger = log.child({ component: 'compiler' });
-  callback = E.timeout(callback || function(err){ if (err) throw err; });
   options = {
     content: 'content',
     assets: 'assets',
