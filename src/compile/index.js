@@ -168,6 +168,15 @@ Compile.prototype.onReady = function(callback) {
   var contentAssets = glob.sync(file.abs('./data/' + options.content + '/**/*.html/public'));
   var assetPaths = [themeAssets, dataAssets].concat(contentAssets);
 
+  logger.debug('compilation paths', {
+    themePath: themePath,
+    themeAssets: themeAssets,
+    dataAssets: dataAssets,
+    contentAssets: contentAssets,
+    assetPaths: assetPaths,
+    destinationAssetsPath: destinationAssetsPath,
+  });
+
   logger.info({ list: assetPaths }, 'gather assets');
   var allAssets = wwwHelpers.gatherAssets(assetPaths, options.assetExtensions, themeAssets);
   logger.trace({ list: allAssets.map(function(element) { return element.abs; }) }, 'assets found');

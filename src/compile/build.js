@@ -28,7 +28,7 @@ module.exports = {
       , destination = path.join(buildDestination, '/')
       , dist = path.join(cwd, options.output)
       , sourceAssets = path.join(source, 'assets')
-      , destinationAssets = path.join(destination, '/assets')
+      , destinationAssets = path.join(destination, '/')
       , indexPath = path.join(source, 'index.json')
       , ext = 'html'
       , index;

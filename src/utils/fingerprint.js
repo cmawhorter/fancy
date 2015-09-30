@@ -45,13 +45,13 @@ function fingerObject(obj, algo) {
 function fingerArray(arr, algo, deep) {
   var hash = crypto.createHash(algo || 'md5');
   if (deep) {
-    for (var i=0; i < arr.length; i++) {
+    for (var i=0; i < (arr.length || 0); i++) {
       var obj = keys[i];
       hash.update(fingerObject(obj, algo));
     }
   }
   else {
-    hash.update(arr.length);
+    hash.update((arr || []).length.toString());
   }
   return hash.digest('hex');
 }
