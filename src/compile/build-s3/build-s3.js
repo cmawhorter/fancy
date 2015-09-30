@@ -33,18 +33,28 @@ module.exports = function(index, options, callback) {
     routingRules.push('<?xml version="1.0"?>');
     routingRules.push('<RoutingRules>');
 
-    tasks = utils.eachObject(index, options, function(k, entry, abs) {
-      var route = entry.url.toString().substr(1);
+    var addRoutingRule = function(route, hashKey) {
       routingRules.push(' <RoutingRule>');
       routingRules.push('   <Condition>');
-      routingRules.push('     <KeyPrefixEquals>' + (route.trim().length ? entities.encode(route) : '/') + '</KeyPrefixEquals>');
+      routingRules.push('     <KeyPrefixEquals>' + entities.encode(route) + '</KeyPrefixEquals>');
       routingRules.push('   </Condition>');
       routingRules.push('   <Redirect>');
-      routingRules.push('     <ReplaceKeyWith>' + k + '</ReplaceKeyWith>');
+      routingRules.push('     <ReplaceKeyWith>' + hashKey + '</ReplaceKeyWith>');
       routingRules.push('   </Redirect>');
       routingRules.push(' </RoutingRule>');
+    };
 
-      return async.apply(utils.copy, abs, path.join(options.destination, k));
+    tasks = utils.eachObject(index, options, function(hashKey, entry, abs) {
+      var route = entry.url.toString().substr(1);
+      if (!route.trim().length) {
+        route = '/';
+      }
+      var hashKeyWithExtension = hashKey + '.' + (/\.[\w\d_-]+$/.test(route) ? route.split('.').pop() : options.ext);
+      addRoutingRule(route, hashKeyWithExtension);
+      if (route[route.length - 1] === path.sep) {
+        addRoutingRule(route.length > 1 ? route + 'index.html' : 'index.html', hashKeyWithExtension);
+      }
+      return async.apply(utils.copy, abs, path.join(options.destination, hashKeyWithExtension));
     });
 
     routingRules.push('</RoutingRules>');

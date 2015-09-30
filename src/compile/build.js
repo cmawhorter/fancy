@@ -62,8 +62,7 @@ module.exports = {
         builder = buildS3;
       break;
       default:
-        log.warn({ target: options.target }, 'invalid target');
-      break;
+        throw new Error('Invalid target: ' + options.target);
     }
 
     builder(index, {
