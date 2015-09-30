@@ -21,7 +21,6 @@ module.exports = {
       output: './dist',
       target: 'node',
     };
-    callback = E.timeout(callback || function(err){ if (err) throw err; });
 
     var source = path.join(cwd, compile.destination)
       , buildDestination = path.join(cwd, './.fancy/build')
@@ -64,22 +63,22 @@ module.exports = {
       'http-server': '*'
     };
 
-    function copy(src, dest, callback) {
+    function copy(src, dest, done) {
       var destDir = path.dirname(dest)
         , _logger = log.child({ source: src, destination: dest });
       fs.exists(dest, function(yes) {
         if (yes) {
           _logger.trace({ exists: yes }, 'skipping');
-          callback();
+          done();
         }
         else {
           _logger.trace({ directory: destDir }, 'mkdirp');
-          mkdirp(destDir, E.bubbles(callback, function() {
+          mkdirp(destDir, E.bubbles(done, function() {
             var copy = fs.createReadStream(src)
-              .on('error', E.event(callback))
+              .on('error', E.event(done))
               .pipe(fs.createWriteStream(dest))
-              .on('error', E.event(callback))
-              .on('finish', callback);
+              .on('error', E.event(done))
+              .on('finish', done);
             _logger.trace({ source: src, destination: dest }, 'copying');
           }));
         }
@@ -134,11 +133,11 @@ module.exports = {
 
         var assetPaths = fs.readdirSync(sourceAssets);
         assetPaths.forEach(function(assetPath) {
-          tasks.push(function(callback) {
+          tasks.push(function(taskCallback) {
             var transactionSource = path.join(sourceAssets, assetPath)
               , transactionDestination = path.join(destinationAssets, assetPath);
             log.trace({ assetSource: transactionSource, assetDestination: transactionDestination }, 'found and copying assets');
-            ncp(transactionSource, transactionDestination, callback);
+            ncp(transactionSource, transactionDestination, taskCallback);
           });
         });
 
