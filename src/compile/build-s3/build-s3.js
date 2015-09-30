@@ -34,9 +34,10 @@ module.exports = function(index, options, callback) {
     routingRules.push('<RoutingRules>');
 
     tasks = utils.eachObject(index, options, function(k, entry, abs) {
+      var route = entry.url.toString().substr(1);
       routingRules.push(' <RoutingRule>');
       routingRules.push('   <Condition>');
-      routingRules.push('     <KeyPrefixEquals>' + entities.encode(entry.url.toString().substr(1)) + '</KeyPrefixEquals>');
+      routingRules.push('     <KeyPrefixEquals>' + (route.trim().length ? entities.encode(route) : '/') + '</KeyPrefixEquals>');
       routingRules.push('   </Condition>');
       routingRules.push('   <Redirect>');
       routingRules.push('     <ReplaceKeyWith>' + k + '</ReplaceKeyWith>');
