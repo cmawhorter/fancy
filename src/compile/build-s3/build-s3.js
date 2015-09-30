@@ -21,7 +21,7 @@ var E = require('../../utils/E.js')
 //     <KeyPrefixEquals>docs/</KeyPrefixEquals>
 //   </Condition>
 //   <Redirect>
-//     <ReplaceKeyPrefixWith>documents/</ReplaceKeyPrefixWith>
+//     <ReplaceKeyWith>documents/</ReplaceKeyWith>
 //   </Redirect>
 //   </RoutingRule>
 // </RoutingRules>
@@ -39,7 +39,7 @@ module.exports = function(index, options, callback) {
       routingRules.push('     <KeyPrefixEquals>' + entities.encode(entry.url.toString().substr(1)) + '</KeyPrefixEquals>');
       routingRules.push('   </Condition>');
       routingRules.push('   <Redirect>');
-      routingRules.push('     <ReplaceKeyPrefixWith>' + k + '</ReplaceKeyPrefixWith>');
+      routingRules.push('     <ReplaceKeyWith>' + k + '</ReplaceKeyWith>');
       routingRules.push('   </Redirect>');
       routingRules.push(' </RoutingRule>');
 
