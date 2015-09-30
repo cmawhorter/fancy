@@ -33,6 +33,16 @@ module.exports = {
       , ext = 'html'
       , index;
 
+    log.debug('initializing build', {
+      source: source,
+      buildDestination: buildDestination,
+      destination: destination,
+      dist: dist,
+      sourceAssets: sourceAssets,
+      destinationAssets: destinationAssets,
+      indexPath: indexPath,
+      ext: ext,
+    });
 
     // TODO: if config.build.destination isn't "/", then all hrefs have to be rewritten
 

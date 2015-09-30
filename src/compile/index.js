@@ -109,6 +109,9 @@ Compile.prototype.onReady = function(callback) {
 
   log.debug('on ready options', options);
 
+    log.debug('Writing index...', path.join(options.target, 'index.json'));
+process.exit();
+
   function moveAsset(src, dest, done) {
     var destDir = path.dirname(dest)
       , _logger = logger.child({ source: src, destination: dest });
@@ -251,7 +254,7 @@ Compile.prototype.onReady = function(callback) {
   // TODO: get other extraneous features like redirects, aliased routes and other stuff
 
   q.drain = function() {
-    log.debug('Writing index...');
+    log.debug('Writing index...', path.join(options.target, 'index.json'));
     fs.writeFileSync(path.join(options.target, 'index.json'), JSON.stringify(dictionary, null, 2));
     removeExpiredFiles(options.target, dictionary);
     log.debug('Done!');
