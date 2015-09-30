@@ -11,6 +11,7 @@ var ncp = require('ncp').ncp
 portfinder.basePort = 3000;
 
 var Compile = require('../../compile/index.js')
+  , Build = require('../../compile/build.js')
   , help = require('../../utils/help');
 
 var site = require('../lib/site.js');
@@ -52,7 +53,7 @@ module.exports = function(yargs) {
   rimraf(compile.destination, function() {
     compile.start(function(err) {
       if (err) throw err;
-      // anything?
+      Build.start(compile, process.exit.bind(process));
     });
   });
 };
