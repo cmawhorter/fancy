@@ -1,6 +1,7 @@
 var create = require('./create')
   , serve = require('./serve')
   , clean = require('./clean')
+  , build = require('./build')
   , compile = require('./compile');
 
 var cmds = {
@@ -15,9 +16,10 @@ var cmds = {
   , test: serve
 
   , compile: compile
-  , build: compile
   , make: compile
   , generate: compile
+
+  , build: build
 };
 
 module.exports = cmds;

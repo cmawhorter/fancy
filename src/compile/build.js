@@ -16,13 +16,13 @@ var cwd = process.cwd()
   , template = require('./static/templates/_package.json');
 
 module.exports = {
-  start: function(compile, callback) {
+  start: function(compileDestination, target, callback) {
     var options = {
       output: './dist',
-      target: 'node',
+      target: target,
     };
 
-    var source = path.join(cwd, compile.destination)
+    var source = path.join(cwd, compileDestination)
       , buildDestination = path.join(cwd, './.fancy/build')
       , destination = path.join(buildDestination, '/')
       , dist = path.join(cwd, options.output)
