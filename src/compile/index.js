@@ -109,22 +109,22 @@ Compile.prototype.onReady = function(callback) {
 
   log.debug('on ready options', options);
 
-  function moveAsset(src, dest, callback) {
+  function moveAsset(src, dest, done) {
     var destDir = path.dirname(dest)
       , _logger = logger.child({ source: src, destination: dest });
     fs.exists(dest, function(yes) {
       if (yes) {
         _logger.trace({ exists: yes }, 'skipping');
-        callback();
+        done();
       }
       else {
         _logger.trace({ directory: destDir }, 'mkdirp');
-        mkdirp(destDir, E.bubbles(callback, function() {
+        mkdirp(destDir, E.bubbles(done, function() {
           var copy = fs.createReadStream(src)
-            .on('error', E.event(callback))
+            .on('error', E.event(done))
             .pipe(fs.createWriteStream(dest))
-            .on('error', E.event(callback))
-            .on('finish', callback);
+            .on('error', E.event(done))
+            .on('finish', done);
           _logger.trace({ source: src, destination: dest }, 'copying');
         }));
       }
@@ -220,6 +220,7 @@ Compile.prototype.onReady = function(callback) {
     };
     log.debug('\t-> Processing "%s" and writing to %s', task.url, destination);
     // TODO: if strict and non-200 status returned, error
+    log.trace('Retrieving %s', endpoint + task.url);
     request.get(endpoint + task.url)
       .on('response', function(res) {
         result.fingerprint = res.headers['etag'];
@@ -230,7 +231,7 @@ Compile.prototype.onReady = function(callback) {
       .pipe(fs.createWriteStream(destination))
         .on('error', E.event(queueCallback))
         .on('finish', queueCallback);
-  }, 24);
+  }, 12);
 
   var _routeDiscovered = this.fancy.routeDiscovered;
   this.fancy.routeDiscovered = function(url) {
