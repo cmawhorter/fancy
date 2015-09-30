@@ -57,7 +57,9 @@ var eachObject = module.exports.eachObject = function eachObject(index, options,
   for (var k in index) {
     var entry = index[k];
     var abs = path.join(options.source, k);
-    tasks.push(iteratorHandler(k, entry, abs));
+    if (entry.status === 200) {
+      tasks.push(iteratorHandler(k, entry, abs));
+    }
   }
   return tasks;
 }

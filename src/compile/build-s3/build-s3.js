@@ -33,15 +33,19 @@ module.exports = function(index, options, callback) {
     routingRules.push('<?xml version="1.0"?>');
     routingRules.push('<RoutingRules>');
 
+    var seenRoutes = [];
     var addRoutingRule = function(route, hashKey) {
-      routingRules.push(' <RoutingRule>');
-      routingRules.push('   <Condition>');
-      routingRules.push('     <KeyPrefixEquals>' + entities.encode(route) + '</KeyPrefixEquals>');
-      routingRules.push('   </Condition>');
-      routingRules.push('   <Redirect>');
-      routingRules.push('     <ReplaceKeyWith>' + hashKey + '</ReplaceKeyWith>');
-      routingRules.push('   </Redirect>');
-      routingRules.push(' </RoutingRule>');
+      if (seenRoutes.indexOf(route) < 0) {
+        seenRoutes.push(route);
+        routingRules.push(' <RoutingRule>');
+        routingRules.push('   <Condition>');
+        routingRules.push('     <KeyPrefixEquals>' + entities.encode(route) + '</KeyPrefixEquals>');
+        routingRules.push('   </Condition>');
+        routingRules.push('   <Redirect>');
+        routingRules.push('     <ReplaceKeyWith>' + hashKey + '</ReplaceKeyWith>');
+        routingRules.push('   </Redirect>');
+        routingRules.push(' </RoutingRule>');
+      }
     };
 
     tasks = utils.eachObject(index, options, function(hashKey, entry, abs) {
