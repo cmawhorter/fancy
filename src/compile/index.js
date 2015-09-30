@@ -35,8 +35,10 @@ function Compile(options, done) {
   };
 
   this.host = 'localhost';
-  this.destinationRoot = 'dist';
-  this.destination = this.destinationRoot + '/compiled';
+  this.destination = './.fancy/compiled';
+
+  log.debug('creating compile destination', path.join(process.cwd(), this.destination));
+  mkdirp.sync(path.join(process.cwd(), this.destination));
 
   this.queue = null;
   this.workers = 1;
@@ -100,7 +102,7 @@ Compile.prototype.onReady = function(callback) {
   options = {
     content: 'content',
     assets: 'assets',
-    target: 'dist',
+    target: this.destination,
     port: 3000,
     assetExtensions: ['png','gif','jpg','ico'],
   };
@@ -108,9 +110,6 @@ Compile.prototype.onReady = function(callback) {
   var dbPort = options.port + 100;
 
   log.debug('on ready options', options);
-
-    log.debug('Writing index...', path.join(options.target, 'index.json'));
-process.exit();
 
   function moveAsset(src, dest, done) {
     var destDir = path.dirname(dest)
@@ -163,7 +162,7 @@ process.exit();
 
   log.debug('Endpoint: %s', endpoint);
 
-  var themePath = file.abs('./' + (options.theme ? 'themes/' + options.theme : 'theme'));
+  var themePath = file.abs('./' + (_this.fancy.options.theme ? 'themes/' + _this.fancy.options.theme : 'theme'));
   var themeAssets = file.abs(path.join(themePath, 'public'));
   var dataAssets = file.abs('./data/' + options.assets);
   var contentAssets = glob.sync(file.abs('./data/' + options.content + '/**/*.html/public'));
@@ -188,7 +187,7 @@ process.exit();
   }));
 
   var urls = [];
-  (_this.fancy.options.buildRoutes || []).forEach(_this.enqueueUrl);
+  (_this.fancy.options.buildRoutes || []).forEach(urls.push.bind(urls));
 
   for (var relativePath in _this.fancy.db.pages) {
     var page = _this.fancy.db.pages[relativePath];

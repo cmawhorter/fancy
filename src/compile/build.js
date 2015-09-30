@@ -18,13 +18,13 @@ var cwd = process.cwd()
 module.exports = {
   start: function(compile, callback) {
     var options = {
-      output: compile.destinationRoot + '/build-dist',
+      output: './dist',
       target: 'node',
     };
     callback = E.timeout(callback || function(err){ if (err) throw err; });
 
     var source = path.join(cwd, compile.destination)
-      , buildDestination = path.join(cwd, compile.destinationRoot + '/build')
+      , buildDestination = path.join(cwd, './.fancy/build')
       , destination = path.join(buildDestination, '/')
       , dist = path.join(cwd, options.output)
       , sourceAssets = path.join(source, 'assets')
