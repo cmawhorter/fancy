@@ -16,7 +16,9 @@ var async = require('async')
   , E = require('../utils/E.js')
   , log = require('../utils/log.js')
   , file = require('../utils/file.js')
-  , fingerprint = require('../utils/fingerprint.js');
+  , tell = require('../utils/tell.js')
+  , fingerprint = require('../utils/fingerprint.js')
+  , wwwHelpers = require('../utils/www-helpers.js');
 
 // request.debug = true;
 
@@ -84,15 +86,31 @@ function Compile(options, done) {
 
 Compile.prototype.start = function(callback) {
   var _this = this;
+  this.fancy.init(function(err) {
+    if (err) return callback(err);
+    // delay start until really, truly init
+    setTimeout(function() {
+      log.debug('fancy init complete; calling ready');
+      _this.onReady(callback);
+    }, 1000);
+  });
+};
+
+Compile.prototype.onReady = function(callback) {
+  var _this = this;
   var logger = log.child({ component: 'compiler' });
   callback = E.timeout(callback || function(err){ if (err) throw err; });
   options = {
     content: 'content',
     assets: 'assets',
     target: 'dist',
+    port: 3000,
+    assetExtensions: ['png','gif','jpg','ico'],
   };
   var destinationAssetsPath = file.abs(path.join(options.target, 'assets'));
   var dbPort = options.port + 100;
+
+  log.debug('on ready options', options);
 
   function moveAsset(src, dest, callback) {
     var destDir = path.dirname(dest)
@@ -134,16 +152,16 @@ Compile.prototype.start = function(callback) {
     // TODO: remove expired assets.  for now they're just recreated every compile (slow)
   }
 
-  tell('Starting compiler...');
+  log.debug('Starting compiler...');
 
   mkdirp.sync(destinationAssetsPath);
 
-  tell('Destination confirmed: %s', options.target);
+  log.debug('Destination confirmed: %s', options.target);
 
   var dictionary = {};
   var endpoint = 'http://localhost:' + options.port;
 
-  tell('Endpoint: %s', endpoint);
+  log.debug('Endpoint: %s', endpoint);
 
   var themePath = file.abs('./' + (options.theme ? 'themes/' + options.theme : 'theme'));
   var themeAssets = file.abs(path.join(themePath, 'public'));
@@ -152,7 +170,7 @@ Compile.prototype.start = function(callback) {
   var assetPaths = [themeAssets, dataAssets].concat(contentAssets);
 
   logger.info({ list: assetPaths }, 'gather assets');
-  var allAssets = wwwHelpers.gatherAssets(assetPaths, config.data.assets, themeAssets);
+  var allAssets = wwwHelpers.gatherAssets(assetPaths, options.assetExtensions, themeAssets);
   logger.trace({ list: allAssets.map(function(element) { return element.abs; }) }, 'assets found');
 
   // FIXME: only remove the expired files and not the whole directory.  see removeExpiredFiles TODO above
@@ -184,7 +202,7 @@ Compile.prototype.start = function(callback) {
     }
   }
 
-  tell('Retrieved %s urls', urls.length);
+  log.debug('Retrieved %s urls', urls.length);
 
   // TODO: conditional recompile. load index.json and compare compiled value against last revision
 
@@ -203,7 +221,7 @@ Compile.prototype.start = function(callback) {
       , fingerprint: null
       , location: null
     };
-    tell('\t-> Processing "%s" and writing to %s', task.url, destination);
+    log.debug('\t-> Processing "%s" and writing to %s', task.url, destination);
     // TODO: if strict and non-200 status returned, error
     request.get(endpoint + task.url)
       .on('response', function(res) {
@@ -231,10 +249,10 @@ Compile.prototype.start = function(callback) {
   // TODO: get other extraneous features like redirects, aliased routes and other stuff
 
   q.drain = function() {
-    tell('Writing index...');
+    log.debug('Writing index...');
     fs.writeFileSync(path.join(options.target, 'index.json'), JSON.stringify(dictionary, null, 2));
     removeExpiredFiles(options.target, dictionary);
-    tell('Done!');
+    log.debug('Done!');
     callback();
   };
 
@@ -244,35 +262,35 @@ Compile.prototype.start = function(callback) {
   });
 };
 
-Compile.prototype.onReady = function() {
-  // var _this = this;
-  // console.log('Compile ready %s', process.pid);
-  // (_this.fancy.options.buildRoutes || []).forEach(_this.enqueueUrl);
+// Compile.prototype.onReady = function() {
+//   var _this = this;
+//   console.log('Compile ready %s', process.pid);
+//   (_this.fancy.options.buildRoutes || []).forEach(_this.enqueueUrl);
 
-  // for (var relativePath in _this.fancy.db.pages) {
-  //   var page = _this.fancy.db.pages[relativePath];
-  //   var utils = helpers({}, _this.fancy);
-  //   if (false === page.getProperty('compile')) { // if compile set to false, don't include it in compilation
-  //     console.log('Skipping file (marked no compile): ', relativePath);
-  //   }
-  //   else {
-  //     console.log('Enqueue file: ', relativePath);
-  //     _this.enqueueUrl(utils.relative(null, page.toTemplateObject()));
-  //   }
-  // }
+//   for (var relativePath in _this.fancy.db.pages) {
+//     var page = _this.fancy.db.pages[relativePath];
+//     var utils = helpers({}, _this.fancy);
+//     if (false === page.getProperty('compile')) { // if compile set to false, don't include it in compilation
+//       console.log('Skipping file (marked no compile): ', relativePath);
+//     }
+//     else {
+//       console.log('Enqueue file: ', relativePath);
+//       _this.enqueueUrl(utils.relative(null, page.toTemplateObject()));
+//     }
+//   }
 
 
-  // rimraf('./dist', function() {
-  //   mkdirp.sync('./dist');
-  //   // ncp('./themes/blah/public/', './dist', function (err) {
-  //   //  if (err) {
-  //   //    return console.error(err);
-  //   //  }
-  //   //  console.log('done!');
-  //   // });
-  //   process.exit(0);
-  // });
-};
+//   // rimraf('./dist', function() {
+//   //   mkdirp.sync('./dist');
+//   //   // ncp('./themes/blah/public/', './dist', function (err) {
+//   //   //  if (err) {
+//   //   //    return console.error(err);
+//   //   //  }
+//   //   //  console.log('done!');
+//   //   // });
+//   //   process.exit(0);
+//   // });
+// };
 
 Compile.prototype.enqueueUrl = function(route) {
   var _this = this;
