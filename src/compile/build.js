@@ -11,9 +11,8 @@ ncp.stopOnError = true;
 var E = require('../utils/E.js')
   , log = require('../utils/log.js');
 
-var cwd = process.cwd()
-  , pkg = require(path.join(cwd, 'package.json'))
-  , template = require('./static/templates/_package.json');
+var buildNode = require('./build-node/build-node.js');
+var buildS3 = require('./build-s3/build-s3.js');
 
 module.exports = {
   start: function(compileDestination, target, callback) {
@@ -21,6 +20,8 @@ module.exports = {
       output: './dist',
       target: target,
     };
+
+    var cwd = process.cwd();
 
     var source = path.join(cwd, compileDestination)
       , buildDestination = path.join(cwd, './.fancy/build')
@@ -51,107 +52,29 @@ module.exports = {
 
     index = require(indexPath);
 
-    var IGNORED_KEYS = [ 'private', 'scripts' ];
-
-    for (var k in template) {
-      if (IGNORED_KEYS.indexOf(k) < 0) {
-        template[k] = pkg[k] || '';
-      }
+    var builder;
+    switch (options.target) {
+      case 'node':
+        builder = buildNode;
+      break;
+      case 's3':
+        // TODO: copy generic error to error.html
+        builder = buildS3;
+      break;
+      default:
+        log.warn({ target: options.target }, 'invalid target');
+      break;
     }
 
-    template['dependencies'] = {
-      'http-server': '*'
-    };
-
-    function copy(src, dest, done) {
-      var destDir = path.dirname(dest)
-        , _logger = log.child({ source: src, destination: dest });
-      fs.exists(dest, function(yes) {
-        if (yes) {
-          _logger.trace({ exists: yes }, 'skipping');
-          done();
-        }
-        else {
-          _logger.trace({ directory: destDir }, 'mkdirp');
-          mkdirp(destDir, E.bubbles(done, function() {
-            var copy = fs.createReadStream(src)
-              .on('error', E.event(done))
-              .pipe(fs.createWriteStream(dest))
-              .on('error', E.event(done))
-              .on('finish', done);
-            _logger.trace({ source: src, destination: dest }, 'copying');
-          }));
-        }
-      });
-    }
-
-    log.info({ target: destination }, 'cleaning previous build');
-
-    rimraf(dist, function(err) {
-      if (err) {
-        throw err;
-      }
-      rimraf(buildDestination, function(err) {
-        if (err) {
-          throw err;
-        }
-        log.trace({ target: destination, build: buildDestination }, 'creating build directory');
-        mkdirp.sync(destination);
-
-        switch (options.target) {
-          case 'node':
-            var pkgPath = path.join(buildDestination, 'package.json');
-            log.debug({ target: pkgPath }, 'creating package.json');
-            fs.writeFileSync(pkgPath, JSON.stringify(template, null, 2));
-          break;
-          default:
-            log.warn({ target: options.target }, 'invalid target');
-          break;
-        }
-
-        var tasks = [];
-
-        log.debug({ directory: destination }, 'copying pages');
-        log.trace({ list: Object.keys(index) });
-
-        for (var k in index) {
-          var entry = index[k];
-          var abs = path.join(source, k);
-          var diskUrl = entry.url;
-          if (diskUrl[diskUrl.length - 1] === path.sep) {
-            diskUrl += 'index';
-          }
-          if (!/\.[\w\d_-]+/.test(diskUrl)) { // don't add for urls with an extension
-            diskUrl += '.' + ext;
-          }
-          tasks.push(async.apply(copy, abs, path.join(destination, diskUrl)));
-        }
-
-        log.debug({ directory: destination, source: sourceAssets }, 'copying assets');
-
-        var assetPaths = fs.readdirSync(sourceAssets);
-        assetPaths.forEach(function(assetPath) {
-          tasks.push(function(taskCallback) {
-            var transactionSource = path.join(sourceAssets, assetPath)
-              , transactionDestination = path.join(destinationAssets, assetPath);
-            log.trace({ assetSource: transactionSource, assetDestination: transactionDestination }, 'found and copying assets');
-            ncp(transactionSource, transactionDestination, taskCallback);
-          });
-        });
-
-        async.parallelLimit(tasks, 8, function(err) {
-          if (err) {
-            throw err;
-          }
-          mkdirp.sync(dist);
-          ncp(buildDestination, dist, function(err) {
-            if (err) {
-              throw err;
-            }
-            callback(null, dist);
-          });
-        });
-      });
-    });
+    builder(index, {
+      source: source,
+      buildDestination: buildDestination,
+      destination: destination,
+      dist: dist,
+      sourceAssets: sourceAssets,
+      destinationAssets: destinationAssets,
+      indexPath: indexPath,
+      ext: ext,
+    }, callback);
   }
 };

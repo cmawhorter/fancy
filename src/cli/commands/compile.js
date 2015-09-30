@@ -59,7 +59,10 @@ module.exports = function(yargs) {
   rimraf(compile.destination, function() {
     compile.start(function(err) {
       if (err) throw err;
-      Build.start(compile.destination, argv.target, process.exit.bind(process));
+      Build.start(compile.destination, argv.target, function(err) {
+        if (err) throw err;
+        process.exit();
+      });
     });
   });
 };

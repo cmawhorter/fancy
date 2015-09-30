@@ -34,5 +34,8 @@ module.exports = function(yargs) {
   process.chdir(cwd);
   // console.log('cwd', cwd, 'port', port, 'dir', dir); process.exit();
 
-  Build.start('./.fancy/compiled', argv.target, process.exit.bind(process));
+  Build.start('./.fancy/compiled', argv.target, function(err) {
+    if (err) throw err;
+    process.exit();
+  });
 };
