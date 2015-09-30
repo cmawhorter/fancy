@@ -205,6 +205,10 @@ Compile.prototype.onReady = function(callback) {
 
   var alreadyCrawled = [];
   var q = async.queue(function(task, queueCallback) {
+    if (!task.url) {
+      log.warn('invalid task url', task);
+      return queueCallback(null);
+    }
     if (alreadyCrawled.indexOf(task.url) > -1) {
       logger.trace({ url: task.url }, 'skipping, already crawled');
       return queueCallback(null);
