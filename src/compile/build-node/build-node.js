@@ -36,7 +36,7 @@ module.exports = function(index, options, callback) {
     var tasks;
 
     tasks = utils.eachObject(index, options, function(k, entry, abs) {
-      var diskUrl = entry.url.toString();
+      var diskUrl = Array.isArray(entry.url) ? entry.url[0] : entry.url;
       if (diskUrl[diskUrl.length - 1] === path.sep) {
         diskUrl += 'index';
       }

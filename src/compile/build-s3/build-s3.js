@@ -1,3 +1,5 @@
+require('http').globalAgent.maxSockets = require('https').globalAgent.maxSockets = 20;
+
 var path = require('path')
   , fs = require('fs');
 
@@ -29,40 +31,22 @@ var E = require('../../utils/E.js')
 module.exports = function(index, options, callback) {
   utils.prep(options, function(err) {
     var tasks;
-    var routingRules = [];
-    routingRules.push('<?xml version="1.0"?>');
-    routingRules.push('<RoutingRules>');
-
-    var seenRoutes = [];
-    var addRoutingRule = function(route, hashKey) {
-      if (seenRoutes.indexOf(route) < 0) {
-        seenRoutes.push(route);
-        routingRules.push(' <RoutingRule>');
-        routingRules.push('   <Condition>');
-        routingRules.push('     <KeyPrefixEquals>' + entities.encode(route) + '</KeyPrefixEquals>');
-        routingRules.push('   </Condition>');
-        routingRules.push('   <Redirect>');
-        routingRules.push('     <ReplaceKeyWith>' + hashKey + '</ReplaceKeyWith>');
-        routingRules.push('   </Redirect>');
-        routingRules.push(' </RoutingRule>');
-      }
-    };
 
     tasks = utils.eachObject(index, options, function(hashKey, entry, abs) {
-      var route = entry.url.toString().substr(1);
-      if (!route.trim().length) {
-        route = '/';
+      var diskUrl = Array.isArray(entry.url) ? entry.url[0] : entry.url;
+      if (diskUrl[diskUrl.length - 1] === path.sep) {
+        diskUrl += 'index.html';
       }
-      var hashKeyWithExtension = hashKey + '.' + (/\.[\w\d_-]+$/.test(route) ? route.split('.').pop() : options.ext);
-      addRoutingRule(route, hashKeyWithExtension);
-      if (route[route.length - 1] === path.sep) {
-        addRoutingRule(route.length > 1 ? route + 'index.html' : 'index.html', hashKeyWithExtension);
+      else {
+        var parts = diskUrl.split('/');
+        var partFilename = '.collision.' + parts.pop();
+        diskUrl = parts.join('/') + '/' + partFilename;
       }
-      return async.apply(utils.copy, abs, path.join(options.destination, hashKeyWithExtension));
+      // if (!/\.[\w\d_-]+$/.test(diskUrl)) { // don't add for urls with an extension
+      //   diskUrl += '.' + options.ext;
+      // }
+      return async.apply(utils.copy, abs, path.join(options.destination, diskUrl));
     });
-
-    routingRules.push('</RoutingRules>');
-    fs.writeFileSync(path.join(options.destination, '.rules.xml'), routingRules.join('\n'));
 
     Array.prototype.push.apply(tasks, utils.copyAllAssets(options));
     utils.build(tasks, options, callback);
