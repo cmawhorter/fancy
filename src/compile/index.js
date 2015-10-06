@@ -206,7 +206,17 @@ Compile.prototype.onReady = function(callback) {
     }
     else {
       console.log('Enqueue file: ', relativePath);
-      urls.push(utils.relative(null, page.toTemplateObject()));
+      var pageHash = page.toTemplateObject();
+      // create a page for each route
+      var routes = Array.isArray(pageHash.route) ? pageHash.route : [ pageHash.route ];
+      var knownPageRoutes = [];
+      for (var i=0; i < routes.length; i++) {
+        if (knownPageRoutes.indexOf(routes[i]) < 0) {
+          pageHash.route = routes[i];
+          urls.push(utils.relative(null, pageHash));
+          knownPageRoutes.push(routes[i]);
+        }
+      }
     }
   }
 
