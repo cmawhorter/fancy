@@ -40,13 +40,11 @@ module.exports = function(fancy, callback) {
 
     if (fancy.options.concurrency) {
       // wrap fancy.routeDiscovered in the worker to aggregate urls in master
-      var _routeDiscovered = fancy.routeDiscovered;
-      fancy.routeDiscovered = function(url) {
+      fancy.options.onRouteDiscovered = function(url, exists) {
         process.send({
           cmd: 'routeDiscovered',
           url: url
         });
-        return _routeDiscovered.apply(this, arguments);
       }
     }
 

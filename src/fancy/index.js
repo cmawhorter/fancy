@@ -30,6 +30,7 @@ function Fancy(options) {
     , strictMode: true
       // FIXME: cluster concurrency is poorly structured but seemingly works
     , concurrency: 0 // require('os').cpus().length
+    , onRouteDiscovered: function(url, exists){}
   };
   // load options
   for (var k in options) {
@@ -169,13 +170,11 @@ Fancy.prototype.init = function(callback) {
 };
 
 Fancy.prototype.routeDiscovered = function(url) {
-  if (this.knownRoutes.indexOf(url) < 0) {
+  var exists = this.knownRoutes.indexOf(url) > -1;
+  if (!exists) {
     this.knownRoutes.push(url);
-    return true;
   }
-  else {
-    return false;
-  }
+  this.options.onRouteDiscovered(url, exists);
 };
 
 Fancy.prototype.getView = function(currentLayout, relativePath) {

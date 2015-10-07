@@ -205,7 +205,6 @@ Compile.prototype.onReady = function(callback) {
       console.log('Skipping file (marked no compile): ', relativePath);
     }
     else {
-      console.log('Enqueue file: ', relativePath);
       var pageHash = page.toTemplateObject();
       // create a page for each route
       var routes = Array.isArray(pageHash.route) ? pageHash.route : [ pageHash.route ];
@@ -213,7 +212,9 @@ Compile.prototype.onReady = function(callback) {
       for (var i=0; i < routes.length; i++) {
         if (knownPageRoutes.indexOf(routes[i]) < 0) {
           pageHash.route = routes[i];
-          urls.push(utils.relative(null, pageHash));
+          var pageUrl = utils.relative(null, pageHash);
+          log.debug({ path: relativePath, url: pageUrl }, 'enqueue file');
+          urls.push(pageUrl);
           knownPageRoutes.push(routes[i]);
         }
       }
@@ -258,14 +259,11 @@ Compile.prototype.onReady = function(callback) {
         .on('finish', queueCallback);
   }, 12);
 
-  var _routeDiscovered = this.fancy.routeDiscovered;
-  this.fancy.routeDiscovered = function(url) {
-    var ret = _routeDiscovered.apply(this, arguments);
-    if (ret) {
-      console.log('Enqueue file (discovered): ', relativePath);
-      q.push({ url: url });
+  this.fancy.options.onRouteDiscovered = function(pageUrl, exists) {
+    if (!exists) {
+      log.debug({ path: 'unknown', url: pageUrl }, 'enqueue file (discovered)');
+      q.push({ url: pageUrl });
     }
-    return ret;
   }
 
   // TODO: get yield urls and append to end of queue
