@@ -34,8 +34,14 @@ module.exports = function(index, options, callback) {
 
     tasks = utils.eachObject(index, options, function(hashKey, entry, abs) {
       var diskUrl = Array.isArray(entry.url) ? entry.url[0] : entry.url;
-      if (diskUrl[diskUrl.length - 1] === path.sep) {
+      if (diskUrl[diskUrl.length - 1] === path.sep) { // ends in a slash
         diskUrl += 'index.html';
+      }
+      else if (!diskUrl.split('/').pop().split('?')[0].trim().length) { // querystring only name
+        var parts = diskUrl.split('/');
+        parts.pop(); // discard
+        var partFilename = 'index.html';
+        diskUrl = parts.join('/') + '/' + partFilename;
       }
       else {
         var parts = diskUrl.split('/');
