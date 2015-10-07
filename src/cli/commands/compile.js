@@ -27,6 +27,8 @@ module.exports = function(yargs) {
       }
     }).argv;
 
+  process.env.NODE_ENV = 'production';
+
   var port = 3000
     , dir = '.';
   switch (argv._.length) {
