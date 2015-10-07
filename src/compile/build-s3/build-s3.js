@@ -46,7 +46,7 @@ module.exports = function(index, options, callback) {
       //   diskUrl += '.' + options.ext;
       // }
       var source = path.join(options.destination, diskUrl);
-      log.debug({ key: k, entry: entry, abs: abs, from: source, to: diskUrl }, 'creating copy task');
+      log.debug({ key: hashKey, entry: entry, abs: abs, from: source, to: diskUrl }, 'creating copy task');
       return async.apply(utils.copy, abs, source);
     });
 
