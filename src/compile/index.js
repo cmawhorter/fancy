@@ -196,7 +196,7 @@ Compile.prototype.onReady = function(callback) {
   }));
 
   var urls = [];
-  (_this.fancy.options.buildRoutes || []).forEach(urls.push.bind(urls));
+  Array.prototype.push.apply(urls, _this.fancy.options.buildRoutes || []);
 
   for (var relativePath in _this.fancy.db.pages) {
     var page = _this.fancy.db.pages[relativePath];
