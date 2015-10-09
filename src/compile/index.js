@@ -273,7 +273,7 @@ Compile.prototype.onReady = function(callback) {
     log.debug('Writing index...', path.join(options.target, 'index.json'));
     fs.writeFileSync(path.join(options.target, 'index.json'), JSON.stringify(dictionary, null, 2));
     removeExpiredFiles(options.target, dictionary);
-    log.debug('Done!');
+    log.debug('Done crawling!');
     callback();
   };
 
