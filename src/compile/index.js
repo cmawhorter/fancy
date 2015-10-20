@@ -261,6 +261,7 @@ Compile.prototype.onReady = function(callback) {
 
   this.fancy.options.onRouteDiscovered = function(pageUrl, exists) {
     if (!exists) {
+      pageUrl = decodeURIComponent(pageUrl);
       log.debug({ path: 'unknown', url: pageUrl }, 'enqueue file (discovered)');
       q.push({ url: pageUrl });
     }
