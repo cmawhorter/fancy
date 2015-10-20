@@ -189,8 +189,8 @@ Fancy.prototype.createResponse = function(url, page, params) {
   var res = {};
 
   Object.defineProperty(res, 'fancy', { value: helpers(res, this), enumerable: true });
-  Object.defineProperty(res, 'yield', { value: function(yieldUrl) {
-    _this.routeDiscovered(yieldUrl);
+  Object.defineProperty(res, 'yield', { value: function(yieldUrl, decode) {
+    _this.routeDiscovered(decode ? decodeURIComponent(yieldUrl) : yieldUrl);
   }, enumerable: true });
   Object.defineProperty(res, 'theme', { value: (_this.theme.support || function(){ return {}; })(res), enumerable: true });
   Object.defineProperty(res, 'extensions', { value: _this.extensions, enumerable: true }); // TODO: auto-load extensions
