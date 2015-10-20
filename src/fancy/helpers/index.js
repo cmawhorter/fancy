@@ -104,7 +104,8 @@ var helpers = function(ctx, fancy) {
       return core.relative(null, core.find(id));
     },
 
-    relative: function(mergeVals, page) {
+    relative: function(mergeVals, page, encoded) {
+      encoded = void 0 === encoded ? true : encoded;
       mergeVals = mergeVals || {};
       var templateUrl;
       if (page) {
@@ -136,7 +137,7 @@ var helpers = function(ctx, fancy) {
       var url = uriTemplates(templateUrl).fillFromObject(templateValues);
       // console.log('URI', page.urlTemplate || page.route, url);
 
-      return url;
+      return encoded ? url : decodeURIComponent(url);
     },
 
     wrap: function(obj) {
