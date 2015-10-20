@@ -374,7 +374,7 @@ FancyDb.prototype.isValidFile = function(relativePath) {
     }
   }
   else if (/\.html\/.*/i.test(relativePath)) { // html exists in subdir of a html dir
-    console.log('Ignoring content directory file: %s', relativePath);
+    console.log('Processing as content directory: %s', relativePath);
   }
   else {
     valid = true;
