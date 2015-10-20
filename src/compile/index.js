@@ -202,7 +202,7 @@ Compile.prototype.onReady = function(callback) {
     var page = _this.fancy.db.pages[relativePath];
     var utils = helpers({}, _this.fancy);
     if (false === page.getProperty('compile')) { // if compile set to false, don't include it in compilation
-      console.log('Skipping file (marked no compile): ', relativePath);
+      log.trace({ file: relativePath }, 'skipping no compile');
     }
     else {
       var pageHash = page.toTemplateObject();
@@ -316,7 +316,7 @@ Compile.prototype.onReady = function(callback) {
 Compile.prototype.enqueueUrl = function(route) {
   var _this = this;
   if (_this.isMaster && _this.knownRoutes.indexOf(route) < 0) {
-    console.log('<- Discovered: %s', route);
+    log.trace({ route: route }, 'discovered route');
     _this.queue.push(route);
     // request('http://localhost:3000' + task.route).pipe(writable);
   }
@@ -324,7 +324,7 @@ Compile.prototype.enqueueUrl = function(route) {
 
 Compile.prototype.addResource = function(route, contents, callback) {
   if (!route) {
-    console.log('Invalid route passed: "%s"', route);
+    log.error({ route: route }, 'Invalid route passed');
   }
   var hash = crypto.createHash('sha1').update(route || '').digest('hex');
   this.index[hash] = route;
