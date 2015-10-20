@@ -212,7 +212,7 @@ Compile.prototype.onReady = function(callback) {
       for (var i=0; i < routes.length; i++) {
         if (knownPageRoutes.indexOf(routes[i]) < 0) {
           pageHash.route = routes[i];
-          var pageUrl = utils.relative(null, pageHash);
+          var pageUrl = decodeURIComponent(utils.relative(null, pageHash));
           log.debug({ path: relativePath, url: pageUrl }, 'enqueue file');
           urls.push(pageUrl);
           knownPageRoutes.push(routes[i]);
