@@ -212,7 +212,7 @@ Compile.prototype.onReady = function(callback) {
       for (var i=0; i < routes.length; i++) {
         if (knownPageRoutes.indexOf(routes[i]) < 0) {
           pageHash.route = routes[i];
-          var pageUrl = decodeURIComponent(utils.relative(null, pageHash));
+          var pageUrl = utils.relative(null, pageHash);
           log.debug({ path: relativePath, url: pageUrl }, 'enqueue file');
           urls.push(pageUrl);
           knownPageRoutes.push(routes[i]);
@@ -261,7 +261,6 @@ Compile.prototype.onReady = function(callback) {
 
   this.fancy.options.onRouteDiscovered = function(pageUrl, exists) {
     if (!exists) {
-      pageUrl = decodeURIComponent(pageUrl);
       log.debug({ path: 'unknown', url: pageUrl }, 'enqueue file (discovered)');
       q.push({ url: pageUrl });
     }
