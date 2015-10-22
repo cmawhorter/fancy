@@ -201,7 +201,7 @@ Compile.prototype.onReady = function(callback) {
   for (var relativePath in _this.fancy.db.pages) {
     var page = _this.fancy.db.pages[relativePath];
     var utils = helpers({}, _this.fancy);
-    if (false === page.getProperty('compile')) { // if compile set to false, don't include it in compilation
+    if ('false' === page.getProperty('compile').toString()) { // if compile set to false, don't include it in compilation
       log.trace({ file: relativePath }, 'skipping no compile');
     }
     else {
