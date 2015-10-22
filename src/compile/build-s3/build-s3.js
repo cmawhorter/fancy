@@ -51,7 +51,7 @@ module.exports = function(index, options, callback) {
       // if (!/\.[\w\d_-]+$/.test(diskUrl)) { // don't add for urls with an extension
       //   diskUrl += '.' + options.ext;
       // }
-      var source = path.join(options.destination, diskUrl);
+      var source = path.join(options.destination, decodeURIComponent(diskUrl));
       log.debug({ key: hashKey, entry: entry, abs: abs, from: source, to: diskUrl }, 'creating copy task');
       return async.apply(utils.copy, abs, source);
     });
