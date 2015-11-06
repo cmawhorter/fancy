@@ -99,7 +99,7 @@ Compile.prototype.start = function(callback) {
 Compile.prototype.onReady = function(callback) {
   var _this = this;
   var logger = log.child({ component: 'compiler' });
-  options = {
+  var options = {
     content: 'content',
     assets: 'assets',
     target: this.destination,
@@ -109,7 +109,8 @@ Compile.prototype.onReady = function(callback) {
   var destinationAssetsPath = file.abs(path.join(options.target, 'assets'));
   var dbPort = options.port + 100;
 
-  log.debug('on ready options', options);
+
+  logger.debug('on ready options', options);
 
   function moveAsset(src, dest, done) {
     var destDir = path.dirname(dest)
@@ -151,16 +152,16 @@ Compile.prototype.onReady = function(callback) {
     // TODO: remove expired assets.  for now they're just recreated every compile (slow)
   }
 
-  log.debug('Starting compiler...');
+  logger.debug('Starting compiler...');
 
   mkdirp.sync(destinationAssetsPath);
 
-  log.debug('Destination confirmed: %s', options.target);
+  logger.debug('Destination confirmed: %s', options.target);
 
   var dictionary = {};
   var endpoint = 'http://localhost:' + options.port;
 
-  log.debug('Endpoint: %s', endpoint);
+  logger.debug('Endpoint: %s', endpoint);
 
   var themePath = file.abs('./' + (_this.fancy.options.theme ? 'themes/' + _this.fancy.options.theme : 'theme'));
   var themeAssets = file.abs(path.join(themePath, 'public'));
@@ -177,109 +178,129 @@ Compile.prototype.onReady = function(callback) {
     destinationAssetsPath: destinationAssetsPath,
   });
 
-  logger.info({ list: assetPaths }, 'gather assets');
-  var allAssets = wwwHelpers.gatherAssets(assetPaths, options.assetExtensions, themeAssets);
-  logger.trace({ list: allAssets.map(function(element) { return element.abs; }) }, 'assets found');
+  var compilationTasks = [];
 
-  // FIXME: only remove the expired files and not the whole directory.  see removeExpiredFiles TODO above
-  logger.info({ target: destinationAssetsPath }, 'cleaning up compiled assets');
-  rimraf(destinationAssetsPath, E.bubbles(callback, function(err) {
-    if (allAssets.length) {
-      var uniqueAssets = _.where(allAssets, { collision: false })
-        , assetMoveTasks = uniqueAssets.map(function(element) {
-            return async.apply(moveAsset, element.abs, path.join(destinationAssetsPath, element.rel));
-          });
-      async.parallelLimit(assetMoveTasks, 32, E.bubbles(callback, function() {
-        logger.info({ list: _.pluck(uniqueAssets, 'abs'), destination: destinationAssetsPath }, 'assets moved');
-      }));
-    }
-  }));
+  compilationTasks.push(function(taskCallback) {
+    logger.info({ list: assetPaths }, 'gather assets');
+    var allAssets = wwwHelpers.gatherAssets(assetPaths, options.assetExtensions, themeAssets);
+    logger.trace({ list: allAssets.map(function(element) { return element.abs; }) }, 'assets found');
 
-  var urls = [];
-  Array.prototype.push.apply(urls, _this.fancy.options.buildRoutes || []);
+    // FIXME: only remove the expired files and not the whole directory.  see removeExpiredFiles TODO above
+    logger.info({ target: destinationAssetsPath }, 'cleaning up compiled assets');
+    rimraf(destinationAssetsPath, E.bubbles(taskCallback, function() {
+      if (allAssets.length) {
+        var uniqueAssets = _.where(allAssets, { collision: false })
+          , assetMoveTasks = uniqueAssets.map(function(element) {
+              return async.apply(moveAsset, element.abs, path.join(destinationAssetsPath, element.rel));
+            });
+        async.parallelLimit(assetMoveTasks, 32, E.bubbles(taskCallback, function() {
+          logger.info({ list: _.pluck(uniqueAssets, 'abs'), destination: destinationAssetsPath }, 'assets moved');
+          taskCallback();
+        }));
+      }
+      else {
+        taskCallback();
+      }
+    }));
+  });
 
-  for (var relativePath in _this.fancy.db.pages) {
-    var page = _this.fancy.db.pages[relativePath];
-    var utils = helpers({}, _this.fancy);
-    if ('false' === page.getProperty('compile').toString()) { // if compile set to false, don't include it in compilation
-      log.trace({ file: relativePath }, 'skipping no compile');
-    }
-    else {
-      var pageHash = page.toTemplateObject();
-      // create a page for each route
-      var routes = Array.isArray(pageHash.route) ? pageHash.route : [ pageHash.route ];
-      var knownPageRoutes = [];
-      for (var i=0; i < routes.length; i++) {
-        if (knownPageRoutes.indexOf(routes[i]) < 0) {
-          pageHash.route = routes[i];
-          var pageUrl = utils.relative(null, pageHash);
-          log.debug({ path: relativePath, url: pageUrl }, 'enqueue file');
-          urls.push(pageUrl);
-          knownPageRoutes.push(routes[i]);
+  compilationTasks.push(function(taskCallback) {
+    var urls = [];
+    Array.prototype.push.apply(urls, _this.fancy.options.buildRoutes || []);
+
+    for (var relativePath in _this.fancy.db.pages) {
+      var page = _this.fancy.db.pages[relativePath];
+      var utils = helpers({}, _this.fancy);
+      if ('false' === page.getProperty('compile').toString()) { // if compile set to false, don't include it in compilation
+        logger.trace({ file: relativePath }, 'skipping no compile');
+      }
+      else {
+        var pageHash = page.toTemplateObject();
+        // create a page for each route
+        var routes = Array.isArray(pageHash.route) ? pageHash.route : [ pageHash.route ];
+        var knownPageRoutes = [];
+        for (var i=0; i < routes.length; i++) {
+          if (knownPageRoutes.indexOf(routes[i]) < 0) {
+            pageHash.route = routes[i];
+            var pageUrl = utils.relative(null, pageHash);
+            logger.debug({ path: relativePath, url: pageUrl }, 'enqueue file');
+            urls.push(pageUrl);
+            knownPageRoutes.push(routes[i]);
+          }
         }
       }
     }
-  }
 
-  log.debug('Retrieved %s urls', urls.length);
+    logger.debug('Retrieved %s urls', urls.length);
 
-  // TODO: conditional recompile. load index.json and compare compiled value against last revision
+    // TODO: conditional recompile. load index.json and compare compiled value against last revision
 
-  var alreadyCrawled = [];
-  var q = async.queue(function(task, queueCallback) {
-    if (!task.url) {
-      log.warn('invalid task url', task);
-      return queueCallback(null);
+    var alreadyCrawled = [];
+    var q = async.queue(function(task, queueCallback) {
+      if (!task.url) {
+        logger.warn('invalid task url', task);
+        return queueCallback(null);
+      }
+      if (alreadyCrawled.indexOf(task.url) > -1) {
+        logger.trace({ url: task.url }, 'skipping, already crawled');
+        return queueCallback(null);
+      }
+      alreadyCrawled.push(task.url);
+      var hashName = fingerprint.sync(task.url)
+        , destination = path.join(options.target, hashName);
+      var result = dictionary[hashName] = {
+          url: task.url
+        , status: -1
+        , fingerprint: null
+        , location: null
+      };
+      logger.debug('\t-> Processing "%s" and writing to %s', task.url, destination);
+      // TODO: if strict and non-200 status returned, error
+      logger.trace('Retrieving %s', endpoint + task.url);
+      request.get(endpoint + task.url)
+        .on('response', function(res) {
+          result.fingerprint = res.headers['etag'];
+          result.location = res.headers['location'];
+          result.compiled = res.headers['fancy-compiled']; // used with conditional recompile
+          result.status = res.statusCode;
+        })
+        .pipe(fs.createWriteStream(destination))
+          .on('error', E.event(queueCallback))
+          .on('finish', queueCallback);
+    }, 12);
+
+    _this.fancy.options.onRouteDiscovered = function(pageUrl, exists) {
+      if (!exists) {
+        logger.debug({ path: 'unknown', url: pageUrl }, 'enqueue file (discovered)');
+        q.push({ url: pageUrl });
+      }
     }
-    if (alreadyCrawled.indexOf(task.url) > -1) {
-      logger.trace({ url: task.url }, 'skipping, already crawled');
-      return queueCallback(null);
-    }
-    alreadyCrawled.push(task.url);
-    var hashName = fingerprint.sync(task.url)
-      , destination = path.join(options.target, hashName);
-    var result = dictionary[hashName] = {
-        url: task.url
-      , status: -1
-      , fingerprint: null
-      , location: null
+
+    // TODO: get yield urls and append to end of queue
+    // TODO: get other extraneous features like redirects, aliased routes and other stuff
+
+    q.drain = function() {
+      logger.debug('Writing index...', path.join(options.target, 'index.json'));
+      fs.writeFileSync(path.join(options.target, 'index.json'), JSON.stringify(dictionary, null, 2));
+      removeExpiredFiles(options.target, dictionary);
+      logger.debug('Done crawling!');
+      taskCallback();
     };
-    log.debug('\t-> Processing "%s" and writing to %s', task.url, destination);
-    // TODO: if strict and non-200 status returned, error
-    log.trace('Retrieving %s', endpoint + task.url);
-    request.get(endpoint + task.url)
-      .on('response', function(res) {
-        result.fingerprint = res.headers['etag'];
-        result.location = res.headers['location'];
-        result.compiled = res.headers['fancy-compiled']; // used with conditional recompile
-        result.status = res.statusCode;
-      })
-      .pipe(fs.createWriteStream(destination))
-        .on('error', E.event(queueCallback))
-        .on('finish', queueCallback);
-  }, 12);
 
-  this.fancy.options.onRouteDiscovered = function(pageUrl, exists) {
-    if (!exists) {
-      log.debug({ path: 'unknown', url: pageUrl }, 'enqueue file (discovered)');
-      q.push({ url: pageUrl });
+    urls.forEach(function(pendingUrl, index) {
+      logger.trace({ url: pendingUrl, index: index }, 'url queue -> data');
+      q.push({ url: pendingUrl });
+    });
+  });
+
+  async.parallel(compilationTasks, function(err) {
+    if (err) {
+      logger.error({ err: err }, 'copmilation task error');
+      callback(err);
+      return;
     }
-  }
-
-  // TODO: get yield urls and append to end of queue
-  // TODO: get other extraneous features like redirects, aliased routes and other stuff
-
-  q.drain = function() {
-    log.debug('Writing index...', path.join(options.target, 'index.json'));
-    fs.writeFileSync(path.join(options.target, 'index.json'), JSON.stringify(dictionary, null, 2));
-    removeExpiredFiles(options.target, dictionary);
-    log.debug('Done crawling!');
+    logger.info('compile complete');
     callback();
-  };
-
-  urls.forEach(function(pendingUrl, index) {
-    logger.trace({ url: pendingUrl, index: index }, 'url queue -> data');
-    q.push({ url: pendingUrl });
   });
 };
 
