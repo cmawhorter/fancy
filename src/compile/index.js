@@ -104,7 +104,7 @@ Compile.prototype.onReady = function(callback) {
     assets: 'assets',
     target: this.destination,
     port: 3000,
-    assetExtensions: ['png','gif','jpg','ico'],
+    assetExtensions: null, //['png','gif','jpg','ico'], // not supported in 0.0.*
   };
   var destinationAssetsPath = file.abs(path.join(options.target, 'assets'));
   var dbPort = options.port + 100;

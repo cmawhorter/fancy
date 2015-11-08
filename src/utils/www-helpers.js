@@ -109,7 +109,9 @@ var helpers = module.exports = {
     var allAssets = []
       , uniqueRelativeAssets = [];
     for (var i=0; i < assetPaths.length; i++) {
-      var pattern = unlimited && assetPaths[i].indexOf(unlimited) > -1 ? '/**/*.*' : '/**/*.{' + extensions.join(',') + '}';
+      // extension whitelist not supported in 0.0.*
+      // var pattern = unlimited && assetPaths[i].indexOf(unlimited) > -1 ? '/**/*.*' : '/**/*.{' + extensions.join(',') + '}';
+      var pattern = unlimited && assetPaths[i].indexOf(unlimited) > -1 ? '/**/*.*' : '/**/*.*';
       var search = path.join(assetPaths[i], pattern);
       glob.sync(search).forEach(function(element) {
         var rel = element.split(assetPaths[i])[1]
