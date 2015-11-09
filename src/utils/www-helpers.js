@@ -113,7 +113,7 @@ var helpers = module.exports = {
       // var pattern = unlimited && assetPaths[i].indexOf(unlimited) > -1 ? '/**/*.*' : '/**/*.{' + extensions.join(',') + '}';
       var pattern = unlimited && assetPaths[i].indexOf(unlimited) > -1 ? '/**/*.*' : '/**/*.*';
       var search = path.join(assetPaths[i], pattern);
-      glob.sync(search).forEach(function(element) {
+      glob.sync(search, { nodir: true }).forEach(function(element) {
         var rel = element.split(assetPaths[i])[1]
           , item = { abs: element, rel: rel, collision: null };
         if (uniqueRelativeAssets.indexOf(rel) > -1) {
