@@ -254,14 +254,17 @@ var helpers = function(ctx, fancy) {
       return valueToFirst(val);
     },
 
+    // resources[resourceName] = array[pages match that resource]
     resources: function(type, filterFn, sorterFn) {
       return filterAndSort(core.value('site.resources.' + type), filterFn, sorterFn);
     },
 
+    // meta[propertyName] = array[pages that have that property - regardless of value]
     meta: function(property, filterFn, sorterFn) {
       return filterAndSort(core.value('site.meta.' + property), filterFn, sorterFn);
     },
 
+    // requires relationships[propertyName][propertyValue] => array[pages that have that name/value]
     relationships: function(property, filterFn, sorterFn) {
       return filterAndSort(core.value('site.relationships.' + property), filterFn, sorterFn);
     },

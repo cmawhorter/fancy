@@ -239,11 +239,13 @@ Compile.prototype.onReady = function(callback) {
     var q = async.queue(function(task, queueCallback) {
       if (!task.url) {
         logger.warn('invalid task url', task);
-        return queueCallback(null);
+        process.nextTick(queueCallback);
+        return;
       }
       if (alreadyCrawled.indexOf(task.url) > -1) {
         logger.trace({ url: task.url }, 'skipping, already crawled');
-        return queueCallback(null);
+        process.nextTick(queueCallback);
+        return;
       }
       alreadyCrawled.push(task.url);
       var hashName = fingerprint.sync(task.url)
@@ -258,6 +260,7 @@ Compile.prototype.onReady = function(callback) {
       // TODO: if strict and non-200 status returned, error
       logger.trace('Retrieving %s', endpoint + task.url);
       request.get(endpoint + task.url)
+        .on('error', E.event(queueCallback))
         .on('response', function(res) {
           result.fingerprint = res.headers['etag'];
           result.location = res.headers['location'];
@@ -276,9 +279,6 @@ Compile.prototype.onReady = function(callback) {
       }
     }
 
-    // TODO: get yield urls and append to end of queue
-    // TODO: get other extraneous features like redirects, aliased routes and other stuff
-
     q.drain = function() {
       logger.debug('Writing index...', path.join(options.target, 'index.json'));
       fs.writeFileSync(path.join(options.target, 'index.json'), JSON.stringify(dictionary, null, 2));
@@ -295,7 +295,7 @@ Compile.prototype.onReady = function(callback) {
 
   async.parallel(compilationTasks, function(err) {
     if (err) {
-      logger.error({ err: err }, 'copmilation task error');
+      logger.error({ err: err }, 'compilation task error');
       callback(err);
       return;
     }
