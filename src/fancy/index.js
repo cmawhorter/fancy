@@ -31,6 +31,7 @@ function Fancy(options) {
       // FIXME: cluster concurrency is poorly structured but seemingly works
     , concurrency: 0 // require('os').cpus().length
     , onRouteDiscovered: function(url, exists){}
+    , logDiscoveredRoutes: false
   };
   // load options
   for (var k in options) {
@@ -173,6 +174,9 @@ Fancy.prototype.routeDiscovered = function(url) {
   var exists = this.knownRoutes.indexOf(url) > -1;
   if (!exists) {
     this.knownRoutes.push(url);
+    if (this.options.logDiscoveredRoutes) {
+      console.log('\t-> Route Discovered: ', url);
+    }
   }
   this.options.onRouteDiscovered(url, exists);
 };
@@ -190,7 +194,9 @@ Fancy.prototype.createResponse = function(url, page, params) {
 
   Object.defineProperty(res, 'fancy', { value: helpers(res, this), enumerable: true });
   Object.defineProperty(res, 'yield', { value: function(yieldUrl, decode) {
-    _this.routeDiscovered(decode ? decodeURIComponent(yieldUrl) : yieldUrl);
+    var discovered = decode ? decodeURIComponent(yieldUrl) : yieldUrl;
+    _this.routeDiscovered(discovered);
+    return process.env.NODE_ENV === 'development' ? '<!-- yield: ' + discovered + ' -->' : '';
   }, enumerable: true });
   Object.defineProperty(res, 'theme', { value: (_this.theme.support || function(){ return {}; })(res), enumerable: true });
   Object.defineProperty(res, 'extensions', { value: _this.extensions, enumerable: true }); // TODO: auto-load extensions

@@ -34,7 +34,8 @@ module.exports = function(yargs) {
   // console.log('cwd', cwd, 'port', port, 'dir', dir); process.exit();
 
   var fancy = new Fancy({
-    port: port
+    port: port,
+    logDiscoveredRoutes: argv.logDiscoveredRoutes || false,
   });
   fancy.init(function(err) {
     if (err) throw err;
