@@ -201,26 +201,31 @@ var helpers = function(ctx, fancy) {
     value: function(k, defaultValue) {
       var ret;
       if (k.trim().length) {
-        var parts = k.toLowerCase().split('.')
-          , ns = parts.shift();
-        ret = (ctx[ns] || {})[parts.join('.')];
-        if (void 0 === ret) {
-          var lowest = ctx[ns]
-            , search = [];
-          if (lowest) {
-            for (var i=0; i < parts.length; i++) {
-              if (void 0 !== lowest[parts[i]]) {
-                lowest = lowest[parts[i]];
-              }
-              else {
-                search.push(parts[i]);
-              }
-            }
-            // console.log('value search', lowest, search);
+        if (k.indexOf('.') > -1) {
+          var parts = k.toLowerCase().split('.')
+            , ns = parts.shift();
+          ret = (ctx[ns] || {})[parts.join('.')];
+          if (void 0 === ret) {
+            var lowest = ctx[ns]
+              , search = [];
             if (lowest) {
-              ret = search.length ? objectUtil.retrieve(lowest, search.join('.')) : lowest;
+              for (var i=0; i < parts.length; i++) {
+                if (void 0 !== lowest[parts[i]]) {
+                  lowest = lowest[parts[i]];
+                }
+                else {
+                  search.push(parts[i]);
+                }
+              }
+              // console.log('value search', lowest, search);
+              if (lowest) {
+                ret = search.length ? objectUtil.retrieve(lowest, search.join('.')) : lowest;
+              }
             }
           }
+        }
+        else { // if bare value, just return it (e.g. something passed by fancy.partial)
+          ret = objectUtil.retrieve(ctx, k);
         }
       }
 
