@@ -113,6 +113,7 @@ var helpers = function(ctx, fancy) {
         templateUrl = page.first('urlTemplate');
       }
       else {
+        page = core.value('page', {});
         templateUrl = core.first('page.urlTemplate');
       }
 
