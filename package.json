@@ -1,6 +1,6 @@
 {
   "name": "fancy",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "description": "fancy ===",
   "main": "src/fancy/index.js",
   "scripts": {
