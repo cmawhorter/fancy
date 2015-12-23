@@ -253,7 +253,7 @@ Compile.prototype.onReady = function(callback) {
         , destination = path.join(options.target, hashName);
       var result = dictionary[hashName] = {
           url: task.route
-        , resource: task.resource || 'unknown:'
+        , resource: task.resource || 'missing:'
         , status: -1
         , fingerprint: null
         , location: null
