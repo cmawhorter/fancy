@@ -205,8 +205,9 @@ Compile.prototype.onReady = function(callback) {
   });
 
   compilationTasks.push(function(taskCallback) {
-    var urls = [];
-    Array.prototype.push.apply(urls, _this.fancy.options.buildRoutes || []);
+    var urls = (_this.fancy.options.buildRoutes || []).map(function(route) {
+      return { resource: 'config', route: route };
+    });
 
     for (var relativePath in _this.fancy.db.pages) {
       var page = _this.fancy.db.pages[relativePath];
@@ -223,8 +224,8 @@ Compile.prototype.onReady = function(callback) {
           if (knownPageRoutes.indexOf(routes[i]) < 0) {
             pageHash.route = routes[i];
             var pageUrl = utils.relative(null, pageHash);
-            logger.debug({ path: relativePath, url: pageUrl }, 'enqueue file');
-            urls.push(pageUrl);
+            logger.debug({ resource: relativePath, route: pageUrl }, 'enqueue file');
+            urls.push({ resource: relativePath, route: pageUrl });
             knownPageRoutes.push(routes[i]);
           }
         }
@@ -237,29 +238,30 @@ Compile.prototype.onReady = function(callback) {
 
     var alreadyCrawled = [];
     var q = async.queue(function(task, queueCallback) {
-      if (!task.url) {
+      if (!task.route) {
         logger.warn('invalid task url', task);
         process.nextTick(queueCallback);
         return;
       }
-      if (alreadyCrawled.indexOf(task.url) > -1) {
-        logger.trace({ url: task.url }, 'skipping, already crawled');
+      if (alreadyCrawled.indexOf(task.route) > -1) {
+        logger.trace(task, 'skipping, already crawled');
         process.nextTick(queueCallback);
         return;
       }
-      alreadyCrawled.push(task.url);
-      var hashName = fingerprint.sync(task.url)
+      alreadyCrawled.push(task.route);
+      var hashName = fingerprint.sync(task.route)
         , destination = path.join(options.target, hashName);
       var result = dictionary[hashName] = {
-          url: task.url
+          url: task.route
+        , resource: task.resource || 'unknown:'
         , status: -1
         , fingerprint: null
         , location: null
       };
-      logger.debug('\t-> Processing "%s" and writing to %s', task.url, destination);
+      logger.debug('\t-> Processing "%s" and writing to %s', task.route, destination);
       // TODO: if strict and non-200 status returned, error
-      logger.trace('Retrieving %s', endpoint + task.url);
-      request.get(endpoint + task.url)
+      logger.trace('Retrieving %s', endpoint + task.route);
+      request.get(endpoint + task.route)
         .on('error', E.event(queueCallback))
         .on('response', function(res) {
           result.fingerprint = res.headers['etag'];
@@ -272,10 +274,10 @@ Compile.prototype.onReady = function(callback) {
           .on('finish', queueCallback);
     }, 12);
 
-    _this.fancy.options.onRouteDiscovered = function(pageUrl, exists) {
+    _this.fancy.options.onRouteDiscovered = function(pageUrl, exists, relativePath) {
       if (!exists) {
         logger.debug({ path: 'unknown', url: pageUrl }, 'enqueue file (discovered)');
-        q.push({ url: pageUrl });
+        q.push({ route: pageUrl, resource: relativePath });
       }
     }
 
@@ -287,9 +289,9 @@ Compile.prototype.onReady = function(callback) {
       taskCallback();
     };
 
-    urls.forEach(function(pendingUrl, index) {
-      logger.trace({ url: pendingUrl, index: index }, 'url queue -> data');
-      q.push({ url: pendingUrl });
+    urls.forEach(function(result, index) {
+      logger.trace({ route: result.route, resource: result.resource, index: index }, 'url queue -> data');
+      q.push(result);
     });
   });
 

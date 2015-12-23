@@ -30,7 +30,7 @@ function Fancy(options) {
     , strictMode: true
       // FIXME: cluster concurrency is poorly structured but seemingly works
     , concurrency: 0 // require('os').cpus().length
-    , onRouteDiscovered: function(url, exists){}
+    , onRouteDiscovered: function(url, exists, relativePath){}
     , logDiscoveredRoutes: false
   };
   // load options
@@ -170,7 +170,7 @@ Fancy.prototype.init = function(callback) {
   });
 };
 
-Fancy.prototype.routeDiscovered = function(url) {
+Fancy.prototype.routeDiscovered = function(url, relativePath) {
   var exists = this.knownRoutes.indexOf(url) > -1;
   if (!exists) {
     this.knownRoutes.push(url);
@@ -178,7 +178,7 @@ Fancy.prototype.routeDiscovered = function(url) {
       console.log('\t-> Route Discovered: ', url);
     }
   }
-  this.options.onRouteDiscovered(url, exists);
+  this.options.onRouteDiscovered(url, exists, relativePath);
 };
 
 Fancy.prototype.getView = function(currentLayout, relativePath) {
@@ -195,7 +195,7 @@ Fancy.prototype.createResponse = function(url, page, params) {
   Object.defineProperty(res, 'fancy', { value: helpers(res, this), enumerable: true });
   Object.defineProperty(res, 'yield', { value: function(yieldUrl, decode) {
     var discovered = decode ? decodeURIComponent(yieldUrl) : yieldUrl;
-    _this.routeDiscovered(discovered);
+    _this.routeDiscovered(discovered, (page || {}).relativePath || 'unknown:');
     return process.env.NODE_ENV === 'development' ? '<!-- yield: ' + discovered + ' -->' : '';
   }, enumerable: true });
   Object.defineProperty(res, 'theme', { value: (_this.theme.support || function(){ return {}; })(res), enumerable: true });
