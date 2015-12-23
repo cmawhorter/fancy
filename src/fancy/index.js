@@ -195,7 +195,9 @@ Fancy.prototype.createResponse = function(url, page, params) {
   Object.defineProperty(res, 'fancy', { value: helpers(res, this), enumerable: true });
   Object.defineProperty(res, 'yield', { value: function(yieldUrl, decode) {
     var discovered = decode ? decodeURIComponent(yieldUrl) : yieldUrl;
-    _this.routeDiscovered(discovered, 'yield:' + url);
+    if (discovered.length) {
+      _this.routeDiscovered(discovered, 'yield:' + url);
+    }
     return process.env.NODE_ENV === 'development' ? '<!-- yield: ' + discovered + ' -->' : '';
   }, enumerable: true });
   Object.defineProperty(res, 'theme', { value: (_this.theme.support || function(){ return {}; })(res), enumerable: true });
