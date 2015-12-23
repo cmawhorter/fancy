@@ -102,7 +102,7 @@ var helpers = function(ctx, fancy) {
 
     url: function(id) {
       var page = core.find(id);
-      return page ? core.relative(null, page) : '#';
+      return page ? core.relative(null, page) : '';
     },
 
     relative: function(mergeVals, page) {
