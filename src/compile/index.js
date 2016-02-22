@@ -191,6 +191,7 @@ Compile.prototype.onReady = function(callback) {
       if (allAssets.length) {
         var uniqueAssets = _.where(allAssets, { collision: false })
           , assetMoveTasks = uniqueAssets.map(function(element) {
+              logger.trace({ path: destinationAssetsPath, element: element }, 'generating move task');
               return async.apply(moveAsset, element.abs, path.join(destinationAssetsPath, element.rel));
             });
         async.parallelLimit(assetMoveTasks, 32, E.bubbles(taskCallback, function() {
