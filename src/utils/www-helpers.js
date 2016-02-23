@@ -1,6 +1,9 @@
 var fs = require('fs')
   , path = require('path')
-  , url = require('url');
+  , url = require('url')
+  , os = require('os');
+
+var IS_WIN = os.platform() === 'win32';
 
 var express = require('express')
   , glob = require('glob')
@@ -109,12 +112,16 @@ var helpers = module.exports = {
     var allAssets = []
       , uniqueRelativeAssets = [];
     for (var i=0; i < assetPaths.length; i++) {
+      var assetPath = path.normalize(assetPaths[i]);
       // extension whitelist not supported in 0.0.*
-      // var pattern = unlimited && assetPaths[i].indexOf(unlimited) > -1 ? '/**/*.*' : '/**/*.{' + extensions.join(',') + '}';
-      var pattern = unlimited && assetPaths[i].indexOf(unlimited) > -1 ? '/**/*.*' : '/**/*.*';
-      var search = path.join(assetPaths[i], pattern);
+      // var pattern = unlimited && assetPath.indexOf(unlimited) > -1 ? '/**/*.*' : '/**/*.{' + extensions.join(',') + '}';
+      var pattern = unlimited && assetPath.indexOf(unlimited) > -1 ? '/**/*.*' : '/**/*.*';
+      var search = path.join(assetPath, pattern);
       glob.sync(search, { nodir: true }).forEach(function(element) {
-        var rel = element.split(assetPaths[i])[1]
+        if (IS_WIN) { // glob returns forward slashes on windows?
+          element = path.normalize(element);
+        }
+        var rel = element.split(assetPath)[1]
           , item = { abs: element, rel: rel, collision: null };
         if (uniqueRelativeAssets.indexOf(rel) > -1) {
           item.collision = true;
