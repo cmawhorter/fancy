@@ -12,6 +12,9 @@
     "type": "git",
     "url": "git://github.com/cmawhorter/fancy.git"
   },
+  "engines": {
+    "node": "<4.0.0"
+  },
   "license": "MIT",
   "dependencies": {
     "async": "^0.9.2",
@@ -24,7 +27,7 @@
     "ejs": "~0.8.5",
     "express": "~4.9.0",
     "extfs": "0.0.7",
-    "gaze": "0.5.x",
+    "gaze": "^0.5.2",
     "glob": "^7.0.0",
     "highlight.js": "^8.4.0",
     "html-entities": "^1.1.3",

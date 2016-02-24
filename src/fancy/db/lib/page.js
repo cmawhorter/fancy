@@ -348,7 +348,7 @@ FancyPage.prototype.setProperties = function(properties, callback) {
     });
   });
 
-  async.parallel(tasks, function(err, properties) {
+  async.parallelLimit(tasks, 2, function(err, properties) {
     if (err) {
       return callback.call(_this, err);
     }

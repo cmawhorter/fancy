@@ -161,7 +161,7 @@ Fancy.prototype.init = function(callback) {
     });
   });
 
-  async.parallel(tasks, function(err) {
+  async.parallelLimit(tasks, 2, function(err) {
     if (err) {
       return callback(err);
     }

@@ -18,6 +18,31 @@ var Page = orm.models.Page
 
 var PROVIDER_PREFIX = 'provider:';
 
+// patch gaze
+var gazeHelper = require('gaze/lib/helper.js');
+gazeHelper.forEachSeries = function forEachSeries(arr, iterator, callback) {
+  if (!arr.length) { return callback(); }
+  var completed = 0;
+  var iterate = function() {
+    process.nextTick(function() {
+      iterator(arr[completed], function (err) {
+        if (err) {
+          callback(err);
+          callback = function() {};
+        } else {
+          completed += 1;
+          if (completed === arr.length) {
+            callback(null);
+          } else {
+            iterate();
+          }
+        }
+      });
+    });
+  };
+  iterate();
+};
+
 // FIXME: #1 priority. now that it's clear what needs to happen here, the entire FancyDb/FancyPage stuff is tangled and needs some attention: this needs to be an abstracting/caching layer between fancy and db
 
 function FancyDb(contentDirectories, dataChangedHandler) {
@@ -44,10 +69,12 @@ FancyDb.prototype.init = function(callback) {
       // tasks.push(function(taskCallback) {
       //   _this._watchProviders(taskCallback);
       // });
-      async.parallel(tasks, function(err) {
+      async.parallelLimit(tasks, 2, function(err) {
         callback.call(_this, err);
       });
     });
+  }, function(err) {
+    callback.call(_this, err);
   });
 };
 
@@ -404,7 +431,7 @@ FancyDb.prototype._reloadFiles = function(callback) {
   });
   _this._pagesAdded += tasks.length;
   console.log('\t-> Content data contains %s resources', tasks.length);
-  async.parallelLimit(tasks, 8, callback);
+  async.parallelLimit(tasks, 2, callback);
 };
 
 FancyDb.prototype._reloadProviders = function(callback) {
@@ -421,7 +448,7 @@ FancyDb.prototype._reloadProviders = function(callback) {
       });
     };
   });
-  async.parallel(tasks, function(err, providerResources) {
+  async.parallelLimit(tasks, 2, function(err, providerResources) {
     if (err) {
       return callback(err);
     }
@@ -441,7 +468,7 @@ FancyDb.prototype._reloadProviders = function(callback) {
         }
       });
     });
-    async.parallelLimit(subtasks, 8, callback);
+    async.parallelLimit(subtasks, 2, callback);
   });
 };
 
