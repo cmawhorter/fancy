@@ -167,6 +167,8 @@ FancyDb.prototype._watchFilesWin = function(contentDirectory, callback) {
         });
       }
     });
+
+    callback(null);
   });
 };
 
