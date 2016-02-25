@@ -155,9 +155,7 @@ FancyDb.prototype._watchFilesWin = function(contentDirectory, callback) {
     if (err) {
       return callback(err);
     }
-    files.forEach(function(f) {
-      var absolutePath = path.normalize(f);
-      var relativePath = help.absoluteToRelative(absolutePath);
+    files.forEach(function(relativePath) {
       relativePath = help.getContentDirectoryPath(relativePath);
       if (_this.isValidFile(relativePath)) {
         console.log('%s was added', relativePath);
