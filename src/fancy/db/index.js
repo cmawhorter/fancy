@@ -1,4 +1,5 @@
-var fs = require('fs')
+var os = require('os')
+  , fs = require('fs')
   , path = require('path');
 
 var glob = require('glob')
@@ -16,6 +17,7 @@ var Page = orm.models.Page
   , Property = orm.models.Property
   , Resource = orm.models.Resource;
 
+var IS_WIN = os.platform() === 'win32';
 var PROVIDER_PREFIX = 'provider:';
 
 // patch gaze
@@ -80,56 +82,92 @@ FancyDb.prototype.init = function(callback) {
 
 FancyDb.prototype._watchFiles = function(callback) {
   var _this = this;
+  // FIXME: this iterates an array but calls the callback each iteration
   _this.contentDirectories.forEach(function(contentDirectory) {
     // console.log('Watching files in content directory: %s', contentDirectory)
-    gaze(contentDirectory + '/**/*.html', function(err, watcher) { // set up file watcher for changes
-      if (err) {
-        return callback(err);
+    if (IS_WIN) {
+      console.log('*** File watching is disabled on Windows ***');
+      console.log('Files will not be watched for changes in: ', contentDirectory);
+      _this._watchFilesWin(contentDirectory, callback);
+    }
+    else {
+      _this._watchFilesNix(contentDirectory, callback);
+    }
+  });
+};
+
+FancyDb.prototype._watchFilesNix = function(contentDirectory, callback) {
+  var _this = this;
+  gaze(contentDirectory + '/**/*.html', function(err, watcher) { // set up file watcher for changes
+    if (err) {
+      return callback(err);
+    }
+
+    watcher.on('changed', function(absolutePath) {
+      var relativePath = help.absoluteToRelative(absolutePath);
+      relativePath = help.getContentDirectoryPath(relativePath);
+      if (_this.isValidFile(relativePath)) {
+        console.log('%s changed', relativePath);
+        _this.reloadFile(relativePath, function(err) {
+          if (err) {
+            throw err;
+          }
+          _this.dataChangedHandler(relativePath);
+        });
       }
+    });
 
-      watcher.on('changed', function(absolutePath) {
-        var relativePath = help.absoluteToRelative(absolutePath);
-        relativePath = help.getContentDirectoryPath(relativePath);
-        if (_this.isValidFile(relativePath)) {
-          console.log('%s changed', relativePath);
-          _this.reloadFile(relativePath, function(err) {
-            if (err) {
-              throw err;
-            }
-            _this.dataChangedHandler(relativePath);
-          });
-        }
-      });
+    watcher.on('added', function(absolutePath) {
+      var relativePath = help.absoluteToRelative(absolutePath);
+      relativePath = help.getContentDirectoryPath(relativePath);
+      if (_this.isValidFile(relativePath)) {
+        console.log('%s was added', relativePath);
+        _this.addFile(relativePath, function(err) {
+          if (err) {
+            throw err;
+          }
+          _this.dataChangedHandler(relativePath);
+        });
+      }
+    });
 
-      watcher.on('added', function(absolutePath) {
-        var relativePath = help.absoluteToRelative(absolutePath);
-        relativePath = help.getContentDirectoryPath(relativePath);
-        if (_this.isValidFile(relativePath)) {
-          console.log('%s was added', relativePath);
-          _this.addFile(relativePath, function(err) {
-            if (err) {
-              throw err;
-            }
-            _this.dataChangedHandler(relativePath);
-          });
-        }
-      });
+    watcher.on('deleted', function(absolutePath) {
+      var relativePath = help.absoluteToRelative(absolutePath);
+      relativePath = help.getContentDirectoryPath(relativePath);
+      if (_this.isValidFile(relativePath)) {
+        console.log('%s deleted', relativePath);
+        _this.removeFile(relativePath, function(err) {
+          if (err) {
+            throw err;
+          }
+          _this.dataChangedHandler(relativePath);
+        });
+      }
+    });
 
-      watcher.on('deleted', function(absolutePath) {
-        var relativePath = help.absoluteToRelative(absolutePath);
-        relativePath = help.getContentDirectoryPath(relativePath);
-        if (_this.isValidFile(relativePath)) {
-          console.log('%s deleted', relativePath);
-          _this.removeFile(relativePath, function(err) {
-            if (err) {
-              throw err;
-            }
-            _this.dataChangedHandler(relativePath);
-          });
-        }
-      });
+    callback(null);
+  });
+};
 
-      callback(null);
+FancyDb.prototype._watchFilesWin = function(contentDirectory, callback) {
+  var _this = this;
+  glob(contentDirectory + '/**/*.html', function(err, files) {
+    if (err) {
+      return callback(err);
+    }
+    files.forEach(function(f) {
+      var absolutePath = path.normalize(f);
+      var relativePath = help.absoluteToRelative(absolutePath);
+      relativePath = help.getContentDirectoryPath(relativePath);
+      if (_this.isValidFile(relativePath)) {
+        console.log('%s was added', relativePath);
+        _this.addFile(relativePath, function(err) {
+          if (err) {
+            throw err;
+          }
+          _this.dataChangedHandler(relativePath);
+        });
+      }
     });
   });
 };
