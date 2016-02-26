@@ -33,7 +33,7 @@ function FancyPage(relativePath) {
     this.contentPath = this._findParseable('page');
 
     if (!this.contentPath) {
-      throw new Error('Content directory does not contain page file. e.g. %s/page.md', relativePath);
+      throw new Error('Content directory does not contain page file. e.g. ' + relativePath + '/page.md');
     }
     else {
       // console.log('Content directory %s page file is %s', relativePath, this.contentPath);
