@@ -3,22 +3,29 @@ var path = require('path')
 
 var rimraf = require('rimraf')
   , mkdirp = require('mkdirp')
-  , ncp = require('ncp').ncp
+  , ncp = require('cpr')
   , async = require('async');
 
 var E = require('../../utils/E.js')
   , log = require('../../utils/log.js');
 
+
+var slowFunctionWarningWithCallback = module.exports.slowFunctionWarningWithCallback = function slowFunctionWarningWithCallback(message, warnAfter, callback) {
+  var defaultDelay = 1500;
+  if (typeof warnAfter === 'function') callback = warnAfter, warnAfter = defaultDelay;
+  var delayedWarning = setTimeout(function() {
+    _logger.warn(message);
+  }, warnAfter || defaultDelay);
+  return function() {
+    clearTimeout(delayedWarning);
+    callback.apply(this, arguments);
+  };
+};
+
 var copy = module.exports.copy = function copy(src, dest, done) {
   var destDir = path.dirname(dest)
     , _logger = log.child({ source: src, destination: dest });
-  var delayedFinishWarning = setTimeout(function() {
-    _logger.warn('copy task is taking long time');
-  }, 3000);
-  var cleanup = function(err) {
-    clearTimeout(delayedFinishWarning);
-    done(err);
-  };
+  var cleanup = slowFunctionWarningWithCallback('copy task is taking too long', done);
   fs.exists(dest, function(yes) {
     if (yes) {
       _logger.trace({ exists: yes }, 'skipping');
@@ -45,21 +52,23 @@ var copy = module.exports.copy = function copy(src, dest, done) {
 var prep = module.exports.prep = function prep(options, callback) {
   log.info({ dist: options.dist, build: options.buildDestination }, 'cleaning previous build');
 
+  var cleanup = slowFunctionWarningWithCallback('prepping directories is taking a long time', callback);
+
   rimraf(options.dist, function(err) {
     if (err) {
       log.error({ err: err }, 'options.dist rimraf error');
-      return callback(err);
+      return cleanup(err);
     }
     rimraf(options.buildDestination, function(err) {
       if (err) {
         log.error({ err: err }, 'options.buildDestination rimraf error');
-        return callback(err);
+        return cleanup(err);
       }
       log.trace({ dist: options.dist, build: options.buildDestination }, 'creating buildDestination directory');
       mkdirp.sync(options.buildDestination);
       log.trace({ dist: options.dist, build: options.buildDestination }, 'creating dist directory');
       mkdirp.sync(options.dist);
-      callback();
+      cleanup();
     });
   });
 }
@@ -88,26 +97,28 @@ var copyAllAssets = module.exports.copyAllAssets = function copyAllAssets(option
       var transactionSource = path.join(options.sourceAssets, assetPath)
         , transactionDestination = path.join(options.destinationAssets, assetPath);
       log.trace({ assetSource: transactionSource, assetDestination: transactionDestination }, 'found and copying assets');
-      ncp(transactionSource, transactionDestination, taskCallback);
+      var cleanup = slowFunctionWarningWithCallback('copying ' + transactionSource + ' to ' + transactionDestination + ' taking too long', taskCallback);
+      ncp(transactionSource, transactionDestination, cleanup);
     });
   });
   return tasks;
 }
 
 var build = module.exports.build = function build(tasks, options, callback) {
-  log.trace({ tasks: tasks.length, options: options }, 'beginning build tasks');
+  log.trace({ tasks: tasks.length, buildDestination: options.buildDestination, dist: options.dist }, 'beginning build tasks');
   async.parallelLimit(tasks, 8, function(err) {
     if (err) {
       log.error({ err: err }, 'build task error');
       return callback(err);
     }
+    var cleanup = slowFunctionWarningWithCallback('build taking a long time', callback);
     ncp(options.buildDestination, options.dist, function(err) {
       if (err) {
         log.error({ err: err, buildDestination: options.buildDestination, dist: options.dist }, 'build copy error');
-        return callback(err);
+        return cleanup(err);
       }
       log.debug('build complete');
-      callback();
+      cleanup();
     });
   });
 }

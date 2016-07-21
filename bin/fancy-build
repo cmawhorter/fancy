@@ -22,9 +22,8 @@ var argv = require('yargs').usage('Usage: $0 -x [num] -y [num]', {
 
 var build = require('../src/build/build.js');
 
-function done(err, dist) {
+function done(err) {
   if (err) throw err;
-  console.log('Done. Run: cd ./%s && npm install && npm start', path.relative(process.cwd(), dist));
   process.exit(0);
 }
 

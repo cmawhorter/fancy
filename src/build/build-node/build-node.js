@@ -3,7 +3,7 @@ var path = require('path')
 
 var rimraf = require('rimraf')
   , mkdirp = require('mkdirp')
-  , ncp = require('ncp').ncp
+  , ncp = require('cpr')
   , async = require('async');
 
 ncp.stopOnError = true;
