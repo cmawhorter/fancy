@@ -11,7 +11,7 @@ var argv = require('yargs').usage('Usage: $0 -x [num] -y [num]', {
   },
   target: {
       default: null
-    , description: 'Supporting web server software.  Currently only "node" is supported.'
+    , description: 'Supporting web server software.  "node" OR "s3" supported'
   },
   o: {
       alias: 'output'
@@ -20,7 +20,7 @@ var argv = require('yargs').usage('Usage: $0 -x [num] -y [num]', {
   },
 }).argv;
 
-var build = require('../src/build/build-static.js');
+var build = require('../src/build/build.js');
 
 function done(err, dist) {
   if (err) throw err;

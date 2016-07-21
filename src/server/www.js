@@ -221,6 +221,9 @@ module.exports = {
           return;
         }
 
+        // should content be included in build? defaults to true
+        res.set('Fancy-Build', (data.properties['fancy-build'] || [ 'true' ])[0].toLowerCase().trim());
+
         var context = createContext(data.filepath, data.properties, helpers.buildRequest(req), data.resources);
         context.usingResolver = helpers.usingResolver(sock);
 
