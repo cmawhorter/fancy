@@ -125,7 +125,10 @@ var helpers = module.exports = {
     for (var i=0; i < assetPaths.length; i++) {
       var pattern = unlimited && assetPaths[i].indexOf(unlimited) > -1 ? '/**/*.*' : '/**/*.{' + extensions.join(',') + '}';
       var search = path.join(assetPaths[i], pattern);
-      glob.sync(search).forEach(function(element) {
+      glob.sync(search, {
+        nodir:    true,
+        symlinks: true,
+      }).forEach(function(element) {
         var rel = element.split(assetPaths[i])[1]
           , item = { abs: element, rel: rel, collision: null };
         if (uniqueRelativeAssets.indexOf(rel) > -1) {
