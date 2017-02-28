@@ -82,7 +82,9 @@ module.exports = {
     var themePath = file.abs('./' + (options.theme ? 'themes/' + options.theme : 'theme'));
     var themeAssets = file.abs(path.join(themePath, 'public'));
     var dataAssets = file.abs('./data/' + options.assets);
-    var contentAssets = glob.sync(file.abs('./data/' + options.content + '/**/*.html/public'));
+    var contentAssets = glob.sync(file.abs('./data/' + options.content + '/**/*.html/public'), {
+      symlinks: true,
+    });
     var assetPaths = [themeAssets, dataAssets].concat(contentAssets);
 
     logger.debug('compilation paths', {

@@ -38,7 +38,9 @@ module.exports = {
 
     var themeAssets = path.join(themePath, 'public');
     var dataAssets = file.abs('./data/' + options.assets);
-    var contentAssets = glob.sync(file.abs('./data/' + options.content + '/**/*.html/public'));
+    var contentAssets = glob.sync(file.abs('./data/' + options.content + '/**/*.html/public'), {
+      symlinks: true,
+    });
     var componentsPaths = glob.sync(file.abs('./components/{*.js,*/index.js}'));
     var components = {};
 
